@@ -17,6 +17,7 @@ Most of the fabric's machinery runs **before** the demo, producing artifacts. Th
 | **r2g** (Phase 12a) | pip CLI/library, local | Versioned mapping artifact (P12.1) consumed at runtime by M5 |
 | **customer-context `ingestion/`** | Python pipeline, local, one-shot | The unstructured graph in ArangoDB (chunks, embeddings, entities, canonical hub via AER) |
 | Hand-built master ontology (B2) | authored in AOE workspace or YAML | The master + mappings, loaded into ArangoDB as collections |
+| **`arango-solutions-mcp-server`** | MCP server (stdio/HTTP), local, during development | Agent (Claude Code) access to the hub while building — inspect collections, validate AQL, run hybrid-search experiments. **Not on the demo-time path** (raw AQL bypasses the ontology — PRD §10.2); it is also the host pattern for the fabric's own semantic MCP tools in P2. |
 
 ### Demo-time (live during the demo)
 
