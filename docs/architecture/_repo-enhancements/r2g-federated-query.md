@@ -20,8 +20,10 @@ related:
 >
 > This is the concrete example Arthur gave ("tell r2g it needs to support federated query"). It is the highest-leverage enhancement for Phase 1.
 
-## 1. Current state (as understood — Arthur to confirm)
-r2g today takes a relational schema, produces an ontology (OSI/YAML) with **mappings to the source system**, and — in the Cambridge-Semantics style — can **hydrate/batch-load** the data into the graph. It uses the relational-schema analyzer and the Arango-schema analyzer (pip libs) and implements **OSI**. The mapping already exists; today it is expressed in the source system's language and used for a batch load.
+## 1. Current state (verified against `~/code/r2g`, v0.2)
+r2g takes a relational schema and produces mappings **already decoupled from the load**: `ingest-schema → schema.json → generate-config → mapping.yaml`, then batch ETL / CDC / Kafka / temporal-mode loading as separate steps. Its introspection/analysis core has been extracted into **RSA (`relational-schema-analyzer`, PyPI v0.4.0)**, which carries the production bar — downstream systems (including this fabric) depend on RSA + named r2g modules, not r2g wholesale. Also relevant and already shipped: **Snowflake** source support (Phase 6, done), a **field-expression engine** (Phase 5c expression mapping; reused by Phase 9b masking) — the "general-purpose expression compiled per dialect" this spec's open question asked about, **LLM-assisted ontology derivation with human review** (Phase 10), and **MCP tools** (Phase 8). What does **not** exist is any federated/pushdown query path: no per-source query generation, no query fragmentation. r2g's operational envelope is single-node, no scale/HA.
+
+> These enhancements are now specified on the r2g side as **r2g PRD Phase 12** (`r2g/docs/PRD.md`).
 
 ## 2. Why the change
 The customer constraint is **do not move the data** ([[ZScaler]]: "the brain has to be on this side"; no bulk materialization into Arango). The mapping r2g already produces *is effectively the query* — instead of running it once to hydrate, we need to run it **on demand, per question, pushed down to the source**, and to **break a query across multiple sources** when needed. This is the same transpile pattern as the Cypher/SPARQL translator (English → query), generalized and federated.
@@ -48,6 +50,7 @@ The customer constraint is **do not move the data** ([[ZScaler]]: "the brain has
 - Given the Phase-1 Postgres schema, r2g emits an **OSI mapping** and, for a seed-question predicate, generates a **parameterized SQL pushdown query** that returns the right rows **without** hydrating them into Arango — and returns the SQL text + source objects for citation.
 
 ## 7. Open questions / for Arthur
-- Does r2g already emit mappings independently of the batch load, or is that the refactor?
-- Is the mapping expressed generally (e.g. spreadsheet-formula style, then compiled to SQL) or directly in SQL today? (Roadmap transcript suggested moving toward a general-purpose expression compiled per dialect.)
-- Confirm the `arango-solutions/r2g` vs personal `arangodb` copy to build against (the roadmap noted solutions may lag).
+- ~~Does r2g already emit mappings independently of the batch load?~~ **Answered (v0.2): yes** — `generate-config` emits `mapping.yaml` from `schema.json` with no load step. RE-1/RE-3 are exposure + packaging, not refactors; RE-2 (query generation) is the real build.
+- ~~Is the mapping expressed generally or directly in SQL?~~ **Answered (v0.2): generally** — r2g's field-expression engine (Phase 5c) already expresses value transforms source-agnostically; RE-2 compiles mapping + predicate to dialect SQL at query time.
+- ~~Which repo copy to build against?~~ **Answered (v0.2):** Arthur's `~/code/r2g` (GitHub `ArthurKeen/r2g-arango`), with RSA pinned from PyPI.
+- Remaining: does pushdown generation live in r2g, in RSA, or in a new `r2g-query` module RSA-style-extracted from day one? (Leaning: build inside r2g behind a named module so the fabric can pin it — decide in the Phase 12 kickoff.)

@@ -44,7 +44,7 @@ The join fabric. When the query engine pulls a fact from Postgres and a signal f
 Precision-first (over-merge in front of a customer is the failure mode); every merge explainable (provenance for citations); no bulk data movement (resolve on the keys/attributes needed).
 
 ## 6. Dependencies
-- **Repos:** `arango-entity-resolution` (AER) — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/aer-semantic-federated|enhancement]]; `customer-context` (existing canonical-hub + survivorship + guards).
+- **Repos:** `arango-entity-resolution` (AER v3.5.1) — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/aer-semantic-federated|enhancement]]; `customer-context` (existing canonical-hub + survivorship + guards). **v0.2 notes:** AER already ships vector/ANN blocking + LLM match verification, so FR-4 is configuration + demo-safety hardening rather than a build. Also: **AOE's internal ER is hand-rolled** (its full AER integration is deferred), so two ER implementations coexist in the fabric — AER for the canonical hub (this module), AOE's for extraction-time concept dedup. Acceptable short-term; converge on AER when AOE's integration lands.
 
 ## 7. Phase mapping
 - **P1:** reuse existing deterministic ER + canonical hub.

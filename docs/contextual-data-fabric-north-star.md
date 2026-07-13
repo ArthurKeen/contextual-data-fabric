@@ -19,7 +19,7 @@ topics:
   - "[[Ontology]]"
   - "[[Graph]]"
 status: draft
-version: 0.1
+version: 0.2
 ---
 
 # Contextual Data Fabric — North Star
@@ -85,7 +85,7 @@ See the [[contextual-data-fabric-prd|PRD]] for detail. In brief:
 
 - **Phase 1** proves the *shape* at small scale — federated query across **one** database + the unstructured graph in Arango, ontology-derived and cited.
 - **Phase 2** widens to the **highest-value** source (Snowflake), adds the **assembled** analytics pattern, and instruments **cost/latency**.
-- **Phase 3** adds **governance** (ontology-based access control) and **change management** (belief management, time-travel, curation) — the capabilities that turn a query tool into the enterprise brain.
+- **Phase 3** adds **governance** (ontology-based access control) and **surfaces change management in the fabric** — belief revision, time-travel, and curation already exist in AOE (v0.2 verification); Phase 3's work is the source-change cascade, programmatic change-control hooks, and wiring them into the fabric's ontology lifecycle. These are the capabilities that turn a query tool into the enterprise brain.
 - Each step is a real, adoptable increment — never a big-bang toward the vision.
 
 ---

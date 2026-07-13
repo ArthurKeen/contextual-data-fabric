@@ -47,7 +47,7 @@ This is the runtime heart of the Query building block. Given a natural-language 
   - Canonical-entity resolution from M6 for cross-source joins.
 - **Produces:**
   - An **answer payload** + a **retrieval path** object listing every sub-query executed: `{source, query_text (SQL/AQL), source_objects, rows/ids}`. M7 wraps this into the validated cited envelope.
-- **Contract (proposed):** a `federate(question, ontology, mappings, sources) -> {answer, retrieval_path[]}` library call; the query plan is an inspectable intermediate object (for debugging and for the deterministic/LLM swap).
+- **Contract (proposed):** a `federate(question, ontology, mappings, sources) -> {answer, retrieval_path[]}` library call; the query plan is an inspectable intermediate object (for debugging and for the deterministic/LLM swap). **Agent-facing surface:** PRD §10.2 proposes wrapping this call as an **MCP tool** (consistent with the five constituent repos that already ship MCP servers) — decide via PRD §9.8 before P2 so the contract isn't retrofitted.
 
 ## 4. Functional requirements
 - **FR-1 (P1):** Resolve a question to ontology concepts and produce a **query plan** naming the sources to hit and the join keys.
@@ -58,8 +58,10 @@ This is the runtime heart of the Query building block. Given a natural-language 
 - **FR-6 (P1):** **LLM planner** path (quick-and-dirty decomposition) with the plan surfaced for inspection.
 - **FR-7 (P2):** **Deterministic planner** path (mapping-driven decomposition; LLM only as safety net).
 - **FR-8 (P2):** **Assembled** execution pattern — materialize a bounded subgraph into Arango and run graph analytics (e.g. PageRank) when the use case needs it.
-- **FR-9 (P2):** **Cost/latency instrumentation** per plan (tokens, wall-clock, per-source) — directly addresses the customer's cost objection.
+- **FR-9 (P2):** **Cost/latency instrumentation** per plan (tokens, wall-clock, per-source) — directly addresses the customer's cost objection. Reuse AOE's observability stack (structlog/Prometheus/OTel) per PRD §10.6.
 - **FR-10 (P3):** Multi-source planner across ≥3 sources with parallelized independent legs and cross-source join optimization.
+- **FR-11 (P1):** **Partial-failure semantics** (PRD §10.5 / CC-5) — when a leg fails while others succeed: default to a partial answer with the failed leg *explicitly declared* in the retrieval path; refuse when the failed leg is load-bearing. Never silent omission.
+- **FR-12 (P1):** **As-of stamps** (PRD §10.4 / CC-4) — every sub-query result in the retrieval path carries an as-of timestamp (execution time for live legs; last-ingest time for the Arango graph) so M7 can cite freshness.
 
 ## 5. Non-functional requirements
 - **No data movement** (loosely-coupled default; assembled only on demand, bounded, temporary).

@@ -51,7 +51,7 @@ Reliable in front of a customer (a confident wrong or flaky demo is the failure 
 - **P3:** —
 
 ## 8. Acceptance criteria / demo (P1)
-- Typing a seed question returns a federated, cited answer with the two-source retrieval path visible, reliably, in the demo environment.
+- Typing a seed question returns a federated, cited answer with the two-source retrieval path visible, reliably, in the demo environment — **defined in [[contextual-data-fabric/docs/architecture/deployment-p1|the P1 deployment topology]]** (four live processes on one host: Postgres + ArangoDB via docker-compose, the M5 engine, this UI; AOE/RSA/r2g are build-time only).
 
 ## 9. Open questions
 - How much of the existing customer-360 app is reused vs trimmed for the fabric demo.

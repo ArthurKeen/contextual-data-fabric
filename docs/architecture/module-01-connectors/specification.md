@@ -40,7 +40,7 @@ Own the boundary to each external source. Two distinct jobs: (a) a **metadata-sa
 - **FR-3 (P1):** **Metadata-sampling** mode that returns schema without pulling bulk data (requires the [[contextual-data-fabric/docs/architecture/_repo-enhancements/schema-analyzers-metadata-sampling|schema-analyzers enhancement]]).
 - **FR-4 (P2):** Snowflake connector — metadata + pushdown query (gated on the free-tier check, PJ).
 - **FR-5 (P3):** Databricks connector.
-- **FR-6 (P2):** Credential management + read-only enforcement per source.
+- **FR-6 (P1 floor / P2 hardened):** P1 security floor (PRD §10.7 / CC-7): every source connection uses a **read-only DB role**; credentials come from environment/secret store, never code or mapping artifacts; no raw-credential logging. P2: full credential management + per-source read-only enforcement.
 
 ## 5. Non-functional requirements
 No bulk data movement (sampling + pushdown only); read-only by default; connection reuse for latency; source errors surfaced (never silently swallowed).

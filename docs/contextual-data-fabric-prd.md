@@ -24,16 +24,18 @@ topics:
   - "[[Ontology]]"
   - "[[Graph]]"
 status: draft
-version: 0.1
+version: 0.2
 ---
 
 # Contextual Data Fabric — Product Requirements Document
 
-> **Status:** Draft v0.1 for team review. Posted per the [[2026-07-13 Zscaler Customer Context Roadmap]] action item ("PJ to draft PRD"). Arthur needs this before refactoring r2g / the ontology extractor so we scope the build rather than over-build.
+> **Status:** Draft v0.2 for team review. Posted per the [[2026-07-13 Zscaler Customer Context Roadmap]] action item ("PJ to draft PRD"). Arthur needs this before refactoring r2g / the ontology extractor so we scope the build rather than over-build.
+>
+> **v0.2 (2026-07-13):** reconciled every "as understood — Arthur to confirm" claim against the actual repos (r2g, relational-schema-analyzer, arango-schema-analyzer, arango-ontoextract, arango-entity-resolution). The ★ structured→ontology question is **resolved (yes)**; the risk has moved to **ontology alignment** and **r2g pushdown query generation**, which are builds, not confirms. Repo references in §8 are now pinned. New §10 adds cross-cutting requirements (evaluation, agent interface, consistency, partial failure, caching, security).
 >
 > **Reviewers:** [[Arthur Keen]] (build gatekeeper), [[Michael Fonseca]], [[Michael Gillespie]], [[Daniel Blake Morris]].
 >
-> **How to read this:** §1–§5 are the general vision and architecture. **§6 is the phased plan; §7 is the detailed Phase 1 (the 1-week near-term goal).** §8 lists the repos to pull into Claude Code context. §9 is open decisions for the team.
+> **How to read this:** §1–§5 are the general vision and architecture. **§6 is the phased plan; §7 is the detailed Phase 1 (the 1-week near-term goal).** §8 lists the repos to pull into Claude Code context. §9 is open decisions for the team. §10 (new in v0.2) is cross-cutting requirements that bind every module.
 >
 > **Companion:** [[contextual-data-fabric-north-star|North Star]] — the end-state vision every phase ladders toward. This PRD is the near-term contract; the North Star is the horizon to check scope against.
 
@@ -148,6 +150,8 @@ The near-term goal (per Arthur) drives Phase 1; later phases widen source covera
 ### 7.1 The "one database"
 **Proposed: PostgreSQL.** Rationale: Arthur already has a Postgres connector with substantial capability built in; it is the fastest path to a working proof (the roadmap explicitly says "start with Postgres for the proof"). **Snowflake is the higher-value target but is gated on a free-tier check (PJ, in progress)** and moves to Phase 2. *(Open decision §9 if the team wants to attempt Snowflake directly in Phase 1.)*
 
+> **v0.2 note:** the free-tier check gates the **demo account only**, not connector code — Snowflake support *already exists* in both r2g (Phase 6, done: metadata introspection + consistent-snapshot streaming sessions) and `relational-schema-analyzer` (live source). If PJ's account check lands early, Snowflake-in-P1 costs connector-config time, not build time.
+
 ### 7.2 The unstructured side (already in Arango)
 Reuse the [[Customer360]] v3 pipeline (repo `customer-context`): connectors/chunking → LangGraph extractor (A-box instances against a hand-authored T-box) → span gate → person coreference → embeddings (BM25 + vector) → **AER** entity resolution → survivorship. This graph is already query-ready; federating over it just needs **AQL generation** driven by the ontology (deterministic).
 
@@ -160,51 +164,100 @@ Reuse the [[Customer360]] v3 pipeline (repo `customer-context`): connectors/chun
 | **B3** | **Functional mappings** | Master-ontology concept/property → Postgres table/column (with any value transforms) **and** → Arango collection/AQL. The mapping is the query. | Arthur |
 | **B4** | **Federated query executor** | English → resolve concepts via ontology → decompose → generate **Postgres SQL (pushdown)** + **Arango AQL** → execute → reassemble. LLM decomposer, deterministic mapping execution, LLM as safety net. | PJ |
 | **B5** | **Grounded, cited retrieval path** | Validated answer envelope + citations + retrieval path spanning **actual SQL + AQL + source objects** (extend the existing customer-360 citation/envelope + traversal viz). | PJ |
-| **B6** | **Thin demo harness** | Minimal UI (reuse the customer-360 Vercel app pattern) to run 1–3 seed questions end-to-end. | PJ |
+| **B6** | **Thin demo harness** | Minimal UI (reuse the customer-360 Vercel app pattern) to run 1–3 seed questions end-to-end, on the CC-8 topology (`docs/architecture/deployment-p1.md`). | PJ |
+| **B7** | **Cost/latency baseline** | Record tokens + wall-clock per seed question on the fabric path (planner, per-leg, total), **and the same question answered the naive way** (all relevant context stuffed to the LLM / simulated A2A) — the comparison point Rah's objection demands. Half a day: instrument-lite logging, one table in the demo appendix. Full instrumentation stays P2 (M5 FR-9). | PJ (measured while building B4) |
 
 ### 7.4 Phase 1 success criteria (demo)
 - At least **one** (target 2–3) seed question answered **end-to-end**, federating live Postgres + the Arango unstructured graph.
 - **No bulk Postgres data mirrored** into Arango — the relational facts are fetched live via pushdown; the citation shows the **actual SQL** and source object.
 - The **ontology is visibly auto-derived** from the Postgres schema (+ unstructured side) and **aligned**, with the human-confirm step shown.
 - The answer is **grounded**: exact citations + retrieval path across both sources; refuses if it can't cite (existing grounding gate).
-- (Nice-to-have) A note/measurement on **cost/latency** vs a naive approach, to pre-empt Rah's objection.
+- A **cost/latency baseline table** (B7): fabric path vs naive path for at least one seed question — tokens and wall-clock. Promoted from nice-to-have in v0.2.1: the cost objection is the stated biggest headwind, so the demo carries at least one number, not zero.
 
 ### 7.5 Phase 1 out-of-scope
 Snowflake/Databricks; assembled/materialized pattern; OBAC; belief-management change control & time-travel UX; full synthetic-data program; multi-structured-source alignment. All deferred to Phase 2+.
 
 ### 7.6 Phase 1 dependencies & risks
-- **★ Make-or-break: does the ontology extractor already do structured→ontology?** OntoExtract is unstructured-only in its original form; r2g covers relational schema→ontology. **Arthur to confirm the structured→ontology path exists / is demoable before we commit.** This gates B1–B3.
-- **Postgres vs Snowflake** — Phase 1 assumes Postgres; Snowflake free-tier check pending (PJ).
-- **Minimal synthetic footprint** — Phase 1 needs a small synthetic Postgres schema + the existing unstructured corpus; full synthetic-data work stays deferred.
-- **Repo/stabilization** — Arthur to stabilize r2g + the ontology extractor to demoable state this week (in flight).
+- **★ RESOLVED (v0.2): does structured→ontology exist? Yes — twice over, with documented ownership.** AOE's capability table marks **Schema → Ontology (structured): Done** (ArangoDB collection schemas and relational/SQL schemas → OWL/SHACL classes/properties/constraints), with the split defined as *"AOE owns the SQL→OWL/SHACL mapping; `relational-schema-analyzer` is a read-only physical-schema introspector."* Independently, **RSA v0.4.0** (PyPI) emits `{conceptualSchema, physicalMapping, metadata}` bundles + OWL export from 7 live sources (incl. Postgres, Snowflake, Databricks) and dbt/OSI catalogs. r2g Phase 10 (implemented) adds LLM-assisted ontology derivation with a human review UI — the "confirm ~2%" step of B2 already has a working surface. **B1 is wiring, not building.**
+- **★ NEW make-or-break: multi-source ontology alignment is a build, not a confirm.** AOE's README states it outright: *"Multi-source ontology alignment: Not built."* Building blocks exist (effective-graph union + import conflict flagging, the cross-tier overlap-candidate finder, pairwise class merge) but there is no alignment/resolution orchestration. **The P1 plan (not fallback) is to hand-construct the small use-case-scoped master (B2)**; automated alignment lands P2 per the AOE spec `arango-ontoextract/docs/multi-source-alignment.md`.
+- **r2g pushdown query generation is the other genuinely new P1 build.** r2g already emits mappings decoupled from any load (`ingest-schema → schema.json → generate-config → mapping.yaml`), so runtime-mapping export and a no-materialization mode are near; **per-source pushdown query generation does not exist yet** — specified as r2g PRD **Phase 12** and in the `r2g-federated-query` enhancement spec.
+- ~~**`customer-context` has no local copy.**~~ **Step zero DONE (v0.2.1):** cloned to `~/code/customer-context` and verified — the v3 ingestion pipeline (span gate, coref, **real AER imports**, survivorship, `account_scope_key` over-merge guard), the pure-code grounding gate + typed zod envelope (`agent/src/`), and the Next.js citation/retrieval UI (`web/`) all exist as described. One confirmed gap: the envelope is single-deployment two-graph shaped (`structured|unstructured`) — the multi-source citation extension (M7 / customer-context RE-2) is genuine work.
+- **Postgres vs Snowflake** — Phase 1 assumes Postgres; the pending free-tier check gates the demo *account* only — connector code already exists (see §7.1 note).
+- **Minimal synthetic footprint** — Phase 1 needs a small synthetic Postgres schema + the existing unstructured corpus; full synthetic-data work stays deferred. (r2g ships Chinook/Pagila sample Postgres databases under `docker/` — a candidate P1 schema at zero cost.)
 
 ---
 
 ## 8. Referenced Repositories (for Claude Code context)
 
-*Pull these into Claude Code when building so it has full context (per Arthur's request). Exact GitHub URLs/handles to be confirmed by Arthur — he owns repo creation for this project and noted that the `arango-solutions` copies may lag his personal `arangodb` repos.*
+*Pull these into Claude Code when building so it has full context (per Arthur's request). Repo references pinned in v0.2 against Arthur's local `~/code` checkouts; the `arango-solutions` copies may lag his personal repos. One cleanup: `~/code/relational_schema_analyzer` (underscore) is an empty stale directory — delete it so nothing picks up the wrong path.*
 
 - **`Contextual Data Fabric`** — the new project repo Arthur is creating (private for now). Home for the composable building blocks.
-- **`customer-context`** (`arango-solutions/customer-context`) — the [[Customer360]] v3 pipeline: connectors/chunking, LangGraph extractor, span gate, person coref, embeddings (BM25 + vector), **AER** integration, survivorship, grounded/cited answer envelope + Vercel demo app. Basis for the unstructured side + demo harness (B4–B6).
+- **`customer-context`** (`arango-solutions/customer-context`) — the [[Customer360]] v3 pipeline: connectors/chunking, LangGraph extractor, span gate, person coref, embeddings (BM25 + vector), **AER** integration, survivorship, grounded/cited answer envelope + Vercel demo app. Basis for the unstructured side + demo harness (B4–B6). **✓ Cloned + verified (v0.2.1, `~/code/customer-context`)** — pipeline, grounding gate, envelope, and UI confirmed present; see the enhancement spec §1 for the verified inventory.
 - **`r2g`** (relational-to-graph) — Arthur's; the **reference application** for relational schema → ontology/graph; **implements OSI**; composes the **relational-schema analyzer (RSA)** and **Arango-schema analyzer** pip libraries. RSA is the production-grade dependency and carries the production bar; r2g itself is a well-tested reference app (CI: ruff + mypy + large unit suite + Dockerized integration) but is not held to a production operational bar (single-node; no scale/HA). **B1–B3 depend on RSA (pinned) + named, tested r2g modules — not on r2g as a whole.**
-- **Ontology extractor / Arango OntoExtract (AOE)** — Arthur's; ontology extraction from unstructured (and, per the roadmap, evolved to target schemas/catalogs/Snowflake/Databricks); belief management, time-travel, SHACL/constraint extraction, cyclic refinement. Basis for the Onto Extract layer.
-- **Arango Entity Resolution (AER)** — `CrossCollectionMatchingService` (blocking + Levenshtein/Jaro-Winkler → `resolvedTo`) + `WCCClusteringService`; the cross-source ER engine used in `customer-context`.
+- **Arango OntoExtract (AOE)** (`~/code/arango-ontoextract`) — Arthur's; LLM-driven ontology extraction + curation platform. Verified state (v0.2): unstructured extraction (6-agent LangGraph pipeline), **structured→ontology done** (SQL + ArangoDB schemas → OWL/SHACL), **belief revision built** (§6.16: touchpoint verdicts, Levi-identity revisions on the temporal substrate, Revisions Inbox, consolidation, 6 MCP tools), **time-travel done** (VCR timeline, point-in-time snapshots), SHACL constraints, JWT+RBAC, observability (structlog/Prometheus/OTel), MCP server (18 tools). **Multi-source alignment: not built** — the fabric's M3 gap. Basis for the Onto Extract layer.
+- **Arango Entity Resolution (AER)** (`~/code/arango-entity-resolution`, PyPI `arango-entity-resolution` v3.5.1) — `CrossCollectionMatchingService` + `WCCClusteringService`; the cross-source ER engine used in `customer-context`. Verified state (v0.2): already ships **vector/ANN blocking** (sentence-transformers + `APPROX_NEAR_COSINE`), phonetic/n-gram matching, and **LLM match verification** for the 0.55–0.80 confidence band, plus an MCP server — semantic matching is largely done; the P2 work is the canonical-hub API + preserving the customer-context guards.
 - **Relational-schema analyzer (RSA)** / **Arango-schema analyzer** — versioned pip libraries consumed by r2g and the ontology extractor. RSA is the **production-grade core** for structured→ontology; the fabric's structured building blocks (B1, M1/M2/M4) pin RSA's PyPI release + stable tool-contract bundle rather than depending on r2g internals.
 
 ---
 
 ## 9. Open Decisions for the Team
 
-1. **Phase-1 database:** Postgres (proposed — fastest proof) vs attempt Snowflake directly (higher value, gated on free-tier). → §7.1
-2. **Structured→ontology readiness (★):** confirm the ontology extractor / r2g path is demoable before committing B1–B3. → §7.6
+1. **Phase-1 database:** Postgres (proposed — fastest proof) vs attempt Snowflake directly (higher value; the gate is the demo account, not connector code — §7.1 note). → §7.1
+2. ~~**Structured→ontology readiness (★)**~~ — **RESOLVED (v0.2):** confirmed done in both AOE (owns SQL→OWL/SHACL) and RSA (introspection + tool-contract bundle). Remaining sub-decision: which path B1 demos with (proposed: RSA introspection bundle → AOE OWL/SHACL mapping, matching the documented split). → §7.6
 3. **Query decomposition:** are we happy presenting LLM *and* deterministic as a composable choice, with deterministic as the long-term target? → §5.2
 4. **Ontology scope:** confirm the seed CSM use cases (§4) as the Phase-1 ontology scope.
 5. **Repo shape:** one repo with modules, or separate repos per building block (Onto Extract layer vs Query layer)? Arthur's call as gatekeeper.
 6. **Naming:** confirm **"Contextual Data Fabric"** (also JLR's term; channel `#contextual-fabric`).
+7. **Evaluation bar (new, v0.2):** confirm the golden-set approach (§10.1, module M10) and who authors expected answers for the seed questions.
+8. **Agent interface (new, v0.2):** is **MCP** the fabric's agent-facing surface (§10.2)? Five constituent repos already ship MCP servers (AOE alone: 18 workspace tools + 6 belief-revision tools); deciding early shapes M5's contract and M9.
+9. **Master-ontology store (new, v0.2):** adopt AOE's ArangoRDF-PGT + temporal-versioning store as the fabric's master-ontology home, or define a fabric-native representation? (§10.3)
 
 ---
 
-## 10. Process & Ownership
+## 10. Cross-Cutting Requirements *(new in v0.2)*
+
+Requirements that bind every module; each module spec references the ones that apply. Numbered CC-1…CC-10 with the phase they take effect.
+
+### 10.1 Evaluation & correctness (CC-1, P1)
+"Trust is structural" must be testable. **A golden set of seed questions with expected answers, expected sources touched, and expected citations** is a P1 deliverable alongside the demo (start with the §4 seed questions). Every planner change (LLM or deterministic) runs against it; regressions block. P2 extends it with decomposition-accuracy scoring (did the plan hit the right sources / join keys?) and adopts the LLM-as-judge patterns AOE already implements (faithfulness scoring, qualitative evaluation agent). Owned by module **M10 (Evaluation)** — see the architecture index.
+
+### 10.2 Agent interface (CC-2, decide P1, ship P2)
+The primary persona is an agent, so the fabric must define its programmatic surface, not just a demo UI. **Proposed: MCP.** RSA, arango-schema-analyzer, AER, r2g, and AOE all already expose MCP servers, so composing the fabric as an MCP surface (a `federate(question) -> cited envelope` tool + introspection tools over the ontology/mappings) is consistent with every building block. P1 may demo through the library call + UI; the MCP decision (§9.8) should land before P2 so M5's contract doesn't have to be retrofitted.
+
+### 10.3 Ontology & mapping storage/versioning (CC-3, P1 decision)
+The master ontology needs a defined physical home in Arango. **Proposed: AOE's existing store — ArangoRDF PGT (OWL semantics preserved) + the temporal versioning substrate** — rather than a fabric-native format (§9.9). The M4 **mapping artifact must be versioned too**: since "the mapping is the query," an unversioned mapping is an unversioned query. P1: mappings carry a version/hash cited in the envelope; P2: mapping versions align with ontology versions (same temporal pattern).
+
+### 10.4 Consistency & as-of semantics (CC-4, P1 minimal)
+A federated answer joins **live** relational facts with a **pre-ingested** unstructured graph — the legs have different freshness. P1 minimal: every citation carries an **as-of timestamp** (query execution time for live legs; last-ingest time for the Arango graph), surfaced in the envelope. P2+: staleness thresholds per source and a visible "unstructured side current as of …" annotation in the demo UI.
+
+### 10.5 Partial-failure semantics (CC-5, P1)
+Defined behavior when one federation leg fails (timeout, auth, source down) while others succeed: **default is a partial answer with the failed leg explicitly declared** (the "partially-grounded" badge), never silent omission; **refusal when the failed leg is load-bearing** for the question (no answerable claim survives without it). The retrieval path records the failure the same way it records a success. (M5 emits, M7 renders.)
+
+### 10.6 Cost, latency & caching stance (CC-6, P2)
+Cost/latency instrumentation is already FR'd (M5 FR-9, M7 FR-5); this adds the **caching stance**: metadata bundles and compiled query plans are cacheable (invalidated on schema change via RSA re-analysis / belief-management cascade); **query results are not cached in P1–P2** (correctness + "don't move the data" first). Instrumentation should reuse AOE's observability stack (structlog, Prometheus, OTel) rather than inventing one.
+
+### 10.7 Phase-1 security floor (CC-7, P1)
+Full credential management is P2 (M1 FR-6), but P1 already touches a live database, so the floor is: **read-only DB role for every source connection; credentials via environment/secret store, never in code or mapping artifacts; no raw-credential logging.** r2g's Phase 9 lane discipline ("carry governance metadata, never launder sensitive data") applies from day one; its classification/entitlement machinery and suggested-RBAC/OPA emission become concrete inputs to M8 in P3.
+
+### 10.8 Deployment topology (CC-8, P1)
+The P1 demo environment is defined in `docs/architecture/deployment-p1.md`: **four live processes on one host** — Postgres + ArangoDB via a repo-owned `docker-compose.yml` (Postgres seeded from r2g's Chinook/Pagila samples), the M5 engine (FastAPI; holds all source credentials per CC-7), and the customer-context Next.js UI run locally — with the LLM API as the only external dependency. **AOE, RSA, and r2g are build-time tools**: they produce the ontology, mappings, and ingested graph *before* the demo and are not on the live path (fewer moving parts in front of the customer; everything live is inspectable AQL/SQL). Vercel hosting is a Phase-2 option, not a P1 assumption.
+
+### 10.9 Dependency pinning & compatibility (CC-9, P1)
+The fabric consumes its building blocks as **versioned artifacts, never floating**. Policy:
+- **One pin table** — the compatibility matrix in the [architecture index](architecture/README.md) is the single source of truth for which version of each block the fabric currently builds against (RSA, `arangodb-schema-analyzer`, AER, the r2g Phase-12 module once it ships, AOE, customer-context @ commit).
+- **Arthur bumps pins** (build gatekeeper); a pin bump is a PR like any other change.
+- **A pin bump re-runs the M10 golden set** — that is the compatibility test. Red golden set = the bump doesn't merge. (P1: manual run; P2: CI gate per M10 FR-6.)
+- Blocks not yet on PyPI (customer-context, AOE) pin by **git commit SHA** until they version.
+
+### 10.10 Packaging & licensing (CC-10, deferred to P2 — deliberately)
+"Independently publishable blocks" is a North Star principle but **not P1 work**; recorded here so deferral is a decision, not an omission:
+- **License alignment:** r2g, RSA, `arangodb-schema-analyzer`, and AER are all **Apache-2.0**. **AOE has no LICENSE file** (verified v0.2.1) — an action item before anything imports it as a dependency or it's pitched as a publishable block. Fabric-owned packages default to Apache-2.0 to match the ecosystem unless the team decides otherwise.
+- **Naming:** fabric-owned packages under one prefix (proposal: `arango-fabric-*`, e.g. `arango-fabric-query`, `arango-fabric-mappings`) — decide with the repo-shape question (§9.5).
+- **Release process:** semver + changelog + PyPI, following the RSA precedent (it is the model: extracted core, versioned, contract-documented). P2 packages the first block; P3 the set.
+
+---
+
+## 11. Process & Ownership
 
 Composable-blueprint build: identify sub-modules → PR per sub-module → reconcile with the super-module → iterate (catches requirements drift). **Arthur is the build gatekeeper**; others review, test, and contribute per module. Standups + on-demand check-ins for decisions. This PRD is the shared contract Arthur refactors against — comment inline / via PR.
 

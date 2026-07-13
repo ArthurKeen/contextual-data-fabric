@@ -18,17 +18,20 @@ related:
 
 > **Requirement (one line):** expose a clean **metadata-sampling API** (schema, keys, catalog, sample rows) that the Connectors (M1) call and that feeds Ontology Extraction (M2) and the Mapping Layer (M4) — without pulling bulk data.
 
-## 1. Current state
-The **relational-schema analyzer** and **arango-schema analyzer** are pip libraries consumed by r2g and the ontology extractor. They analyze schema/structure to support ontology construction.
+## 1. Current state (verified against `~/code/relational-schema-analyzer` + `~/code/arango-schema-analyzer`, v0.2)
+Both analyzers exist as versioned pip libraries and are further along than v0.1 assumed:
+- **RSA (`relational-schema-analyzer`, PyPI v0.4.0):** introspects **7 live/file sources** (PostgreSQL, MySQL, SQL Server, Snowflake, DuckDB, Databricks, CSV) plus **dbt-manifest and OSI-catalog** sources, and emits a canonical `{conceptualSchema, physicalMapping, metadata}` bundle — deterministic baseline, optional additive LLM refinement, OWL Turtle/JSON-LD export, CLI, and an MCP server. Extracted from r2g's core; carries the production bar.
+- **`arangodb-schema-analyzer`** (repo `~/code/arango-schema-analyzer`): the ArangoDB-side analogue — conceptual schema + conceptual→physical mapping + metadata, whole-database or per-named-graph scope, MCP server (token-gated remote transports).
+- **The bundle shape is already standardized across the two** — RSA's README states it emits "the same tool-contract bundle shape" as the ArangoDB analyzer, so downstream consumers treat relational and Arango sources interchangeably. RE-1 is largely met; the remaining work is contract freezing and the sampling/incremental features below.
 
 ## 2. Why the change
 The fabric needs a **source-agnostic metadata bundle** so M2 can extract ontologies uniformly across sources and M1 can offer a "metadata sampling connector" (raised in the roadmap) that hydrates our mappings/ontology without moving the underlying data.
 
-## 3. Required enhancements
-- **RE-1 (P1):** A stable **metadata-bundle output** (tables, columns, types, keys/FKs, sample rows, catalog/semantic-layer defs where present) in a documented, source-agnostic shape.
-- **RE-2 (P1):** **Sampling controls** (row-sample size/limits) so analysis is cheap and no bulk data is read.
-- **RE-3 (P2):** Snowflake/Databricks metadata support behind the same bundle shape.
-- **RE-4 (P2):** Incremental re-analysis on schema change (feeds M3 belief management).
+## 3. Required enhancements *(re-scoped v0.2 against verified state)*
+- **RE-1 (P1, mostly done):** ~~Build~~ **Freeze + document** the metadata-bundle contract — the source-agnostic `{conceptualSchema, physicalMapping, metadata}` shape exists and is shared across both analyzers; the fabric pins a contract version so M1/M2/M4 consume it stably.
+- **RE-2 (P1, verify):** **Sampling controls** (row-sample size/limits) — bounded sampling exists in the r2g/RSA lineage (value samplers with row limits); verify the limits are exposed on the RSA public API and default to cheap.
+- **RE-3 (P2, mostly done):** ~~Add~~ Snowflake/Databricks are **already live RSA sources**; remaining work is parity-testing their bundles against the Postgres bundle shape.
+- **RE-4 (P2):** Incremental re-analysis on schema change (feeds M3 belief management / the AOE source-change cascade) — the one genuinely new build in this spec.
 
 ## 4. Interface contract (with M1 / M2 / M4)
 - **Input:** a source connection (from M1).
@@ -42,5 +45,6 @@ The fabric needs a **source-agnostic metadata bundle** so M2 can extract ontolog
 - The Postgres connector calls the analyzer and gets a complete metadata bundle (schema + keys + sampled rows) that M2 turns into a source ontology — with no bulk table read.
 
 ## 7. Open questions / for Arthur
-- Is the metadata-bundle shape already standardized across the two analyzers, or does it need unifying?
-- Which repo copy is canonical for these pip libs.
+- ~~Is the metadata-bundle shape already standardized across the two analyzers?~~ **Answered (v0.2): yes** — same tool-contract bundle shape, by design.
+- ~~Which repo copy is canonical?~~ **Answered (v0.2):** `~/code/relational-schema-analyzer` (PyPI `relational-schema-analyzer`) and `~/code/arango-schema-analyzer` (package `arangodb-schema-analyzer`). The empty `~/code/relational_schema_analyzer` (underscore) directory is stale — delete it.
+- Remaining: does the fabric consume the analyzers via pip API, via their MCP servers, or both (ties into PRD §10.2 agent-interface decision)?

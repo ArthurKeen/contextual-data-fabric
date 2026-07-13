@@ -4,7 +4,7 @@ ArangoDB as an **ontology-based metadata / agent-brain hub**: auto-derive a use-
 
 Part of **Project Vantage**. Built for and pressure-tested against the Zscaler customer-context engagement.
 
-> **Status:** planning docs, draft v0.1, for team review. This repo currently holds the PRD, North Star, and per-module / per-repo architecture specs. Code modules land per the phased plan.
+> **Status:** planning docs, draft v0.2, for team review. This repo currently holds the PRD, North Star, and per-module / per-repo architecture specs. Code modules land per the phased plan. **v0.2 reconciles all specs against the actual repos** — the structured→ontology gate is resolved (exists), the confirmed builds are ontology alignment (AOE) and pushdown query generation (r2g Phase 12), and PRD §10 adds cross-cutting requirements (evaluation, agent interface/MCP, consistency, partial failure, caching, security).
 
 ## Start here
 
@@ -25,6 +25,7 @@ Part of **Project Vantage**. Built for and pressure-tested against the Zscaler c
 | M7 | Grounding & Provenance | [spec](docs/architecture/module-07-grounding-provenance/specification.md) |
 | M8 | Governance / OBAC (future) | [spec](docs/architecture/module-08-governance-obac/specification.md) |
 | M9 | Demo Harness | [spec](docs/architecture/module-09-demo-harness/specification.md) |
+| M10 | Evaluation & Golden Set | [spec](docs/architecture/module-10-evaluation/specification.md) |
 
 ## Enhancement specs for existing repos
 

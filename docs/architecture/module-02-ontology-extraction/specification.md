@@ -45,7 +45,7 @@ The extraction half of the Onto Extract building block. For each source, emit a 
 Oracle-free / grounded to the source; OSI/YAML output; conceptual schemas (agent-usable), not academic ontologies; deterministic where possible with LLM assist.
 
 ## 6. Dependencies
-- **Repos:** `r2g` (structured), `ontology-extractor`/AOE (unstructured). **Critical:** confirm/complete the structured→ontology path — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/ontology-extractor-structured|enhancement]]. This is the make-or-break dependency from the [[ZScaler Feedback Summary]].
+- **Repos:** **RSA** (`relational-schema-analyzer`, structured introspection — the production-grade core), `ontology-extractor`/AOE (SQL→OWL/SHACL mapping + unstructured), `r2g` (reference application; Phase 10 LLM-assisted derivation + human review UI). **Resolved (v0.2):** the structured→ontology path **exists** — AOE owns the SQL→OWL/SHACL mapping, RSA is the read-only physical-schema introspector; the remaining P1 work is wiring the RSA-bundle→AOE handoff — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/ontology-extractor-structured|enhancement]] RE-1.
 
 ## 7. Phase mapping
 - **P1:** Postgres schema + unstructured corpus → two source ontologies.
@@ -56,5 +56,6 @@ Oracle-free / grounded to the source; OSI/YAML output; conceptual schemas (agent
 - Feeding the Phase-1 Postgres metadata bundle produces a reviewed source ontology; the unstructured corpus produces its own; both carry element provenance. The human-in-the-loop "confirm ~2%" step is visible.
 
 ## 9. Open questions
-- Does the ontology extractor already ingest structured metadata, or does r2g fully own structured→ontology? (Gate everything on this — Arthur to confirm.)
+- ~~Does the ontology extractor already ingest structured metadata, or does r2g fully own structured→ontology?~~ **Answered (v0.2): AOE ingests structured metadata and owns the SQL→OWL/SHACL mapping; RSA introspects; r2g is the composing reference app.** The gate is lifted.
+- Which path B1 demos with: RSA bundle → AOE mapping (proposed, matches the documented split) vs r2g Phase 10 derivation. → PRD §9.2.
 - Extraction scoping mechanism — how the use cases constrain what's extracted.
