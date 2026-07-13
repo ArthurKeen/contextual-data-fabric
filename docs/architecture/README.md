@@ -116,6 +116,7 @@ The single source of truth for which version of each block the fabric builds aga
 | `arango-entity-resolution` (AER) | **v3.5.1** | PyPI |
 | `arango-ontoextract` (AOE) | **v1.2.0** (`1099b7f`) | git tag/SHA (not on PyPI) |
 | `customer-context` | **`23b8ed8`** | git SHA (unversioned) |
+| `arangodb-mcp-server` (`arango-solutions-mcp-server`) | **v2.0.0** | poetry/pyproject (dev/ops tooling + fabric MCP host pattern — PRD §10.2) |
 | r2g Phase-12 module | — (not yet built) | will pin per P12.8 |
 
 ---
