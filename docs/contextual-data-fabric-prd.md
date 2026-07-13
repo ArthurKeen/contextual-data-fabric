@@ -186,10 +186,10 @@ Snowflake/Databricks; assembled/materialized pattern; OBAC; belief-management ch
 
 - **`Contextual Data Fabric`** — the new project repo Arthur is creating (private for now). Home for the composable building blocks.
 - **`customer-context`** (`arango-solutions/customer-context`) — the [[Customer360]] v3 pipeline: connectors/chunking, LangGraph extractor, span gate, person coref, embeddings (BM25 + vector), **AER** integration, survivorship, grounded/cited answer envelope + Vercel demo app. Basis for the unstructured side + demo harness (B4–B6).
-- **`r2g`** (relational-to-graph) — Arthur's; relational schema → ontology/graph; **implements OSI**; uses the **relational-schema analyzer** and **Arango-schema analyzer** pip libraries. Basis for B1–B3.
+- **`r2g`** (relational-to-graph) — Arthur's; the **reference application** for relational schema → ontology/graph; **implements OSI**; composes the **relational-schema analyzer (RSA)** and **Arango-schema analyzer** pip libraries. RSA is the production-grade dependency and carries the production bar; r2g itself is a well-tested reference app (CI: ruff + mypy + large unit suite + Dockerized integration) but is not held to a production operational bar (single-node; no scale/HA). **B1–B3 depend on RSA (pinned) + named, tested r2g modules — not on r2g as a whole.**
 - **Ontology extractor / Arango OntoExtract (AOE)** — Arthur's; ontology extraction from unstructured (and, per the roadmap, evolved to target schemas/catalogs/Snowflake/Databricks); belief management, time-travel, SHACL/constraint extraction, cyclic refinement. Basis for the Onto Extract layer.
 - **Arango Entity Resolution (AER)** — `CrossCollectionMatchingService` (blocking + Levenshtein/Jaro-Winkler → `resolvedTo`) + `WCCClusteringService`; the cross-source ER engine used in `customer-context`.
-- **Relational-schema analyzer** / **Arango-schema analyzer** — pip libraries consumed by r2g and the ontology extractor.
+- **Relational-schema analyzer (RSA)** / **Arango-schema analyzer** — versioned pip libraries consumed by r2g and the ontology extractor. RSA is the **production-grade core** for structured→ontology; the fabric's structured building blocks (B1, M1/M2/M4) pin RSA's PyPI release + stable tool-contract bundle rather than depending on r2g internals.
 
 ---
 
