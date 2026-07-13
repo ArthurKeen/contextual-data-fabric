@@ -14,6 +14,7 @@ contextual-data-fabric/
   docs/
     architecture/
       README.md                          ← this file (super-module / index)
+      deployment-p1.md                   ← Phase-1 demo topology: what runs where (v0.2.1)
       _TEMPLATE-module-spec.md           ← copy this to author a module spec
       module-01-connectors/
         specification.md
@@ -33,6 +34,8 @@ contextual-data-fabric/
         specification.md
       module-09-demo-harness/
         specification.md
+      module-10-evaluation/
+        specification.md                 ← added v0.2 (PRD §10.1)
       _repo-enhancements/                ← requirement specs for EXISTING repos
         r2g-federated-query.md           ← written (exemplar)
         ontology-extractor-structured.md
@@ -60,6 +63,7 @@ Two headline building blocks from the [[contextual-data-fabric-prd|PRD]] — the
 | **M7** | **Grounding & Provenance** | Validated answer envelope + **cited retrieval path across the federation boundary** (actual SQL + AQL + source object); refuse if uncited. | Query |
 | **M8** | **Governance / OBAC** | Ontology-based access control + business rules (Palantir/IAM-via-ontology) via declarative mappings + SHACL. **Future.** | Both |
 | **M9** | **Demo Harness** | Thin agent UI to run seed questions end-to-end (reuse the customer-360 Vercel pattern). Not sold. | — |
+| **M10** | **Evaluation & Golden Set** | Golden seed questions with expected answers/sources/citations + runner + regression gate — makes "trust is structural" testable (PRD §10.1). Not sold. | — |
 
 ---
 
@@ -78,6 +82,7 @@ Each module builds on one or more existing repos (see `_repo-enhancements/` for 
 | M7 Grounding & Provenance | customer-context | `customer-context-expose-modules` |
 | M8 Governance / OBAC | ontology-extractor (SHACL), mapping layer | (future) |
 | M9 Demo Harness | customer-context | `customer-context-expose-modules` |
+| M10 Evaluation | customer-context (corpus/questions), ontology-extractor (judge patterns) | — |
 
 ---
 
@@ -96,6 +101,22 @@ Ladders to the [[contextual-data-fabric-prd|PRD §6]] phases.
 | M7 Grounding | cited path across 2 sources | cost/latency instrumentation | — |
 | M8 Governance | — | design | **OBAC/IAM-via-ontology** |
 | M9 Demo | 1–3 seed questions | portfolio-scale | — |
+| M10 Evaluation | golden set + runner + refusal case | decomposition scoring, LLM-judge, CI gate | portfolio-scale sets; cost budgets |
+
+---
+
+## Building-block version pins (CC-9)
+
+The single source of truth for which version of each block the fabric builds against (PRD §10.9: Arthur bumps; a bump re-runs the M10 golden set; red = no merge). Pinned as of 2026-07-13:
+
+| Block | Pin | Form |
+|-------|-----|------|
+| `relational-schema-analyzer` (RSA) | **v0.4.0** | PyPI |
+| `arangodb-schema-analyzer` | **v0.10.0** | pip (repo `arango-schema-analyzer`) |
+| `arango-entity-resolution` (AER) | **v3.5.1** | PyPI |
+| `arango-ontoextract` (AOE) | **v1.2.0** (`1099b7f`) | git tag/SHA (not on PyPI) |
+| `customer-context` | **`23b8ed8`** | git SHA (unversioned) |
+| r2g Phase-12 module | — (not yet built) | will pin per P12.8 |
 
 ---
 

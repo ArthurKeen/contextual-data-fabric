@@ -18,14 +18,16 @@ related:
 
 > **Requirement (one line):** extend AER beyond deterministic matching to **semantic** matching, and toward **federation-aware** resolution (resolve against records fetched live from a source, not only pre-ingested ones), while keeping the guards/survivorship the fabric relies on.
 
-## 1. Current state
+## 1. Current state (verified against `~/code/arango-entity-resolution`, v3.5.1 — v0.2)
 AER provides `CrossCollectionMatchingService` (blocking + Levenshtein/Jaro-Winkler → `resolvedTo` edges) and `WCCClusteringService`. In `customer-context` it is wrapped with a no-cross-account guard and per-domain authority-first survivorship + `whyLost` provenance (its own golden-record logic is deliberately not used). Matching in the current canonical-hub flow is largely deterministic/one-to-one.
+
+**v0.2 correction — semantic matching largely exists already:** AER v3.5.1 ships **vector/ANN blocking** (sentence-transformers embeddings + native `APPROX_NEAR_COSINE`, ArangoDB 3.12+), phonetic + n-gram matching, geographic proximity, and **LLM match verification** that auto-escalates ambiguous pairs in the 0.55–0.80 confidence band — plus an MCP server (`[mcp]` extra) and a config-driven `ConfigurableERPipeline`. RE-1 is therefore mostly *configuration + demo-safety hardening*, not a build. Note also: AOE's internal ER is hand-rolled (full AER integration deferred on the AOE side), so the fabric will run two ER implementations until that converges — flagged in M6.
 
 ## 2. Why the change
 Federated Customer 360 must resolve the same entity across heterogeneous sources where keys don't line up — deterministic exact-match isn't enough. Longer term, resolution must happen against data **fetched live** at query time (no pre-ingest), which is the federation model.
 
 ## 3. Required enhancements
-- **RE-1 (P2):** **Semantic matching** (embedding/similarity-based) as an option alongside deterministic, with a tunable, precision-first threshold (over-merge is the failure mode in front of a customer).
+- **RE-1 (P2, re-scoped v0.2):** ~~Build~~ **Configure + harden** semantic matching — the embedding/ANN + LLM-verification machinery exists (§1); the work is a **precision-first threshold profile** for the fabric's cross-source case plus the evaluation harness that proves it demo-safe (over-merge is the failure mode in front of a customer).
 - **RE-2 (P2):** Expose a clean **canonical-hub API** (`resolve(entity) -> canonical_id`) the query engine (M5) calls during reassembly.
 - **RE-3 (P3):** **Federation-aware ER** — resolve a record fetched live from a source against the canonical hub at query time, not only at ingest.
 - **RE-4 (P2):** Preserve/first-class the guards + survivorship + `whyLost` provenance the fabric needs for citations (don't regress what `customer-context` added).
@@ -43,5 +45,5 @@ Federated Customer 360 must resolve the same entity across heterogeneous sources
 - Semantic matching resolves cross-source entities the deterministic path misses, at a precision bar safe for a live demo, with explainable evidence.
 
 ## 7. Open questions / for team
-- Batch (pre-resolve) vs runtime (federation) placement — the industry-unsolved question; cost/latency implications (loop in Kevin's numbers).
+- Batch (pre-resolve) vs runtime (federation) placement — the industry-unsolved question; cost/latency implications. The PRD's B7 cost/latency baseline (P1) provides the first real numbers; loop in Kevin's when weighing runtime ER for P3.
 - Precision threshold + evaluation harness before it's demo-safe.

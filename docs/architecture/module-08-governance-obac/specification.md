@@ -44,6 +44,7 @@ Policy defined once; enforcement auditable/cited; no policy logic duplicated int
 
 ## 6. Dependencies
 - **Repos:** `ontology-extractor` (SHACL/constraint extraction); M3 + M4. Partnership evaluation with agent-IAM vendors.
+- **Concrete starting points (v0.2, verified):** the research phase is not greenfield — **r2g Phase 9 (implemented)** already captures/propagates catalog classifications with a sensitivity lattice + mosaic rule, gates loads on entitlement thresholds with masking, and **emits** a classification manifest, suggested ArangoDB RBAC grants, and a default-deny OPA `policy.rego` stub ("emit, don't enforce" lane discipline). **AOE** ships JWT + RBAC (4 roles, org-scoped) and SHACL handling. M8's design work is largely lifting these patterns from load-time (r2g) to query-time (the fabric).
 
 ## 7. Phase mapping
 - **P1/P2:** none (research + design only).

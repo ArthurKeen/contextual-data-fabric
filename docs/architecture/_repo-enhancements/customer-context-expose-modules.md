@@ -18,7 +18,15 @@ related:
 
 > **Requirement (one line):** refactor the [[Customer360]] v3 pipeline so its **unstructured graph**, its **grounding/citation envelope + gate**, and its **traversal UI** are consumable as **modules** by the fabric — and add **ontology-driven AQL generation** so the query engine can federate over it.
 
-## 1. Current state
+## 1. Current state (verified against `~/code/customer-context`, cloned from `arango-solutions/customer-context` — v0.2.1)
+> **Step zero is done:** the repo is public, cloned, and actively developed (latest commits: phase 04.3 coref/leak-gate hardening). Verified:
+> - **v3 ingestion pipeline exists** (`ingestion/`): `span_gate.py`, person-coref (+tests), `er_match.py` / `er_cluster.py` importing the **actual AER library** (`entity_resolution.services.cross_collection_matching_service`, `WCCClusteringService`), survivorship + authority tables (`gold_source_key.py`, `test_survivorship.py`), `resolve_run.py`, `pipeline.py`. The over-merge guard exists as the **`account_scope_key` scope stamp** ("RESOLVE-05 over-merge foundation") derived from observable source metadata only.
+> - **Grounding + envelope exist as named modules** (`agent/src/{grounding,envelope,retrievalPath,rrf,sanitize,embed,db}.ts`): a **pure-code grounding gate** ("every citation is a real `_id`"), a **typed zod envelope** (`ClaimSchema`, `CitationSchema`, `NodeDetail`, edge kinds), one agent factory feeding both request/response and streaming paths.
+> - **UI exists** (`web/`, Next.js): `RetrievalPipeline`, `SourcingRail`, `GraphViz`, `WhatChangedBanner` components + tests; `DEPLOY.md` covers deployment.
+> - **Agent**: AI SDK 6 `ToolLoopAgent`, temperature 0, curated read-only bind-parameterized AQL tools — matching the "deterministic traversals, no black box" story.
+> - **Confirmed limitation for M7:** the envelope's `GraphEnum` is `['structured','unstructured']` — a *single-deployment, two-graph* shape. Multi-source federated citations (actual SQL + external source objects) require the schema extension RE-2 describes; M7's open question is real, not hypothetical.
+> - As assumed by RE-5: the structured graph is **hand-modeled** (deliberately; AutoGraph builds the unstructured KG at build time only).
+
 `arango-solutions/customer-context` is the v3 Customer 360 pipeline: connectors/chunking → LangGraph extractor (A-box against a hand-authored T-box) → span gate → person coref → embeddings (BM25 + vector) → **AER** entity resolution → survivorship, plus a grounded/cited answer envelope, a deterministic grounding gate, and a Vercel citation/traversal UI. Today it is a self-contained app with a hand-modeled structured graph.
 
 ## 2. Why the change

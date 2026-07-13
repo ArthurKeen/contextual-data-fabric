@@ -34,17 +34,17 @@ The alignment half of the Onto Extract building block, and the answer to the cus
 - **Produces:** the **master ontology** (OSI/YAML) + a change log/belief state, consumed by M4 (mappings) and M5/M8.
 
 ## 4. Functional requirements
-- **FR-1 (P1, minimal):** Align the Postgres ontology + the unstructured ontology into a **small, use-case-scoped master** — hand-construction of the central ontology is acceptable at this size.
-- **FR-2 (P1):** Surface diffs/deltas + the human-confirm ("~2%") step.
-- **FR-3 (P2):** Automated diff→accept/reject with **iterative refinement** across ≥2 structured sources + unstructured.
-- **FR-4 (P3):** **Belief management** — track element provenance; cascade updates/removals when a source schema/doc changes.
-- **FR-5 (P3):** **Time-travel** across ontology versions + **change control** (bless expansions before release; agent or human per policy).
+- **FR-1 (P1):** Align the Postgres ontology + the unstructured ontology into a **small, use-case-scoped master** — **hand-construction of the central ontology is the P1 plan** (not a fallback): the AOE alignment API is confirmed *not built* (v0.2; building blocks exist — union + conflict flagging, overlap-candidate finder, pairwise merge — but no orchestration).
+- **FR-2 (P1):** Surface diffs/deltas + the human-confirm ("~2%") step (r2g Phase 10's review UI and AOE's curation workspace are existing surfaces for this).
+- **FR-3 (P2):** Automated diff→accept/reject with **iterative refinement** across ≥2 structured sources + unstructured — delivered by the AOE alignment API (`arango-ontoextract/docs/multi-source-alignment.md`, Part A).
+- **FR-4 (P3, narrowed v0.2):** **Source-change cascade** — belief revision on new evidence is already built in AOE (§6.16: verdicts, Levi-identity revisions, Revisions Inbox, MCP tools); the remaining build is cascading updates/retractions when a **source schema/doc changes or is deleted** (AOE alignment spec, Part B).
+- **FR-5 (P3, narrowed v0.2):** Time-travel **exists** (AOE VCR timeline, snapshots, diffs). Remaining: **programmatic change-control hooks** — bless-before-release on expansions, agent or human per policy.
 
 ## 5. Non-functional requirements
 Small-but-high-value ontology (taxonomies consistent, no orphan classes); every element traceable to its source(s); expansion is governed (the ontology drives access + business rules downstream).
 
 ## 6. Dependencies
-- **Repos:** `ontology-extractor`/AOE — provides alignment, belief-management, time-travel, and cyclic-refinement primitives; see [[contextual-data-fabric/docs/architecture/_repo-enhancements/ontology-extractor-structured|enhancement]].
+- **Repos:** `ontology-extractor`/AOE — provides belief-revision, time-travel, and curation primitives **today**; the **alignment orchestration is the build** (v0.2 verified — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/ontology-extractor-structured|enhancement]] §1 and `arango-ontoextract/docs/multi-source-alignment.md`). Master-ontology storage proposal: AOE's ArangoRDF-PGT + temporal substrate (PRD §10.3).
 
 ## 7. Phase mapping
 - **P1:** minimal alignment (small master, possibly hand-constructed).

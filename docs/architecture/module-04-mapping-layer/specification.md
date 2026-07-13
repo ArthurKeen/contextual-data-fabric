@@ -40,6 +40,7 @@ Hold the bridge between the conceptual model (master ontology) and physical sour
 - **FR-4 (P2):** **Value-transform** functions (units/scale/format), expressed general-purpose then compiled per dialect.
 - **FR-5 (P2):** Snowflake mappings.
 - **FR-6 (P2):** OSI-compliant export/import so the mappings interoperate with the open semantic interface.
+- **FR-7 (P1 minimal / P2 full):** **Mapping versioning** (PRD §10.3 / CC-3) — since the mapping *is* the query, an unversioned mapping is an unversioned query. P1: the artifact carries a version/hash that is cited in the answer envelope. P2: mapping versions align with ontology versions via the same temporal pattern AOE already uses.
 
 ## 5. Non-functional requirements
 Declarative, inspectable (the mapping is cited alongside the query it becomes); OSI-aligned; deterministic compilation to source dialects, LLM assist only where needed.
@@ -56,5 +57,6 @@ Declarative, inspectable (the mapping is cited alongside the query it becomes); 
 - For each seed-use-case concept, a mapping artifact resolves it to the correct Postgres columns and/or Arango fields, including the cross-source join point — and M5 can compile it into a working pushdown query.
 
 ## 9. Open questions
-- Mapping expression language: source-native (SQL) vs a general-purpose expression (spreadsheet-formula style) compiled per dialect? (Roadmap transcript leaned general-purpose.)
+- ~~Mapping expression language: source-native (SQL) vs general-purpose compiled per dialect?~~ **Largely answered (v0.2): general-purpose exists** — r2g's field-expression engine (Phase 5c; reused by Phase 9b masking) already expresses transforms source-agnostically. Remaining: adopt it as-is for M4 or wrap it behind the OSI/YAML artifact.
 - Where value transforms execute — at the source, in the engine, or at ingest.
+- Where mapping artifacts live at runtime (file vs Arango collection) — coordinate with the master-ontology store decision (PRD §9.9 / §10.3).
