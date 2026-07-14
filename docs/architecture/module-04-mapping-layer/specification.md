@@ -31,7 +31,7 @@ Hold the bridge between the conceptual model (master ontology) and physical sour
 
 ## 3. Interfaces (inputs / outputs)
 - **Consumes:** master ontology (M3); source metadata (M1).
-- **Produces:** a **mapping artifact** (OSI/YAML) keyed by ontology element → per-source realization + transforms, consumed by M5 (and r2g's query generation).
+- **Produces:** a **mapping artifact** keyed by ontology element → per-source realization + transforms, consumed by M5 (and r2g's query generation). **Canonical form (ADR-0001 #3): `CSI v1`** — the cross-tool interchange defined in `arangodb-schema-analyzer` (`{conceptualModel, physicalMapping, provenance{direction}}`), with **r2g as the forward producer** (P12.1) — plus two serializations: **CSI → R2RML** for the SQL/Ontop leg and **CSI → MappingBundle/OWL-Turtle** for the AQL transpilers (`arango-sparql-py` / `arango-cypher-py`). OSI/YAML remains the interop export (FR-6). Known bug to absorb: the `phys:` namespace mismatch between `arango-sparql-py` and the analyzers (ADR-0001 #3.4).
 
 ## 4. Functional requirements
 - **FR-1 (P1):** Concept/property → Postgres table/column mappings for the seed use cases.
@@ -58,5 +58,6 @@ Declarative, inspectable (the mapping is cited alongside the query it becomes); 
 
 ## 9. Open questions
 - ~~Mapping expression language: source-native (SQL) vs general-purpose compiled per dialect?~~ **Largely answered (v0.2): general-purpose exists** — r2g's field-expression engine (Phase 5c; reused by Phase 9b masking) already expresses transforms source-agnostically. Remaining: adopt it as-is for M4 or wrap it behind the OSI/YAML artifact.
+- ~~Mapping artifact representation~~ **Answered (v0.3) by ADR-0001 #3 code-read: `CSI v1` is the hub** (already designed in `arangodb-schema-analyzer` with r2g named as forward producer); the four adapters (r2g forward-CSI emitter, CSI→R2RML, CSI→MappingBundle, `phys:` namespace fix) are M5 plan WPs A1–A4.
 - Where value transforms execute — at the source, in the engine, or at ingest.
 - Where mapping artifacts live at runtime (file vs Arango collection) — coordinate with the master-ontology store decision (PRD §9.9 / §10.3).

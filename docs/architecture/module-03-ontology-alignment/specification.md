@@ -36,7 +36,7 @@ The alignment half of the Onto Extract building block, and the answer to the cus
 ## 4. Functional requirements
 - **FR-1 (P1):** Align the Postgres ontology + the unstructured ontology into a **small, use-case-scoped master** — **hand-construction of the central ontology is the P1 plan** (not a fallback): the AOE alignment API is confirmed *not built* (v0.2; building blocks exist — union + conflict flagging, overlap-candidate finder, pairwise merge — but no orchestration).
 - **FR-2 (P1):** Surface diffs/deltas + the human-confirm ("~2%") step (r2g Phase 10's review UI and AOE's curation workspace are existing surfaces for this).
-- **FR-3 (P2):** Automated diff→accept/reject with **iterative refinement** across ≥2 structured sources + unstructured — delivered by the AOE alignment API (`arango-ontoextract/docs/multi-source-alignment.md`, Part A).
+- **FR-3 (P2):** Automated diff→accept/reject with **iterative refinement** across ≥2 structured sources + unstructured — delivered by the AOE alignment API, now definitized as **AOE PRD §6.17 / FR-17.1–FR-17.13** (embedding retrieval → multi-signal scoring → selective LLM adjudication → modular repair → master materialization with provenance; REST + MCP; eval harness). The **≈2% human-confirm step is FR-17.8** (active-learning-ranked review overlay). Implementation plan: `arango-ontoextract/docs/IMPLEMENTATION_PLAN_ALIGNMENT_ABOX_CQ.md`.
 - **FR-4 (P3, narrowed v0.2):** **Source-change cascade** — belief revision on new evidence is already built in AOE (§6.16: verdicts, Levi-identity revisions, Revisions Inbox, MCP tools); the remaining build is cascading updates/retractions when a **source schema/doc changes or is deleted** (AOE alignment spec, Part B).
 - **FR-5 (P3, narrowed v0.2):** Time-travel **exists** (AOE VCR timeline, snapshots, diffs). Remaining: **programmatic change-control hooks** — bless-before-release on expansions, agent or human per policy.
 
@@ -44,7 +44,7 @@ The alignment half of the Onto Extract building block, and the answer to the cus
 Small-but-high-value ontology (taxonomies consistent, no orphan classes); every element traceable to its source(s); expansion is governed (the ontology drives access + business rules downstream).
 
 ## 6. Dependencies
-- **Repos:** `ontology-extractor`/AOE — provides belief-revision, time-travel, and curation primitives **today**; the **alignment orchestration is the build** (v0.2 verified — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/ontology-extractor-structured|enhancement]] §1 and `arango-ontoextract/docs/multi-source-alignment.md`). Master-ontology storage proposal: AOE's ArangoRDF-PGT + temporal substrate (PRD §10.3).
+- **Repos:** `ontology-extractor`/AOE — provides belief-revision, time-travel, and curation primitives **today**; the **alignment orchestration is the build**, now committed and definitized as **AOE PRD §6.17 (Stream 20, v1.2.2)** with a SOTA-grounded design and implementation plan (`docs/IMPLEMENTATION_PLAN_ALIGNMENT_ABOX_CQ.md`) — see [[contextual-data-fabric/docs/architecture/_repo-enhancements/ontology-extractor-structured|enhancement]] RE-2. Master-ontology storage proposal: AOE's ArangoRDF-PGT + temporal substrate (PRD §10.3). Note ADR-0001 (M5): `sameAs`/`equivalentClass` reasoning is **materialized at alignment time** so M5 stays fast/deterministic — the master this module emits must carry those axioms explicitly (AOE FR-17.7 does).
 
 ## 7. Phase mapping
 - **P1:** minimal alignment (small master, possibly hand-constructed).

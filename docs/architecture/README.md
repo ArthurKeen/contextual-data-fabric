@@ -77,7 +77,7 @@ Each module builds on one or more existing repos (see `_repo-enhancements/` for 
 | M2 Ontology Extraction | r2g, ontology-extractor (AOE) | `ontology-extractor-structured` |
 | M3 Ontology Alignment | ontology-extractor (AOE) | `ontology-extractor-structured` (alignment/belief APIs) |
 | M4 Mapping Layer | r2g (OSI export) | `r2g-federated-query` |
-| M5 Federated Query Engine | r2g, new code | `r2g-federated-query` |
+| M5 Federated Query Engine | r2g, **arango-sparql-py**, **arango-cypher-py**, **arangodb-schema-analyzer (CSI v1)**, Ontop (buy-vs-build), new code (federation layer) | `r2g-federated-query`; ADR-0001 + M5 implementation plan |
 | M6 Entity Resolution | arango-entity-resolution (AER) | `aer-semantic-federated` |
 | M7 Grounding & Provenance | customer-context | `customer-context-expose-modules` |
 | M8 Governance / OBAC | ontology-extractor (SHACL), mapping layer | (future) |
@@ -114,8 +114,11 @@ The single source of truth for which version of each block the fabric builds aga
 | `relational-schema-analyzer` (RSA) | **v0.4.0** | PyPI |
 | `arangodb-schema-analyzer` | **v0.10.0** | pip (repo `arango-schema-analyzer`) |
 | `arango-entity-resolution` (AER) | **v3.5.1** | PyPI |
-| `arango-ontoextract` (AOE) | **v1.2.0** (`1099b7f`) | git tag/SHA (not on PyPI) |
+| `arango-ontoextract` (AOE) | **v1.2.2** | git tag (not on PyPI) — adds §6.17–§6.19 alignment/A-box/CQ program |
 | `customer-context` | **`23b8ed8`** | git SHA (unversioned) |
+| `arango-sparql-py` | **v0.1.0** | pip/pyproject (Arango SPARQL→AQL leg — ADR-0001) |
+| `arango-cypher-py` | **v0.2.0** | pip/pyproject (NL engine + Cypher→AQL fallback — ADR-0001) |
+| Ontop (external, buy-vs-build open — PRD §9.10) | ≥ v5.x (Snowflake support) | Java service, if adopted (P2) |
 | `arangodb-mcp-server` (`arango-solutions-mcp-server`) | **v2.0.0** | poetry/pyproject (dev/ops tooling + fabric MCP host pattern — PRD §10.2) |
 | r2g Phase-12 module | — (not yet built) | will pin per P12.8 |
 
