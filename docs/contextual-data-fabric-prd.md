@@ -96,6 +96,8 @@ From the [[2026-07-10 - C360 ZScaler Demo]], [[2026-07-09 - C360 Review & Feedba
 
 **Primary persona:** an enterprise **agent** (and the teams building agents) that needs a governed, cross-source view — e.g. a Customer-Success / sales agent reasoning over a customer's full journey.
 
+> **Formalized (v0.3.1):** use cases, personas, and the competency-question table now live in **[`docs/use-cases.md`](use-cases.md)**, derived from PJ's **12 locked questions** in `customer-context` (7 recovered verbatim from the repo; 5+2 to be committed by PJ) plus his recorded decisions: user = internal Arango employee, interaction = **natural language only**, and **no source-picker** — the ontology routes to sources; users offered a picker would select everything anyway (the AutoGraph-slider lesson). Proposed P1 demo questions: **Q12 (centerpiece) + Q2**, with the structured leg moving to live Postgres.
+
 **Seed use cases** (drive the ontology — use-case-driven, not boil-the-ocean). From [[C360 Example Questions]]:
 - *Across my accounts, how should I prioritize my attention?*
 - *An executive wants to meet a client — which account benefits most from C-suite time?*
