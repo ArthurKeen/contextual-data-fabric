@@ -37,7 +37,7 @@ Own the correctness bar for federated answers. A grounded, cited answer can stil
 - **Contract:** `evaluate(golden_set, fabric) -> report` — runnable from CI and locally.
 
 ## 4. Functional requirements
-- **FR-1 (P1):** Golden set covering the §4 seed questions (start with the 1–3 P1 demo questions): expected answer facts, expected sources touched, expected canonical join entity, expected citation count/shape.
+- **FR-1 (P1):** Golden set covering the CQ table in [`docs/use-cases.md`](../../use-cases.md) (start with the proposed P1 questions **Q12 + Q2**; Q7/Q15 as single-leg smoke tests): expected answer facts, expected sources touched, expected canonical join entity, expected citation count/shape. Q12 additionally asserts the answer **names the contradiction**. Baseline contract inherited from `customer-context/agent/test/questions.eval.test.ts` (envelope well-formed, groundingScore 1.0, faithfulness ≥ 0.6).
 - **FR-2 (P1):** Runner executes each golden question end-to-end and reports pass/fail per dimension (answer facts present, sources correct, citations complete, refusal-when-expected).
 - **FR-3 (P1):** **Refusal cases** — at least one deliberately uncitable question per set; the correct result is a refusal (tests the grounding gate, M7 FR-3).
 - **FR-4 (P2):** **Decomposition scoring** — compare the plan (sources, join keys) against the expected plan; catches "right answer by accident."
@@ -61,6 +61,6 @@ Deterministic where possible (fixed seeds/temperature-0 for LLM legs, recorded f
 - Running the evaluator against the P1 build scores every seed question green (facts, sources, citations) and the refusal case refuses — and deliberately breaking a mapping turns the run red.
 
 ## 9. Open questions
-- Who authors expected answers (PRD §9.7) — proposal: PJ drafts from the corpus, Arthur signs off.
+- Who authors expected answers (PRD §9.7) — proposal: PJ drafts from the corpus, Arthur signs off. **Partially resolved (v0.3.1): PJ already authored expected answers** in `locked-questions-expected-answers.md` — uncommitted; recovering it is the action in `docs/use-cases.md` §6.
 - Fixture strategy: record/replay source responses vs live-DB runs in CI (live Postgres is cheap; live Snowflake in P2 may not be).
 - Where the golden set lives once the repo-shape decision (PRD §9.5) lands.
