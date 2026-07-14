@@ -86,7 +86,24 @@ This is the runtime heart of the Query building block. Given a natural-language 
 - LLM vs deterministic **for P1** — default to LLM planner to hit the 1-week goal, deterministic in P2? (Matches PRD §5.2.)
 - Join placement: reconcile in the engine vs push a join key to the source. Start with engine-side join via canonical hub.
 - ~~Plan representation: is the "query graph over the ontology" the right intermediate?~~ **Resolved — [[adr/ADR-0001-conceptual-query-language|ADR-0001]]:** the conceptual query is a **small typed graph-pattern IR over the ontology that serializes to SPARQL** (query-as-a-graph = SPARQL basic graph patterns); decomposition partitions the query graph by source. Backed by a research pass (75 confirmed findings): OBDA/VKG is the mature pattern (VKG spec `P=(O,M,S)`), Ontop/Stardog do SPARQL→SQL with no materialization across all our relational sources.
-- **New (from ADR-0001) — IR = SPARQL vs Cypher (decide first):** both legs now have *owned* transpilers. **SPARQL IR** (OWL/OBDA + Ontop for SQL + `arango-sparql-py` for AQL) is recommended as canonical; **Cypher IR** (`arango-cypher-py` — the most mature today, + its NL engine) is a live alternative whose weak leg is relational (no standard Cypher→SQL).
-- **New (from ADR-0001) — the Arango leg is *owned, not greenfield*:** `arango-sparql-py` (SPARQL→AQL) / `arango-cypher-py` (Cypher→AQL) already exist; the real work is finishing `arango-sparql-py` query-eval coverage. *(Corrects the earlier "no off-the-shelf SPARQL→AQL" note, which was web-only.)*
-- **New (from ADR-0001) — relational engine:** Ontop (buy) vs r2g P12.2 (build); ADR recommends Ontop, keep r2g **P12.1 R2RML export** as the contract.
-- **New (from ADR-0001) — mapping-artifact alignment (highest-value integration task):** RSA (relational) + `arangodb-schema-analyzer` (Arango) emit a shared bundle, but Ontop wants **R2RML**, `arango-sparql-py` wants **OWL/Turtle**, r2g emits **OSI/YAML** — decide the canonical artifact + adapters.
+- **RESOLVED (ADR-0001, code-read) — IR = SPARQL.** The only option with OWL
+  semantics (A2A differentiator) *and* a relational leg (Ontop) *and* an owned
+  Arango leg (`arango-sparql-py`). Cypher is the more mature transpiler + owns
+  the best NL engine but has no relational leg — so **harvest
+  `arango-cypher-py`'s IR-agnostic NL engine to generate SPARQL** (~5 seams).
+- **RESOLVED (ADR-0001, code-read) — mapping alignment via `CSI v1` hub.**
+  Adopt the existing `CSI v1` interchange (`arango-schema-analyzer`) and build:
+  (1) r2g→forward-CSI, (2) CSI→R2RML (Ontop), (3) CSI→MappingBundle (AQL
+  transpilers), (4) fix the `phys:` namespace mismatch (`arango-sparql-py`
+  accepts a different namespace than the analyzers emit).
+- **Cost to accept SPARQL (ADR-0001):** finish `arango-sparql-py` — promote
+  real-Arango **evaluation** to a CI gate (translation coverage is broad but
+  eval-correctness isn't gated) and fix the variable-predicate→IRI bug; add a
+  **query-graph partition entry point + canonical-key return** (it only takes a
+  full SPARQL string today). Bounded — weeks.
+- **Still a team decision — relational engine:** Ontop (buy) vs r2g P12.2
+  (build); ADR recommends Ontop, keep r2g **P12.1 R2RML export** as the contract
+  (needed either way per the CSI plan).
+- **Net-new regardless of IR:** neither transpiler is federation-shaped — the
+  partition planner, canonical-key join, and provenance/as-of are first-class M5
+  build, not transpiler tweaks.

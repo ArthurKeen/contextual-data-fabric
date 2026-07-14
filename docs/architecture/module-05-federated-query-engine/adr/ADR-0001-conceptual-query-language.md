@@ -172,32 +172,77 @@ Decision drivers (from the PRD + North Star):
   relational partition compiles to SQL (via Ontop, or r2g P12.2 as a stopgap);
   the Arango partition emits AQL directly; join on AER keys.
 
-## Open decisions (need the team)
+## Code-read findings (owned repos, 2026-07) — settle the open decisions
 
-1. **IR = SPARQL vs Cypher — the real fork, now that both have owned transpilers.**
-   - **SPARQL IR** — OWL semantics + reasoning (the differentiator over A2A),
-     OBDA-standard, OSI-aligned, and **both legs available** (Ontop for SQL,
-     `arango-sparql-py` for AQL). Cost: `arango-sparql-py` query-eval coverage
-     is unfinished; SPARQL is a harder LLM-generation target.
-   - **Cypher IR** — the **most mature stack today**: `arango-cypher-py` v0.2
-     transpiles openCypher→AQL *and* ships a proven NL→conceptual-Cypher engine
-     (93–100%). Cost: **no OWL reasoning** (weakens cross-source term
-     reconciliation), and **the relational leg is the gap** (no standard
-     Cypher→SQL / OBDA-equivalent).
-   - **Recommendation:** SPARQL as the *canonical* IR for the OWL/OBDA + dual-leg
-     reasons — **but** adopt `arango-cypher-py`'s NL engineering wholesale, and
-     if the relational leg proves the bottleneck for the 1-week demo, a
-     **Cypher-IR fast path over the Arango leg only** is a legitimate P1
-     shortcut. This is the decision to make first.
+A direct read of the transpilers + analyzers (not web research) resolved the two
+biggest open decisions:
+
+- **`arango-cypher-py`** is the more mature transpiler (openCypher TCK *core*
+  ~90%, 154 test modules) and owns the best asset in the stack: a **proven,
+  IR-agnostic NL→query engine** (few-shot, fuzzy entity resolution,
+  EXPLAIN-grounded self-healing, eval + regression gate; 93–100% pattern-match).
+  Its "conceptual Cypher" is genuinely **source-neutral** — but its physical
+  mapping vocabulary is **100% Arango** (`COLLECTION`/`LABEL`/edge styles); there
+  is **no relational vocabulary and no Cypher→SQL leg**. Making Cypher the
+  *cross-source* IR is a net-new build.
+- **`arango-sparql-py`** has broad SPARQL→AQL *translation* coverage
+  (BGP/FILTER/OPTIONAL/UNION/MINUS/aggregation/subqueries/paths), is clean and
+  injection-safe (~781 tests) — but **evaluation correctness is not CI-gated**
+  (live-Arango tests are all xfail'd/excluded; a documented variable-predicate
+  bug binds `?p` to an attribute *name*, not an IRI, which would corrupt
+  IRI-keyed joins). It accepts only a *full SPARQL string* — **no query-graph
+  partition entry, no canonical-key join contract, no provenance** (all v1
+  non-goals).
+- **Neither transpiler is federation-shaped**, so the planner / partition /
+  canonical-key / provenance layer is **net-new regardless of which IR wins** —
+  it does not discriminate between SPARQL and Cypher.
+- **A canonical interchange already exists: `CSI v1`**
+  (`arango-schema-analyzer/schema_analyzer/csi/`) —
+  `{conceptualModel, arangoPhysicalMapping, provenance{direction}}` — *designed*
+  as the cross-tool hub and **explicitly naming r2g as the forward producer**,
+  but only the reverse (Arango) side emits it today. RSA and the Arango analyzer
+  share the `{conceptualSchema, physicalMapping, metadata}` envelope but
+  deliberately diverge in `physicalMapping` (RSA `tableName`/FK vs Arango
+  `collectionName`/edge). **r2g is the only component that knows both** (source
+  tables + the collections it created), so it is the natural forward-CSI + R2RML
+  producer.
+
+## Open decisions
+
+1. **~~IR = SPARQL vs Cypher~~ — RESOLVED (code-read): SPARQL is the canonical IR.**
+   It is the only option that carries OWL semantics (the A2A differentiator),
+   has a mature *relational* leg (Ontop), and has an owned *Arango* leg
+   (`arango-sparql-py`). Cypher is the more mature transpiler and owns the best
+   NL engine, but cannot federate to relational without a net-new Cypher→SQL
+   transpiler + relational mapping vocabulary. **Decision: SPARQL IR, and
+   harvest `arango-cypher-py`'s IR-agnostic NL engine to *generate* it** (swap
+   the ~5 Cypher seams: system prompt, schema-card renderer, response extractor,
+   parser, EXPLAIN-grounded validator). **Cost to accept:** finish
+   `arango-sparql-py` (promote real-Arango evaluation to a CI gate; fix the
+   variable-predicate IRI bug) and add a federation entry point (accept a
+   query-graph partition; return a canonical entity key). Bounded —
+   weeks-not-quarters.
 2. **Relational engine: Ontop (buy) vs r2g P12.2 (build)?** Ontop is mature +
    covers all sources but adds a Java VKG service + R2RML discipline; r2g P12.2
    avoids new infra but reinvents a solved problem. **Recommendation: Ontop for
    the relational legs; keep r2g P12.1 (R2RML export) as the contract.**
-3. **Mapping-artifact alignment.** The conceptual↔physical mapping is produced
-   by RSA (relational) and `arangodb-schema-analyzer` (Arango) as a shared
-   bundle, but the transpilers consume different shapes — Ontop wants **R2RML**,
-   `arango-sparql-py` wants an **OWL/Turtle** ontology, r2g emits **OSI/YAML**.
-   Decide the canonical mapping artifact and the adapters between them. (This is
-   now the highest-value integration task.)
-4. **How much OWL reasoning at query time vs build time** (recommend: build
+   *(Still a team decision — but see #3: R2RML export is needed either way.)*
+3. **~~Mapping-artifact alignment~~ — RESOLVED (code-read): adopt `CSI v1` as the
+   canonical hub; build four adapters.**
+   1. **r2g → forward `CSI v1` emitter** (highest value — r2g holds both the
+      conceptual model and the Arango-physical mapping it created).
+   2. **CSI → R2RML** for the SQL/Ontop side (nothing emits R2RML today; this is
+      r2g P12.1's real content).
+   3. **CSI → `MappingBundle`/OWL-Turtle** for the AQL transpilers (mechanical
+      shim; both are `{entities,relationships}` with COLLECTION/edge styles).
+   4. **Fix the `phys:` namespace mismatch** — `arango-sparql-py` accepts
+      `https://arango.solutions/phys#` while the analyzers **and**
+      `arango-cypher-py` emit `http://arangodb.com/schema/physical#`; align the
+      accepted list (cheap) or add a rewrite. *(Real bug: analyzer-emitted
+      Turtle is not consumable by `arango-sparql-py` today.)*
+4. **Federation layer is first-class M5 work (net-new regardless of IR):** the
+   partition planner, canonical-key join (on AER entities), and provenance/as-of
+   surfacing exist in neither transpiler — scope them as M5 build, not a
+   transpiler tweak.
+5. **How much OWL reasoning at query time vs build time** (recommend: build
    time — materialize `sameAs`/`equivalentClass` into the master ontology).
