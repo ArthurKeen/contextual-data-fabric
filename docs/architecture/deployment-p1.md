@@ -59,4 +59,4 @@ Most of the fabric's machinery runs **before** the demo, producing artifacts. Th
 
 ## What changes in Phase 2
 
-Snowflake replaces/joins Postgres (engine gains a second live source — credentials and egress now matter); cost/latency instrumentation (Prometheus sidecar or AOE's observability pattern); possibly a hosted topology for repeatable customer access.
+Snowflake replaces/joins Postgres (engine gains a second live source — credentials and egress now matter); cost/latency instrumentation (Prometheus sidecar or AOE's observability pattern); possibly a hosted topology for repeatable customer access; and — if ADR-0001's Ontop recommendation is adopted (PRD §9.10) — an **Ontop container** joins the compose file as the relational SPARQL→SQL leg, driven by r2g's R2RML export (P1 uses r2g P12.2 pushdown directly, so no Java service on the P1 host).

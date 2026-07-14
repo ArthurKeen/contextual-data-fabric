@@ -9,7 +9,7 @@ version: 0.1
 owner: PJ (Paul Losiewicz)
 building_block: Query
 depends_on_modules: ["04-mapping-layer", "01-connectors", "06-entity-resolution", "07-grounding-provenance"]
-depends_on_repos: ["r2g", "customer-context"]
+depends_on_repos: ["r2g", "arango-sparql-py", "arango-cypher-py", "arangodb-schema-analyzer", "relational-schema-analyzer", "customer-context"]
 requires_repo_enhancements: ["r2g-federated-query"]
 phase_intro: 1
 related:
@@ -73,7 +73,7 @@ This is the runtime heart of the Query building block. Given a natural-language 
 
 ## 6. Dependencies
 - **Modules:** M4 (mappings), M1 (connectors), M6 (canonical hub), M7 (grounding).
-- **Repos:** **r2g** — requires the **[[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|r2g federated-query enhancement]]** (emit runtime mappings + per-source query generation, not just batch load). Reuses agent/query patterns from `customer-context`.
+- **Repos (per ADR-0001 + the implementation plan):** **r2g** — the **[[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|federated-query enhancement]]**, reframed: P12.1 forward-CSI+R2RML is the durable contract; P12.2 pushdown SQL is the P1 stopgap vs Ontop. **`arango-sparql-py`** (SPARQL→AQL, owned — finish eval gate + federation entry). **`arango-cypher-py`** (NL→IR engine to harvest; P1 Arango-leg fallback). **`arangodb-schema-analyzer`** (CSI v1 hub). **Ontop** (relational VKG engine, buy-vs-build — PRD §9.10). Reuses agent/query patterns from `customer-context`.
 
 ## 7. Phase mapping
 - **P1:** loosely-coupled, one relational DB (Postgres) + Arango unstructured graph, LLM planner, full retrieval path.

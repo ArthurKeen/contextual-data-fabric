@@ -36,7 +36,7 @@ The extraction half of the Onto Extract building block. For each source, emit a 
 ## 4. Functional requirements
 - **FR-1 (P1):** Structured→ontology from a Postgres metadata bundle (r2g) — concepts, properties, keys, FK relationships.
 - **FR-2 (P1):** Unstructured→ontology from the Arango doc graph (AOE) — the domains present in the corpus.
-- **FR-3 (P1):** **Use-case-scoped** extraction driven by the seed CSM use cases ([[contextual-data-fabric-prd]] §4).
+- **FR-3 (P1):** **Use-case-scoped** extraction driven by the seed CSM use cases ([[contextual-data-fabric-prd]] §4) — mechanism: **competency questions** per AOE PRD §6.19 (FR-19.4 scope injection): the CQ term set is injected into extraction as required/priority concepts, uniformly across relational, graph, and unstructured adapters.
 - **FR-4 (P1):** Capture **provenance** per ontology element (source schema/column or document) — required by M3's belief management.
 - **FR-5 (P2):** Multi-structured-source extraction (Snowflake) + catalog/semantic-layer (dbt) inputs.
 - **FR-6 (P2):** LLM-as-judge scoring of extracted elements (importance/weights), as demoed in the ontology extractor.
@@ -58,4 +58,4 @@ Oracle-free / grounded to the source; OSI/YAML output; conceptual schemas (agent
 ## 9. Open questions
 - ~~Does the ontology extractor already ingest structured metadata, or does r2g fully own structured→ontology?~~ **Answered (v0.2): AOE ingests structured metadata and owns the SQL→OWL/SHACL mapping; RSA introspects; r2g is the composing reference app.** The gate is lifted.
 - Which path B1 demos with: RSA bundle → AOE mapping (proposed, matches the documented split) vs r2g Phase 10 derivation. → PRD §9.2.
-- Extraction scoping mechanism — how the use cases constrain what's extracted.
+- ~~Extraction scoping mechanism~~ **Answered (v0.3) by AOE PRD §6.19:** use cases are formalized as **competency questions** (ORSD-style, human-authored/LLM-assisted); the CQ term set scopes extraction (FR-19.4) and CQ test queries validate coverage afterward (FR-19.5) — the same spec drives M10's golden set.
