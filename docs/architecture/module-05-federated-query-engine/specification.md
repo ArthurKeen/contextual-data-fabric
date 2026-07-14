@@ -16,6 +16,7 @@ related:
   - "[[contextual-data-fabric-prd]]"
   - "[[contextual-data-fabric/docs/architecture/README|Architecture Index]]"
   - "[[adr/ADR-0001-conceptual-query-language|ADR-0001 — Conceptual-query language]]"
+  - "[[implementation-plan|M5 Implementation Plan]]"
 ---
 
 # Module 05 — Federated Query Engine
