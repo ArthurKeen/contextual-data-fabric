@@ -15,6 +15,7 @@ phase_intro: 1
 related:
   - "[[contextual-data-fabric-prd]]"
   - "[[contextual-data-fabric/docs/architecture/README|Architecture Index]]"
+  - "[[adr/ADR-0001-conceptual-query-language|ADR-0001 — Conceptual-query language]]"
 ---
 
 # Module 05 — Federated Query Engine
@@ -50,9 +51,9 @@ This is the runtime heart of the Query building block. Given a natural-language 
 - **Contract (proposed):** a `federate(question, ontology, mappings, sources) -> {answer, retrieval_path[]}` library call; the query plan is an inspectable intermediate object (for debugging and for the deterministic/LLM swap). **Agent-facing surface:** PRD §10.2 proposes wrapping this call as an **MCP tool** (consistent with the five constituent repos that already ship MCP servers) — decide via PRD §9.8 before P2 so the contract isn't retrofitted.
 
 ## 4. Functional requirements
-- **FR-1 (P1):** Resolve a question to ontology concepts and produce a **query plan** naming the sources to hit and the join keys.
-- **FR-2 (P1):** Generate and execute **SQL pushdown** against one relational DB (Postgres) using M4 mappings — filters pushed down; no bulk pull into Arango.
-- **FR-3 (P1):** Generate and execute **AQL** against the Arango unstructured graph for the same question.
+- **FR-1 (P1):** Resolve a question to ontology concepts and produce a **query plan** naming the sources to hit and the join keys. The plan's conceptual query is expressed in a **small typed graph-pattern IR over the ontology that serializes to SPARQL** ([[adr/ADR-0001-conceptual-query-language|ADR-0001]]); **decomposition = partition this query graph by the source each concept/property maps to.**
+- **FR-2 (P1):** Generate and execute **SQL pushdown** against one relational DB (Postgres) using M4 mappings — filters pushed down; no bulk pull into Arango. **The relational leg SHOULD use a Virtual Knowledge Graph engine (Ontop) driven by R2RML mappings (r2g P12.1) — SPARQL→SQL rewriting with no materialization is off-the-shelf and already covers all our relational sources (ADR-0001, §Research). Bespoke SQL generation (r2g P12.2) is a stopgap/fallback, pending the buy-vs-build decision in ADR-0001.**
+- **FR-3 (P1):** Generate and execute **AQL** against the Arango unstructured graph for the same question. **SPARQL→AQL is provided by the *owned* [`arango-sparql-py`](https://github.com/ArthurKeen/arango-sparql-py) transpiler (ADR-0001, corrected — no third-party dependency, no greenfield generator); the remaining work is finishing its query-*evaluation* coverage. If the Cypher IR is chosen instead, [`arango-cypher-py`](https://github.com/ArthurKeen/arango-cypher-py) already transpiles openCypher→AQL and ships the NL→conceptual-Cypher engine.**
 - **FR-4 (P1):** **Reassemble** structured + unstructured results into one answer, joined via the canonical entity hub.
 - **FR-5 (P1):** Emit a complete **retrieval path** (actual SQL + AQL + source objects) for M7 to cite; refuse (via M7) if any leg is uncitable.
 - **FR-6 (P1):** **LLM planner** path (quick-and-dirty decomposition) with the plan surfaced for inspection.
@@ -84,4 +85,8 @@ This is the runtime heart of the Query building block. Given a natural-language 
 ## 9. Open questions
 - LLM vs deterministic **for P1** — default to LLM planner to hit the 1-week goal, deterministic in P2? (Matches PRD §5.2.)
 - Join placement: reconcile in the engine vs push a join key to the source. Start with engine-side join via canonical hub.
-- Plan representation: is the "query graph over the ontology" (à la a TigerGraph-style query graph) the right intermediate? (Raised in the roadmap transcript.)
+- ~~Plan representation: is the "query graph over the ontology" the right intermediate?~~ **Resolved — [[adr/ADR-0001-conceptual-query-language|ADR-0001]]:** the conceptual query is a **small typed graph-pattern IR over the ontology that serializes to SPARQL** (query-as-a-graph = SPARQL basic graph patterns); decomposition partitions the query graph by source. Backed by a research pass (75 confirmed findings): OBDA/VKG is the mature pattern (VKG spec `P=(O,M,S)`), Ontop/Stardog do SPARQL→SQL with no materialization across all our relational sources.
+- **New (from ADR-0001) — IR = SPARQL vs Cypher (decide first):** both legs now have *owned* transpilers. **SPARQL IR** (OWL/OBDA + Ontop for SQL + `arango-sparql-py` for AQL) is recommended as canonical; **Cypher IR** (`arango-cypher-py` — the most mature today, + its NL engine) is a live alternative whose weak leg is relational (no standard Cypher→SQL).
+- **New (from ADR-0001) — the Arango leg is *owned, not greenfield*:** `arango-sparql-py` (SPARQL→AQL) / `arango-cypher-py` (Cypher→AQL) already exist; the real work is finishing `arango-sparql-py` query-eval coverage. *(Corrects the earlier "no off-the-shelf SPARQL→AQL" note, which was web-only.)*
+- **New (from ADR-0001) — relational engine:** Ontop (buy) vs r2g P12.2 (build); ADR recommends Ontop, keep r2g **P12.1 R2RML export** as the contract.
+- **New (from ADR-0001) — mapping-artifact alignment (highest-value integration task):** RSA (relational) + `arangodb-schema-analyzer` (Arango) emit a shared bundle, but Ontop wants **R2RML**, `arango-sparql-py` wants **OWL/Turtle**, r2g emits **OSI/YAML** — decide the canonical artifact + adapters.
