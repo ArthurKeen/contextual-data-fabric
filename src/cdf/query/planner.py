@@ -39,6 +39,35 @@ from .types import PartitionPlan, SourceRef, SubQuery, TriplePattern
 _TermTriple = tuple[Any, Any, Any]
 
 
+class UnsupportedQueryError(ValueError):
+    """Raised when a query uses a construct E1 cannot faithfully partition.
+
+    E1 partitions **basic graph patterns** (conjunctive triple patterns). A
+    construct like ``FILTER``, ``OPTIONAL``, ``UNION``, ``MINUS``, ``BIND`` or a
+    named ``GRAPH`` block changes the pattern's meaning in ways a naive
+    per-source split would silently get wrong (e.g. a dropped ``FILTER`` broadens
+    the answer). Rather than return an incorrect plan, the planner refuses —
+    honouring the fabric's "never silent omission" principle. These land in a
+    later E1 iteration.
+    """
+
+
+# Algebra node names that carry graph-pattern semantics a BGP-only partitioner
+# would drop or mangle. Result modifiers (Project, OrderBy, Slice, Distinct,
+# Reduced, ToMultiSet, SelectQuery) are safe — they apply after the per-source
+# results are joined, so they don't affect partitioning.
+_UNSUPPORTED_NODES = {
+    "Filter": "FILTER",
+    "LeftJoin": "OPTIONAL",
+    "Union": "UNION",
+    "Minus": "MINUS",
+    "Extend": "BIND / expression assignment",
+    "Graph": "named GRAPH block",
+    "Group": "GROUP BY / aggregation",
+    "AggregateJoin": "aggregation",
+}
+
+
 def _collect_bgp_triples(node: Any, out: list[_TermTriple]) -> None:
     """Walk a SPARQL algebra tree and gather every BGP triple (s, p, o)."""
     if isinstance(node, CompValue):
@@ -49,6 +78,18 @@ def _collect_bgp_triples(node: Any, out: list[_TermTriple]) -> None:
     elif isinstance(node, (list, tuple)):
         for item in node:
             _collect_bgp_triples(item, out)
+
+
+def _check_supported(node: Any, found: set[str]) -> None:
+    """Collect any unsupported graph-pattern node names in the algebra."""
+    if isinstance(node, CompValue):
+        if node.name in _UNSUPPORTED_NODES:
+            found.add(node.name)
+        for value in node.values():
+            _check_supported(value, found)
+    elif isinstance(node, (list, tuple)):
+        for item in node:
+            _check_supported(item, found)
 
 
 def _triple_vars(triple: _TermTriple) -> list[Variable]:
@@ -97,6 +138,15 @@ def partition_query(sparql: str, catalog: SourceCatalog) -> PartitionPlan:
     """
     algebra = prepareQuery(sparql).algebra
     projection = tuple(f"?{v}" for v in (algebra.get("PV") or []))
+
+    unsupported: set[str] = set()
+    _check_supported(algebra, unsupported)
+    if unsupported:
+        constructs = sorted(_UNSUPPORTED_NODES[n] for n in unsupported)
+        raise UnsupportedQueryError(
+            "E1 partitions basic graph patterns only; unsupported construct(s): "
+            + ", ".join(constructs)
+        )
 
     triples: list[_TermTriple] = []
     _collect_bgp_triples(algebra, triples)
