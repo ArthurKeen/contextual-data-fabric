@@ -1,0 +1,48 @@
+{
+  "name": "csm-account-name-for-high-severity-tickets (grounded, 2 sources)",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { ?t a c:SupportTicket ; c:severity \"high\" ; c:subject ?subject ; c:raised ?a . ?a a c:Account ; c:name ?name ; c:arr ?arr . }",
+  "sources": [
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {
+          "entities": [{"name": "Account", "properties": [{"name": "name"}, {"name": "arr"}]}],
+          "relationships": [{"type": "raised", "fromEntity": "SupportTicket", "toEntity": "Account"}]
+        },
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward", "source": {"kind": "postgresql", "ref": "crm"}}
+      },
+      "data": {
+        "rows": [{"a": "A1", "name": "Acme", "arr": 50000}, {"a": "A2", "name": "Globex", "arr": 12000}],
+        "native_query": "SELECT id, name, arr FROM accounts",
+        "source_objects": ["public.accounts"],
+        "as_of": "2026-07-15T12:00:00Z"
+      }
+    },
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {
+          "entities": [{"name": "SupportTicket", "properties": [{"name": "subject"}, {"name": "severity"}]}]
+        },
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "analyzer", "direction": "reverse", "source": {"kind": "arango", "ref": "tickets"}}
+      },
+      "data": {
+        "rows": [{"t": "T1", "subject": "login broken", "a": "A1"}],
+        "native_query": "FOR t IN tickets FILTER t.severity == 'high' RETURN t",
+        "source_objects": ["tickets"],
+        "as_of": "2026-07-14T09:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "status": "grounded",
+    "bindings": [{"name": "Acme", "subject": "login broken"}],
+    "sources_touched": ["arango:tickets", "postgresql:crm"],
+    "citations": [
+      {"source_id": "postgresql:crm", "source_objects": ["public.accounts"]},
+      {"source_id": "arango:tickets", "source_objects": ["tickets"]}
+    ]
+  }
+}

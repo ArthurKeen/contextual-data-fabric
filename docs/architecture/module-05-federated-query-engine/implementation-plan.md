@@ -52,9 +52,16 @@ First code has landed:
   (concierge) returns a declared partial only when every projected variable is
   still available. Feeds M7 (customer-context adds the NL answer + citation UI).
 
-The E1→E2→E3 core is complete in-process. Next on the gating chain: **F1**
-(golden seed-question regression gate) and **B1** (stand up Ontop over the A4
-R2RML, implementing the relational `SourceExecutor`).
+- **F1** — golden seed-question regression gate (`cdf/eval/`): declarative JSON
+  cases (`goldens/*.json`) run end-to-end through partition→execute→ground
+  against fixture source data; each pins the expected answer, sources touched,
+  citations, and grounded/refused status. Locks the engine contract so the real
+  adapters (B1/C1) can't silently regress it.
+
+The E1→E2→E3 core + the F1 gate are complete in-process. Next: **B1** (stand up
+Ontop over the A4 R2RML, implementing the relational `SourceExecutor`) and
+**C1** (the `arango-sparql-py` AQL `SourceExecutor` + eval CI gate) — turning the
+fixture-backed goldens into a live federated demo (P1 exit).
 
 ## Guiding constraints (from ADR-0001 + PRD)
 
