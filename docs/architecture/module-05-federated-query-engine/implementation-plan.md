@@ -39,9 +39,15 @@ First code has landed:
   `partition_query`). Class-binding routing; cross-source join keys fall out
   naturally; unknown concepts surface as `unresolved`; unsupported constructs
   (`FILTER`/`OPTIONAL`/`UNION`/…) **refuse** rather than silently drop.
+- **E2** — federated executor (`cdf/query/executor.py` `execute_plan`): runs
+  each leg through a pluggable `SourceExecutor`, inner-joins on the plan's join
+  keys, projects, and assembles a **retrieval path** with **partial-failure**
+  (failed/unroutable legs declared, never dropped — FR-11) and **as-of** stamps
+  (FR-12). Real Ontop/AQL adapters wire into this protocol at B1/C-work.
 
-Next on the gating chain: **E2** (executor over the partition contract) and
-**B1** (stand up Ontop over the A4 R2RML).
+Next on the gating chain: **E3** (provenance/citation envelope over the
+retrieval path) and **B1** (stand up Ontop over the A4 R2RML, implementing the
+relational `SourceExecutor`).
 
 ## Guiding constraints (from ADR-0001 + PRD)
 
