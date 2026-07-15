@@ -13,6 +13,10 @@ This package currently implements **E1 — the query-graph partition planner**:
 - :func:`~cdf.query.planner.partition_query` — parse a conceptual SPARQL query,
   partition its graph pattern by the source each concept/property maps to, and
   emit per-source sub-queries plus the cross-source join keys.
+- :func:`~cdf.query.executor.execute_plan` (**E2**) — run each sub-query through
+  a pluggable :class:`~cdf.query.executor.SourceExecutor`, inner-join the
+  per-source results on the join keys, project, and assemble a retrieval path
+  with partial-failure and as-of semantics.
 
 The emitted :class:`~cdf.query.types.PartitionPlan` is the **partition contract**
 the executor (E2), the per-source query generators (Ontop/R2RML relational leg,
@@ -20,6 +24,13 @@ the executor (E2), the per-source query generators (Ontop/R2RML relational leg,
 """
 
 from .catalog import SourceCatalog
+from .executor import (
+    FederatedResult,
+    RetrievalStep,
+    SourceExecutor,
+    SourceResult,
+    execute_plan,
+)
 from .planner import UnsupportedQueryError, partition_query
 from .types import PartitionPlan, SourceRef, SubQuery, TriplePattern
 
@@ -27,6 +38,11 @@ __all__ = [
     "SourceCatalog",
     "partition_query",
     "UnsupportedQueryError",
+    "execute_plan",
+    "SourceExecutor",
+    "SourceResult",
+    "RetrievalStep",
+    "FederatedResult",
     "PartitionPlan",
     "SourceRef",
     "SubQuery",
