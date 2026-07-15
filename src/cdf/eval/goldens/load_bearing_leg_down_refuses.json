@@ -1,0 +1,34 @@
+{
+  "name": "load-bearing relational leg down -> clean refusal",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { ?t a c:SupportTicket ; c:subject ?subject ; c:raised ?a . ?a a c:Account ; c:name ?name . }",
+  "sources": [
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {
+          "entities": [{"name": "Account", "properties": [{"name": "name"}]}],
+          "relationships": [{"type": "raised", "fromEntity": "SupportTicket", "toEntity": "Account"}]
+        },
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward", "source": {"kind": "postgresql", "ref": "crm"}}
+      },
+      "data": {"fail": true, "error": "crm unreachable"}
+    },
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {"entities": [{"name": "SupportTicket", "properties": [{"name": "subject"}]}]},
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "analyzer", "direction": "reverse", "source": {"kind": "arango", "ref": "tickets"}}
+      },
+      "data": {"rows": [{"t": "T1", "subject": "login broken", "a": "A1"}], "source_objects": ["tickets"]}
+    }
+  ],
+  "expect": {
+    "status": "refused",
+    "bindings": [],
+    "failed_sources": ["postgresql:crm"],
+    "sources_touched": ["arango:tickets"],
+    "refusal_contains": ["name", "postgresql:crm"]
+  }
+}

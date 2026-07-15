@@ -22,8 +22,13 @@ from .types import SourceRef
 DEFAULT_CONCEPT_BASE = "urn:arango-sparql:concept#"
 
 
-def _source_ref(doc: dict[str, Any], override_id: str | None) -> SourceRef:
-    """Derive a :class:`SourceRef` from a CSI document's provenance."""
+def source_ref_from_csi(doc: dict[str, Any], override_id: str | None = None) -> SourceRef:
+    """Derive a :class:`SourceRef` from a CSI document's provenance.
+
+    The default ``source_id`` is ``"<kind>:<ref>"`` (or just ``"<kind>"`` when no
+    ref). Shared by the catalog and any caller that needs to key executors by
+    the *same* id the catalog routes to (e.g. the golden-eval harness).
+    """
     prov = doc.get("provenance") or {}
     src = prov.get("source") or {}
     kind = str(src.get("kind") or "unknown")
@@ -77,7 +82,7 @@ class SourceCatalog:
 
     def add_csi(self, document: dict[str, Any], *, source_id: str | None = None) -> SourceRef:
         """Register one CSI document's conceptual model under its source."""
-        source = _source_ref(document, source_id)
+        source = source_ref_from_csi(document, source_id)
         conceptual = document.get("conceptualModel") or {}
 
         for entity in conceptual.get("entities") or []:
