@@ -43,6 +43,10 @@ class SourceResult:
     as_of: str | None = None
     """Source freshness stamp (execution time for live legs; last-ingest time
     for the Arango graph). Recorded per FR-12."""
+    source_objects: tuple[str, ...] = ()
+    """The physical objects the leg touched (e.g. ``"public.orders"``, a
+    collection or document id) — the adapter knows them; E3/M7 cite them
+    (FR-2)."""
 
 
 class SourceExecutor(Protocol):
@@ -67,6 +71,7 @@ class RetrievalStep:
     row_count: int = 0
     native_query: str | None = None
     as_of: str | None = None
+    source_objects: tuple[str, ...] = ()
     error: str | None = None
 
 
@@ -162,6 +167,7 @@ def execute_plan(
                 row_count=len(result.rows),
                 native_query=result.native_query,
                 as_of=result.as_of,
+                source_objects=result.source_objects,
             )
         )
         successful.append((sq, result))
