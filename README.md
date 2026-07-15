@@ -17,6 +17,84 @@ Part of **Project Vantage**. Built for and pressure-tested against the Zscaler c
 - **[ADR-0001 — Conceptual-query language](docs/architecture/module-05-federated-query-engine/adr/ADR-0001-conceptual-query-language.md)** + **[M5 implementation plan](docs/architecture/module-05-federated-query-engine/implementation-plan.md)** — the decided query architecture and the sequenced work packages (incl. the honest 1-week P1 slice).
 - **[Phase-1 deployment topology](docs/architecture/deployment-p1.md)** — what physically runs where for the demo (build-time vs demo-time split).
 
+## How it works
+
+Two flows, sharing one artifact: the **aligned master ontology + its functional mappings**. The build-time flow (second diagram) produces that artifact from the sources' schemas; the query-time flow (first diagram) uses it to answer questions — without moving the data.
+
+### Query time — from English to a cited, federated answer
+
+A natural-language question is lifted into a **conceptual query** — a typed graph-pattern IR over the master ontology, serializing to SPARQL ([ADR-0001](docs/architecture/module-05-federated-query-engine/adr/ADR-0001-conceptual-query-language.md)). Because every concept/property in the ontology carries a mapping to the source(s) that realize it, **decomposition is graph partitioning**: the planner (M5) splits the query graph by source. Each partition is then translated into the *native language of its source* — **SQL** pushed down to relational systems (via R2RML/Ontop, or r2g's generator), **AQL** against the unstructured graph already in ArangoDB (via the owned `arango-sparql-py` transpiler), or **rendered back into natural language** for sources that expose an agentic interface (a Snowflake/Databricks cortex) rather than a query endpoint. Results come back and are **joined on canonical entity keys** (M6/AER — the guarantee that the Postgres account row and the Slack sentiment are about the *same* account), then wrapped by M7 into a **grounded envelope**: every claim cited with the actual SQL/AQL/agent-prompt that produced it, source objects, and an as-of timestamp — or a clean **refusal** if a claim can't be cited.
+
+```mermaid
+flowchart TB
+    U(["User / Agent<br/>(natural-language question)"])
+    U --> NLE["NL → conceptual query<br/>(LLM decomposer — arango-cypher-py NL engine)"]
+
+    subgraph HUB["ArangoDB hub — the brain (no bulk source data)"]
+        ONT[("Master ontology +<br/>functional mappings (CSI v1)")]
+        CAN[("Canonical entities<br/>(AER hub, M6)")]
+    end
+
+    ONT -.->|"concepts + mappings"| NLE
+    NLE -->|"typed graph-pattern IR (SPARQL)"| PLAN["Partition planner (M5):<br/>split the query graph by the<br/>source each concept maps to"]
+    ONT -.-> PLAN
+
+    PLAN -->|"relational partition"| TSQL["translate → SQL<br/>(R2RML → Ontop, or r2g P12.2)"]
+    PLAN -->|"graph partition"| TAQL["translate → AQL<br/>(arango-sparql-py)"]
+    PLAN -->|"agentic partition"| TNLQ["render → natural language<br/>(for the source-side agent)"]
+
+    TSQL -->|"pushdown, live"| PG[("PostgreSQL / SQL Server / …")]
+    TAQL --> ADB[("ArangoDB unstructured graph<br/>(ingested docs, Slack, email)")]
+    TNLQ --> CTX["Snowflake / Databricks<br/>agentic cortex"]
+
+    PG -->|"rows + SQL text + as-of"| ASM
+    ADB -->|"docs/spans + AQL text + as-of"| ASM
+    CTX -->|"answer + prompt text + as-of"| ASM["Reassembly (M5):<br/>join legs on canonical entity keys"]
+    CAN -.->|"resolve(entity) → canonical_id"| ASM
+
+    ASM --> ENV["Grounded envelope (M7):<br/>answer + per-claim citations +<br/>retrieval path (SQL / AQL / NL) + as-of"]
+    ENV -->|"cited — or refused if uncitable"| U
+```
+
+### Build time — derive the source ontologies, align them into one
+
+Each source's **schema** is analyzed into a **source ontology**: relational schemas via `relational-schema-analyzer` (tables, keys, FKs → concepts/properties), existing ArangoDB graphs via `arangodb-schema-analyzer`, and unstructured corpora via AOE's LLM extraction pipeline — all scoped by the **competency questions** in [use-cases.md](docs/use-cases.md) (extract what the questions need, never boil the ocean). The per-source ontologies are then **aligned** (M3, AOE §6.17): embedding retrieval proposes cross-source correspondences, multi-signal scoring auto-resolves the clear cases, an LLM adjudicates only the borderline band, and a human confirms the last ~2%. The result is the **master ontology** — `customer account` ≡ `client account` ≡ `account`, with equivalence axioms materialized — plus the **functional mappings** (CSI v1, exported as R2RML for SQL and MappingBundle for AQL) that make the query-time partitioning and translation deterministic. The ontology is temporal-versioned: source changes cascade through belief revision rather than rebuilding.
+
+```mermaid
+flowchart TB
+    subgraph SRC["Data sources (systems of record — data stays here)"]
+        PG[("PostgreSQL")]
+        SNOW[("Snowflake / Databricks")]
+        AG[("Existing ArangoDB graphs")]
+        DOCS["Docs / Slack / email / transcripts"]
+    end
+
+    CQ["Use cases as competency questions<br/>(docs/use-cases.md — scope the extraction)"]
+
+    PG -->|"schema, keys, samples"| RSA["relational-schema-analyzer"]
+    SNOW -->|"catalog / schema"| RSA
+    AG -->|"collections, edges"| ASA["arangodb-schema-analyzer"]
+    DOCS -->|"LLM extraction (AOE)"| AOEX["AOE extraction pipeline"]
+
+    CQ -.->|"priority concepts"| RSA
+    CQ -.-> ASA
+    CQ -.-> AOEX
+
+    RSA -->|"conceptual schema bundle"| O1["Source ontology<br/>(relational)"]
+    ASA -->|"conceptual schema bundle"| O2["Source ontology<br/>(graph)"]
+    AOEX -->|"OWL/SHACL"| O3["Source ontology<br/>(unstructured)"]
+
+    O1 --> AL
+    O2 --> AL
+    O3 --> AL["Alignment (M3 / AOE §6.17):<br/>embedding retrieval → multi-signal scoring →<br/>selective LLM adjudication → human confirms ~2%"]
+
+    AL --> MO[("Master ontology<br/>(equivalence axioms materialized,<br/>temporal-versioned)")]
+    MO --> MAP["Functional mappings (M4):<br/>CSI v1 → R2RML (SQL side)<br/>→ MappingBundle (AQL side)"]
+
+    MO -.->|"consulted by"| QT["Query-time flow (above)"]
+    MAP -.->|"drives partitioning + translation"| QT
+```
+
 ## Modules
 
 | # | Module | Spec |
