@@ -24,7 +24,7 @@ topics:
   - "[[Ontology]]"
   - "[[Graph]]"
 status: draft
-version: 0.2
+version: 0.3
 ---
 
 # Contextual Data Fabric — Product Requirements Document
@@ -32,6 +32,8 @@ version: 0.2
 > **Status:** Draft v0.2 for team review. Posted per the [[2026-07-13 Zscaler Customer Context Roadmap]] action item ("PJ to draft PRD"). Arthur needs this before refactoring r2g / the ontology extractor so we scope the build rather than over-build.
 >
 > **v0.2 (2026-07-13):** reconciled every "as understood — Arthur to confirm" claim against the actual repos (r2g, relational-schema-analyzer, arango-schema-analyzer, arango-ontoextract, arango-entity-resolution). The ★ structured→ontology question is **resolved (yes)**; the risk has moved to **ontology alignment** and **r2g pushdown query generation**, which are builds, not confirms. Repo references in §8 are now pinned. New §10 adds cross-cutting requirements (evaluation, agent interface, consistency, partial failure, caching, security).
+>
+> **v0.3 (2026-07-14):** absorbed the deep-analysis passes. **ADR-0001** (M5) decides the conceptual-query IR — typed graph-pattern serializing to **SPARQL**, `CSI v1` as the mapping hub, Ontop buy-vs-build open (§9.10) — making M5 mostly integration of owned components (`arango-sparql-py`, `arango-cypher-py`, the analyzers). AOE PRD **§6.17–§6.19** definitizes alignment / A-box / competency questions; r2g Phase 12 is reframed around CSI+R2RML. **Use cases formalized** from PJ's 12 locked questions (`docs/use-cases.md`, §4); `customer-context` cloned + verified.
 >
 > **Reviewers:** [[Arthur Keen]] (build gatekeeper), [[Michael Fonseca]], [[Michael Gillespie]], [[Daniel Blake Morris]].
 >
