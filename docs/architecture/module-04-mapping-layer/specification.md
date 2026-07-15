@@ -43,7 +43,7 @@ Hold the bridge between the conceptual model (master ontology) and physical sour
 - **FR-7 (P1 minimal / P2 full):** **Mapping versioning** (PRD §10.3 / CC-3) — since the mapping *is* the query, an unversioned mapping is an unversioned query. P1: the artifact carries a version/hash that is cited in the answer envelope. P2: mapping versions align with ontology versions via the same temporal pattern AOE already uses.
 
 ## 5. Non-functional requirements
-Declarative, inspectable (the mapping is cited alongside the query it becomes); OSI-aligned; deterministic compilation to source dialects, LLM assist only where needed.
+Declarative, inspectable (the mapping is cited alongside the query it becomes); OSI-aligned; deterministic compilation to source dialects, LLM assist only where needed. **Credential-free by construction (CC-7):** every mapping artifact (CSI v1, R2RML, MappingBundle) references sources by **logical name only** — never a connection string, JDBC URL, or token — because mappings are versioned, cited in envelopes, and shared with external engines (Ontop); credential resolution is exclusively M1's `SecretResolver` (M1 FR-7).
 
 ## 6. Dependencies
 - **Repos:** `r2g` — emits/consumes the mappings; requires the [[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|federated-query enhancement]] (mappings usable at runtime, not just for batch load).

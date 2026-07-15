@@ -25,6 +25,8 @@ Two flows, sharing one artifact: the **aligned master ontology + its functional 
 
 A natural-language question is lifted into a **conceptual query** — a typed graph-pattern IR over the master ontology, serializing to SPARQL ([ADR-0001](docs/architecture/module-05-federated-query-engine/adr/ADR-0001-conceptual-query-language.md)). Because every concept/property in the ontology carries a mapping to the source(s) that realize it, **decomposition is graph partitioning**: the planner (M5) splits the query graph by source. Each partition is then translated into the *native language of its source* — **SQL** pushed down to relational systems (via R2RML/Ontop, or r2g's generator), **AQL** against the unstructured graph already in ArangoDB (via the owned `arango-sparql-py` transpiler), or **rendered back into natural language** for sources that expose an agentic interface (a Snowflake/Databricks cortex) rather than a query endpoint. Results come back and are **joined on canonical entity keys** (M6/AER — the guarantee that the Postgres account row and the Slack sentiment are about the *same* account), then wrapped by M7 into a **grounded envelope**: every claim cited with the actual SQL/AQL/agent-prompt that produced it, source objects, and an as-of timestamp — or a clean **refusal** if a claim can't be cited.
 
+Source **credentials never travel with any of this**: mappings, citations, and the hub reference sources by logical name only; the connector layer (M1) resolves names to credentials at connection time from a secret store, with one least-privilege read-only service identity per source (PRD §10.7 / CC-7).
+
 ```mermaid
 flowchart TB
     U(["User / Agent<br/>(natural-language question)"])
