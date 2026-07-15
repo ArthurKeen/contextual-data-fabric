@@ -41,6 +41,8 @@ Own the boundary to each external source. Two distinct jobs: (a) a **metadata-sa
 - **FR-4 (P2):** Snowflake connector — metadata + pushdown query (gated on the free-tier check, PJ).
 - **FR-5 (P3):** Databricks connector.
 - **FR-6 (P1 floor / P2 hardened):** P1 security floor (PRD §10.7 / CC-7): every source connection uses a **read-only DB role**; credentials come from environment/secret store, never code or mapping artifacts; no raw-credential logging. P2: full credential management + per-source read-only enforcement.
+- **FR-7 (P1):** **Logical source registry + SecretResolver seam.** Connectors are addressed by logical source name; M1 resolves name → credential at `open()` time. P1 backend: `.env`; P2 backend: a secret store (Vault / cloud manager) behind the same seam. Reuse r2g Phase 8's credential pattern (encrypted registry, `$ENV_VAR` resolution at use time, token redaction on read, DSN-scrubbed errors). Nothing outside M1 ever holds a raw credential; all read-back surfaces (incl. MCP tools) redact.
+- **FR-8 (P2):** **Per-source auth hardening:** Snowflake **key-pair auth** (not passwords), Databricks **service principal + OAuth M2M**; rotation via the secret store with no code change. **No per-user passthrough** — deferred to M8 (PRD §10.7 identity model).
 
 ## 5. Non-functional requirements
 No bulk data movement (sampling + pushdown only); read-only by default; connection reuse for latency; source errors surfaced (never silently swallowed).
