@@ -44,10 +44,17 @@ First code has landed:
   keys, projects, and assembles a **retrieval path** with **partial-failure**
   (failed/unroutable legs declared, never dropped — FR-11) and **as-of** stamps
   (FR-12). Real Ontop/AQL adapters wire into this protocol at B1/C-work.
+- **E3** — grounding envelope + cite-or-refuse gate (`cdf/query/grounding.py`
+  `ground`): wraps the federated result into a cited `AnswerEnvelope`
+  (per-leg citations carry the actual SQL/AQL, source objects, and as-of) and
+  **refuses over guesses** — a requested variable with no source, or (strict
+  default) any failed leg / unroutable pattern, refuses; `allow_partial=True`
+  (concierge) returns a declared partial only when every projected variable is
+  still available. Feeds M7 (customer-context adds the NL answer + citation UI).
 
-Next on the gating chain: **E3** (provenance/citation envelope over the
-retrieval path) and **B1** (stand up Ontop over the A4 R2RML, implementing the
-relational `SourceExecutor`).
+The E1→E2→E3 core is complete in-process. Next on the gating chain: **F1**
+(golden seed-question regression gate) and **B1** (stand up Ontop over the A4
+R2RML, implementing the relational `SourceExecutor`).
 
 ## Guiding constraints (from ADR-0001 + PRD)
 

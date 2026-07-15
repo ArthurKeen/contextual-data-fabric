@@ -17,6 +17,9 @@ This package currently implements **E1 — the query-graph partition planner**:
   a pluggable :class:`~cdf.query.executor.SourceExecutor`, inner-join the
   per-source results on the join keys, project, and assemble a retrieval path
   with partial-failure and as-of semantics.
+- :func:`~cdf.query.grounding.ground` (**E3**) — wrap the federated result in a
+  cited :class:`~cdf.query.grounding.AnswerEnvelope` and apply the deterministic
+  cite-or-refuse gate (refuse over guess; declare partial only when opted in).
 
 The emitted :class:`~cdf.query.types.PartitionPlan` is the **partition contract**
 the executor (E2), the per-source query generators (Ontop/R2RML relational leg,
@@ -31,6 +34,7 @@ from .executor import (
     SourceResult,
     execute_plan,
 )
+from .grounding import AnswerEnvelope, Citation, ground
 from .planner import UnsupportedQueryError, partition_query
 from .types import PartitionPlan, SourceRef, SubQuery, TriplePattern
 
@@ -43,6 +47,9 @@ __all__ = [
     "SourceResult",
     "RetrievalStep",
     "FederatedResult",
+    "ground",
+    "AnswerEnvelope",
+    "Citation",
     "PartitionPlan",
     "SourceRef",
     "SubQuery",
