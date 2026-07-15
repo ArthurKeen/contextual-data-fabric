@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from cdf.query import SourceCatalog, partition_query
+import pytest
+
+from cdf.query import SourceCatalog, UnsupportedQueryError, partition_query
 
 PREFIX = "PREFIX c: <urn:arango-sparql:concept#>\n"
 
@@ -143,6 +145,33 @@ def test_projection_is_preserved():
         SourceCatalog.from_csi_documents([_csi("arango", "docs", [("User", ["name"])])]),
     )
     assert plan.projection == ("?u", "?name")
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "?u a c:User ; c:name ?n . FILTER(?n = 'x')",
+        "?u a c:User . OPTIONAL { ?u c:name ?n }",
+        "{ ?u a c:User } UNION { ?u a c:Order }",
+        "?u a c:User BIND('x' AS ?n)",
+    ],
+)
+def test_unsupported_constructs_refuse_not_silently_drop(pattern):
+    cat = SourceCatalog.from_csi_documents(
+        [_csi("arango", "docs", [("User", ["name"])], ())]
+    )
+    with pytest.raises(UnsupportedQueryError):
+        partition_query(PREFIX + f"SELECT ?u WHERE {{ {pattern} }}", cat)
+
+
+def test_order_by_and_limit_are_allowed():
+    # Result modifiers don't affect partitioning; they must NOT be refused.
+    cat = SourceCatalog.from_csi_documents([_csi("arango", "docs", [("User", ["name"])])])
+    plan = partition_query(
+        PREFIX + "SELECT ?u ?n WHERE { ?u a c:User ; c:name ?n } ORDER BY ?n LIMIT 10",
+        cat,
+    )
+    assert plan.sub_queries[0].source.kind == "arango"
 
 
 def test_deterministic_sub_query_order():

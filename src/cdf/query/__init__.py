@@ -20,12 +20,13 @@ the executor (E2), the per-source query generators (Ontop/R2RML relational leg,
 """
 
 from .catalog import SourceCatalog
-from .planner import partition_query
+from .planner import UnsupportedQueryError, partition_query
 from .types import PartitionPlan, SourceRef, SubQuery, TriplePattern
 
 __all__ = [
     "SourceCatalog",
     "partition_query",
+    "UnsupportedQueryError",
     "PartitionPlan",
     "SourceRef",
     "SubQuery",
