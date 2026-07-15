@@ -1,0 +1,33 @@
+[project]
+name = "contextual-data-fabric"
+version = "0.1.0"
+description = "Contextual Data Fabric — federated query engine (M5) and supporting modules."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "ArangoDB Solutions" }]
+dependencies = [
+    # SPARQL parsing / algebra for the query-graph partition planner (M5 / E1).
+    "rdflib>=7.0,<8.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+dev = ["ruff>=0.4", "mypy>=1.10"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
