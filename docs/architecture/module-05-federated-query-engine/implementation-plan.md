@@ -104,7 +104,7 @@ and the arango-sparql-py eval-CI hardening (WP-C1).
 | RSA / `arangodb-schema-analyzer` (mappings) | shipped; shared `{conceptualSchema, physicalMapping, metadata}` envelope; **CSI v1** exists | RSA doesn't emit CSI; contract is *copied*, not shared |
 | r2g (mapping + pushdown) | mapping export exists; Phase 12 planned | **forward-CSI + R2RML emitter** (P12.1); pushdown (P12.2) is buy-vs-build vs Ontop |
 | Ontop (relational SPARQL→SQL) | mature, non-materializing, covers all our SQL sources | stand up + drive from our R2RML; infra decision |
-| `arango-sparql-py` (Arango SPARQL→AQL) | broad **translation** coverage, injection-safe | **eval-correctness not CI-gated**; variable-predicate→IRI bug; **no partition entry / canonical-key / provenance** |
+| `arango-sparql-py` (Arango SPARQL→AQL) | **A2, A3, C1, C2 landed (2026-07-15, `b26f35d`)**: eval correctness CI-gated (live-Arango + W3C execution suites; variable-predicate IRI bug fixed), `phys:` namespace accepted, CSI→MappingBundle adapter, and `translate_partition` federation entry (canonical keys as subject-IRI columns; **`seed_bindings` VALUES pushdown = the FR-13 bind-join mechanism**; `as_of` executor-stamped). Contract: `arango-sparql-py/docs/architecture/proposals/federation-entry-point.md` — renegotiable before pinning (one consumer today). | **none blocking** — E1 partition contract consumes shape 1 (sub-SELECT string) as shipped |
 | `arango-cypher-py` (NL engine) | mature transpiler + **proven NL→query engine** | reuse the NL engine to emit **SPARQL** (seam swaps) |
 | AER (M6) | canonical entities / resolution | expose a **join-key resolver** to the executor |
 | M7 (grounding) | envelope + refuse-if-uncited | consume M5's retrieval path |
@@ -118,8 +118,8 @@ WPs → **PJ**; NL-engine reuse → **shared**. **Dep** = hard prerequisite.
 | WP | Work | Repo | Owner | Dep | Trace |
 | :-- | :-- | :-- | :-- | :-- | :-- |
 | **A1** | **r2g → forward `CSI v1` emitter** — emit `{conceptualModel, arangoPhysicalMapping, provenance:direction=forward}` from `MappingConfig` + RSA conceptual bundle | r2g | Arthur | — | ADR #3.1; r2g P12.1 |
-| **A2** | **Fix `phys:` namespace mismatch** — `arango-sparql-py` accepts `https://arango.solutions/phys#`; analyzers + `arango-cypher-py` emit `http://arangodb.com/schema/physical#`. Align accepted list (cheap) | arango-sparql-py | Arthur | — | ADR #3.4 |
-| **A3** | **CSI → `MappingBundle`/OWL-Turtle adapter** (mechanical shim) for the AQL transpilers | arango-query-core / r2g | Arthur | A1, A2 | ADR #3.3 |
+| **A2** ✅ | **DONE (2026-07-15, `64027b6`)** — analyzer `phys:` namespace accepted as canonical | arango-sparql-py | Arthur | — | ADR #3.4 |
+| **A3** ✅ | **DONE (2026-07-15, `a1ef785`)** — CSI v1 → `MappingBundle` adapter (landed in `arango-sparql-py`, not r2g as planned) | arango-sparql-py | Arthur | ~~A1~~, A2 | ADR #3.3 |
 | **A4** | **CSI → R2RML serializer** for Ontop | r2g | Arthur | A1 | ADR #3.2; r2g P12.1 |
 
 ### B. Relational leg (SPARQL→SQL)
@@ -131,8 +131,8 @@ WPs → **PJ**; NL-engine reuse → **shared**. **Dep** = hard prerequisite.
 ### C. Arango leg (SPARQL→AQL) — finish `arango-sparql-py`
 | WP | Work | Repo | Owner | Dep | Trace |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| **C1** | **Evaluation-correctness CI gate** — promote real-ArangoDB binding tests from xfail/excluded to a gate; fix the **variable-predicate→IRI** bug + projection-alias drop | arango-sparql-py | Arthur | A2 | ADR #1 cost; FR-3 |
-| **C2** | **Federation entry point** — accept a **query-graph partition** (algebra sub-tree / sub-SELECT) instead of only a full string; **return a canonical entity key** | arango-sparql-py | Arthur | C1, E1 (contract) | ADR #1/#4; FR-3/4 |
+| **C1** ✅ | **DONE (2026-07-15, `acf6892` / WP-BE-EVALGATE)** — variable-predicate→IRI bug + 4 AQL runtime bugs fixed; live-ArangoDB + W3C execution suites run in CI (service container) + nightly | arango-sparql-py | Arthur | A2 | ADR #1 cost; FR-3 |
+| **C2** ✅ | **DONE (2026-07-15, `b26f35d`)** — `translate_partition(PartitionSpec, resolver, canonical_keys)`: wire shape 1 (sub-SELECT string), canonical key = subject IRI as its own result column, **`seed_bindings` VALUES pushdown** (hostile-seed escaping tested), `as_of` executor-stamped; two-leg federation parity test (partition + pushdown + engine-join == whole-query). **Contract doc: `arango-sparql-py/docs/architecture/proposals/federation-entry-point.md`** — E1 may renegotiate before pinning | arango-sparql-py | Arthur | C1 | ADR #1/#4; FR-3/4 |
 
 ### D. NL → SPARQL IR (reuse the owned engine)
 | WP | Work | Repo | Owner | Dep | Trace |
@@ -174,12 +174,16 @@ A2 ─┘                   │     │
 C1 ─▶ C2 ───────────────────▲ (partition contract from E1)
 ```
 
-- **Parallel from day 1:** A1 (r2g CSI), A2 (namespace fix), C1 (sparql-py eval
-  gate) have no cross-deps — three people can start at once.
-- **Gating chain:** A1 → E1 (planner needs CSI mappings) → E2 → E3 → F1. This is
-  the longest path and defines the schedule.
-- **C2 and E1 co-design the partition contract** — sequence a short contract
-  spike first so C2 (sparql-py entry point) and E1 (planner output) agree.
+- **Status (2026-07-15): A2, A3, C1, C2 are DONE** — the entire Arango leg and
+  both mapping shims. The remaining graph is: A1 → A4 → B1 (or B1-alt directly
+  off A1), and A1 → E1 → E2 → E3 → F1.
+- **Gating chain (unchanged):** A1 → E1 (planner needs CSI mappings) → E2 → E3
+  → F1. **A1 (r2g forward-CSI) is now the only unstarted unblocker** — it gates
+  everything left.
+- ~~C2 and E1 co-design the partition contract~~ — **contract shipped ahead of
+  E1** (`translate_partition`, wire shape 1, seed pushdown; see the contract
+  doc). E1 consumes it as-is and may renegotiate any of its four decisions
+  before pinning (CC-9) — it has one consumer today.
 
 ## P1 — the 1-week walking skeleton (honest scope)
 
@@ -192,14 +196,15 @@ A *full* SPARQL-OBDA engine is **not** a 1-week build. P1 is a **thin vertical
 slice** for **1–2 seed questions**, using owned components, with the general
 engine following in P2:
 
-- **A1** (r2g forward-CSI) + **A2** (namespace fix) — minimal, for the one source.
+- **A1** (r2g forward-CSI) — minimal, for the one source. *(A2 ✅ done.)*
 - **Relational leg:** **B1-alt** (r2g P12.2 pushdown for the one query) is the
   fastest P1 path; stand up **B1** (Ontop) in P2. *(Pick per how fast Ontop
   stands up — Arthur's call.)*
-- **Arango leg:** if **C1** can't be eval-gated in a week, **fall back to
-  `arango-cypher-py`'s proven Cypher→AQL** for the Arango leg in P1 and converge
-  to `arango-sparql-py` in P2. *(Explicit, tracked tech-debt — the conceptual IR
-  stays the target; only the P1 Arango transpiler is a stopgap.)*
+- **Arango leg: ✅ ready, no fallback needed.** C1 + C2 landed (2026-07-15) —
+  eval-gated `translate_partition` with canonical keys, seed pushdown, and a
+  two-leg federation parity test. Use `arango-sparql-py` directly in P1; the
+  `arango-cypher-py` Cypher→AQL fallback is retired (its NL engine remains the
+  D1 asset).
 - **D1 (thin):** LLM emits the query for the seed question(s); reuse the retry
   loop, not necessarily the full seam swap.
 - **E1/E2/E3 (thin):** a **hand-scoped planner for the seed question(s)** (2
@@ -214,19 +219,19 @@ into Arango, and a clean refusal when a leg is uncitable.
 
 ## P2 / P3
 
-- **P2:** converge P1 stopgaps to the canonical architecture — Ontop (B1),
-  `arango-sparql-py` Arango leg (C1/C2), the general partition planner (E1
-  full), the SPARQL seam-swap NL front-end (D1 full) + eval harness (D2/F1),
-  deterministic planner (G1), cost/latency (G2), assembled pattern (G3),
-  Snowflake (G4), MCP surface (F2).
+- **P2:** converge P1 stopgaps to the canonical architecture — Ontop (B1)
+  *(the Arango leg already converged: C1/C2 shipped in P1 timeframe)*, the
+  general partition planner (E1 full), the SPARQL seam-swap NL front-end (D1
+  full) + eval harness (D2/F1), deterministic planner (G1), cost/latency (G2),
+  assembled pattern (G3), Snowflake (G4), MCP surface (F2).
 - **P3:** multi-source (≥3) planner + cost-based join optimization (G5).
 
 ## Risks (carried from ADR-0001)
 
-1. **`arango-sparql-py` evaluation correctness is unproven** (translation ≠
-   evaluation; the variable-predicate→IRI bug corrupts joins). C1 is a real gate
-   before the Arango SPARQL leg is trustworthy — hence the P1 Cypher-→AQL
-   fallback.
+1. ~~**`arango-sparql-py` evaluation correctness is unproven**~~ — **RETIRED
+   (2026-07-15):** C1 landed (variable-predicate IRI fix + 4 AQL runtime bugs;
+   live-Arango + W3C execution suites CI-gated) and C2 shipped the federation
+   entry with a two-leg parity test. The P1 Cypher→AQL fallback is withdrawn.
 2. **Ontop infra vs r2g P12.2** (ADR #2) is unresolved — B1 vs B1-alt. P1 can
    sidestep with B1-alt; P2 should decide.
 3. **SPARQL LLM-generation** is harder than Cypher; D1/D2 must prove the seam

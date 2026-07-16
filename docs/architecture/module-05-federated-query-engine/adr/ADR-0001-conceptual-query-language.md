@@ -221,7 +221,9 @@ biggest open decisions:
    `arango-sparql-py` (promote real-Arango evaluation to a CI gate; fix the
    variable-predicate IRI bug) and add a federation entry point (accept a
    query-graph partition; return a canonical entity key). Bounded —
-   weeks-not-quarters.
+   weeks-not-quarters. **→ PAID (2026-07-15, days not weeks): WPs A2/A3/C1/C2
+   landed in `arango-sparql-py` (`b26f35d`); contract doc
+   `docs/architecture/proposals/federation-entry-point.md`.**
 2. **Relational engine: Ontop (buy) vs r2g P12.2 (build)?** Ontop is mature +
    covers all sources but adds a Java VKG service + R2RML discipline; r2g P12.2
    avoids new infra but reinvents a solved problem. **Recommendation: Ontop for
