@@ -34,3 +34,10 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.mypy]
+# The live-source adapters lazy-import the owned engine libraries, which ship no
+# type stubs; they are optional (not core deps) and only loaded on the live path.
+[[tool.mypy.overrides]]
+module = ["arango_sparql.*", "arango.*"]
+ignore_missing_imports = true

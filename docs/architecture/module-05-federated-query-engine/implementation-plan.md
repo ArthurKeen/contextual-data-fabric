@@ -67,10 +67,22 @@ First code has landed:
   (`ONTOP_SPARQL_ENDPOINT`). **Code-complete; live bring-up pending a Docker
   host.**
 
-The E1→E2→E3 core + F1 gate + the B1 relational adapter are done. Next: **C1**
-(the `arango-sparql-py` AQL `SourceExecutor` over the A3 CSI→MappingBundle +
-eval CI gate). Swapping B1+C1 in place of the fixtures turns the goldens into
-the live P1 federated demo.
+- **Arango graph adapter** — `cdf/adapters/arango.py` `ArangoExecutor`: transpiles
+  an E1 sub-query to AQL via the owned `arango-sparql-py` engine over a
+  `MappingBundle` derived from the source `CSI` (A3), runs it against ArangoDB,
+  and maps the (already bare-var-keyed) AQL rows into a `SourceResult`. Proven
+  against the **real** transpiler (CSI→bundle→resolver→AQL) with an injected
+  transport (no DB), plus in the full pipeline. Runnable stack in `deploy/arango/`
+  + opt-in live test (`ARANGO_URL`). **Code-complete; live bring-up pending a
+  Docker host.** *(NB: the plan's separately-tracked WP-C1 — promoting
+  arango-sparql-py's eval-correctness to a CI gate + the variable-predicate bug —
+  remains distinct work in that repo.)*
+
+Both source adapters (Ontop relational, arango-sparql-py graph) are code-complete.
+Swapping them in for the golden fixtures turns the F1 goldens into the live P1
+federated demo — that's the remaining step, and it just needs a Docker host to
+run the two `deploy/` stacks. Then: **F1 live variant** + M7 UI (customer-context)
+and the arango-sparql-py eval-CI hardening (WP-C1).
 
 ## Guiding constraints (from ADR-0001 + PRD)
 

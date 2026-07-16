@@ -1,0 +1,19 @@
+# ArangoDB for the M5 graph leg. arango-sparql-py transpiles an E1 sub-query to
+# AQL (driven by a MappingBundle from the A3 CSI adapter) and runs it here.
+#
+#   1) docker compose up
+#   2) .venv/bin/python deploy/arango/seed.py     # create 'cmf' DB + 'tickets'
+#   3) ARANGO_URL=http://localhost:8529 ARANGO_DB=cmf ARANGO_PASSWORD=cdf \
+#        .venv/bin/python -m pytest tests/test_arango_live.py -q
+services:
+  arangodb:
+    image: arangodb:3.12
+    environment:
+      ARANGO_ROOT_PASSWORD: cdf
+    ports:
+      - "8529:8529"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - --header=\"Authorization: Basic cm9vdDpjZGY=\" http://localhost:8529/_api/version || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
