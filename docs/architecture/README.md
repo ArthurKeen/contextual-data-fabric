@@ -116,7 +116,7 @@ The single source of truth for which version of each block the fabric builds aga
 | `arango-entity-resolution` (AER) | **v3.5.1** | PyPI |
 | `arango-ontoextract` (AOE) | **v1.2.2** | git tag (not on PyPI) — adds §6.17–§6.19 alignment/A-box/CQ program |
 | `customer-context` | **`23b8ed8`** | git SHA (unversioned) |
-| `arango-sparql-py` | **v0.1.0** | pip/pyproject (Arango SPARQL→AQL leg — ADR-0001) |
+| `arango-sparql-py` | **v0.1.0 @ `b26f35d`** | pip + git SHA (Arango SPARQL→AQL leg — ADR-0001; A2/A3/C1/C2 incl. `translate_partition` landed 2026-07-15, no version bump yet) |
 | `arango-cypher-py` | **v0.2.0** | pip/pyproject (NL engine + Cypher→AQL fallback — ADR-0001) |
 | Ontop (external, buy-vs-build open — PRD §9.10) | ≥ v5.x (Snowflake support) | Java service, if adopted (P2) |
 | `arangodb-mcp-server` (`arango-solutions-mcp-server`) | **v2.0.0** | poetry/pyproject (dev/ops tooling + fabric MCP host pattern — PRD §10.2) |
