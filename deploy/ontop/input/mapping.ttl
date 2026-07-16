@@ -1,0 +1,21 @@
+@prefix rr:  <http://www.w3.org/ns/r2rml#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# R2RML for the seed `accounts` table — the shape r2g `export-r2rml` emits.
+# Concept IRIs use urn:arango-sparql:concept# so this leg shares one vocabulary
+# with the AQL (arango-sparql-py) leg and with the E1 partition planner.
+<#Account>
+    a rr:TriplesMap ;
+    rr:logicalTable [ rr:tableName "accounts" ] ;
+    rr:subjectMap [
+        rr:template "http://r2g.example/resource/Account/{id}" ;
+        rr:class <urn:arango-sparql:concept#Account> ;
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate <urn:arango-sparql:concept#name> ;
+        rr:objectMap [ rr:column "name" ] ;
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate <urn:arango-sparql:concept#arr> ;
+        rr:objectMap [ rr:column "arr" ; rr:datatype xsd:integer ] ;
+    ] .

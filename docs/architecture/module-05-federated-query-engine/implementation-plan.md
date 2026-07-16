@@ -58,10 +58,19 @@ First code has landed:
   citations, and grounded/refused status. Locks the engine contract so the real
   adapters (B1/C1) can't silently regress it.
 
-The E1→E2→E3 core + the F1 gate are complete in-process. Next: **B1** (stand up
-Ontop over the A4 R2RML, implementing the relational `SourceExecutor`) and
-**C1** (the `arango-sparql-py` AQL `SourceExecutor` + eval CI gate) — turning the
-fixture-backed goldens into a live federated demo (P1 exit).
+- **B1** — Ontop relational leg (Apache-2.0; the buy-vs-build fork resolved to
+  **integrate Ontop**, it's free OSS). `cdf/adapters/ontop.py` `OntopExecutor`
+  sends an E1 sub-query to an Ontop SPARQL endpoint (SPARQL→SQL over live
+  Postgres via the A4 R2RML) and parses results into a `SourceResult`; proven in
+  the full pipeline with a mocked transport. Runnable stack in `deploy/ontop/`
+  (compose + seed + R2RML + properties) with an opt-in live integration test
+  (`ONTOP_SPARQL_ENDPOINT`). **Code-complete; live bring-up pending a Docker
+  host.**
+
+The E1→E2→E3 core + F1 gate + the B1 relational adapter are done. Next: **C1**
+(the `arango-sparql-py` AQL `SourceExecutor` over the A3 CSI→MappingBundle +
+eval CI gate). Swapping B1+C1 in place of the fixtures turns the goldens into
+the live P1 federated demo.
 
 ## Guiding constraints (from ADR-0001 + PRD)
 
