@@ -30,8 +30,9 @@ The fabric needs a **source-agnostic metadata bundle** so M2 can extract ontolog
 ## 3. Required enhancements *(re-scoped v0.2 against verified state)*
 - **RE-1 (P1, mostly done):** ~~Build~~ **Freeze + document** the metadata-bundle contract — the source-agnostic `{conceptualSchema, physicalMapping, metadata}` shape exists and is shared across both analyzers; the fabric pins a contract version so M1/M2/M4 consume it stably.
 - **RE-2 (P1, verify):** **Sampling controls** (row-sample size/limits) — bounded sampling exists in the r2g/RSA lineage (value samplers with row limits); verify the limits are exposed on the RSA public API and default to cheap.
+- **RE-2a (P1, verified largely done):** **Planner statistics in the bundle** (fabric CC-11) — `arangodb-schema-analyzer` already emits collection counts (+ counts fingerprint), **`sample_field_value_counts`** (per-field value distributions), and observed relationship cardinality; RSA emits FK cardinality hints (1:1 vs 1:N) and bounded value samples. Remaining work: make these fields part of the **frozen bundle contract** (RE-1) so M4 can pass them through CSI to the M5 planner, and confirm the redaction options (`strip_samples`/`mask_field_values`) apply on every LLM-egress path.
 - **RE-3 (P2, mostly done):** ~~Add~~ Snowflake/Databricks are **already live RSA sources**; remaining work is parity-testing their bundles against the Postgres bundle shape.
-- **RE-4 (P2):** Incremental re-analysis on schema change (feeds M3 belief management / the AOE source-change cascade) — the one genuinely new build in this spec.
+- **RE-4 (P2):** Incremental re-analysis on schema change (feeds M3 belief management / the AOE source-change cascade) — the one genuinely new build in this spec. **Also the statistics-refresh mechanism for CC-11:** planner statistics are snapshot-time and drift; re-analysis keeps join-ordering/admission decisions honest (runtime caps remain the backstop against stale stats).
 
 ## 4. Interface contract (with M1 / M2 / M4)
 - **Input:** a source connection (from M1).
