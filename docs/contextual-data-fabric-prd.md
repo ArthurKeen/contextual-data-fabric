@@ -225,7 +225,7 @@ Snowflake/Databricks; assembled/materialized pattern; OBAC; belief-management ch
 
 ## 10. Cross-Cutting Requirements *(new in v0.2)*
 
-Requirements that bind every module; each module spec references the ones that apply. Numbered CC-1…CC-10 with the phase they take effect.
+Requirements that bind every module; each module spec references the ones that apply. Numbered CC-1…CC-11 with the phase they take effect.
 
 ### 10.1 Evaluation & correctness (CC-1, P1)
 "Trust is structural" must be testable. **A golden set of seed questions with expected answers, expected sources touched, and expected citations** is a P1 deliverable alongside the demo (start with the §4 seed questions). Every planner change (LLM or deterministic) runs against it; regressions block. P2 extends it with decomposition-accuracy scoring (did the plan hit the right sources / join keys?) and adopts the LLM-as-judge patterns AOE already implements (faithfulness scoring, qualitative evaluation agent). Owned by module **M10 (Evaluation)** — see the architecture index.
@@ -276,6 +276,14 @@ The fabric consumes its building blocks as **versioned artifacts, never floating
 - **License alignment:** r2g, RSA, `arangodb-schema-analyzer`, and AER are all **Apache-2.0**. **AOE has no LICENSE file** (verified v0.2.1) — an action item before anything imports it as a dependency or it's pitched as a publishable block. Fabric-owned packages default to Apache-2.0 to match the ecosystem unless the team decides otherwise.
 - **Naming:** fabric-owned packages under one prefix (proposal: `arango-fabric-*`, e.g. `arango-fabric-query`, `arango-fabric-mappings`) — decide with the repo-shape question (§9.5).
 - **Release process:** semver + changelog + PyPI, following the RSA precedent (it is the model: extracted core, versioned, contract-documented). P2 packages the first block; P3 the set.
+
+### 10.11 Resource guardrails & admission control (CC-11, P1 floor / P2 full)
+Federated architectures fail three ways: large cross-source joins, large result sets processed on the federator, and chatty multi-round-trip plans. Optimizers mitigate but cannot cover everything (cross-boundary cardinality estimates are unreliable; unstructured/vector legs have no statistics; the LLM planner can emit pathological decompositions; agentic legs are opaque) — so the fabric enforces budgets and **treats an unfiltered federated pull as bulk data movement by stealth**: a violation of principle 1, not a slow query.
+
+- **Statistics-driven planning first:** the analyzers already emit **collection/row counts, FK cardinality hints (1:1 vs 1:N), and per-field value distributions** (`sample_field_value_counts`) — the planner uses them for join ordering, bind-join direction (small side ships keys), predicate-selectivity estimates, and evidence-based budgets. These statistics must **survive the CSI/mapping pipeline** to reach the planner (M4), and are refreshed by incremental re-analysis (schema-analyzers RE-4). Sample *values* entering LLM prompts pass the analyzers' redaction options + r2g Phase-9 classification gates.
+- **Plan-time admission (P1 floor / P2 full):** no naked scans — every leg carries a selective binding derived from the question's concepts; per-leg row/byte budgets with mandatory LIMITs; engine-side joins are **bind/semi-joins on canonical keys** with a bounded key-set size (beyond it: push the join down, switch to the assembled pattern, or refuse); a round-trip budget (max legs, max sequential depth — kills N+1 plans structurally); pre-flight `EXPLAIN` (Postgres/AQL/Ontop) as confirmation with a cost ceiling.
+- **Run-time enforcement (P1 floor):** per-leg timeouts + row caps at the cursor; overall query deadline + federator memory budget, no disk spill; per-source circuit breaker (reuse AOE's pattern); defense in depth at the source — the CC-7 read-only role also carries `statement_timeout`/memory caps; Snowflake resource monitors in P2.
+- **Trip semantics (CC-5 extended from failure to exhaustion):** a capped/truncated leg is **declared in the retrieval path** ("leg capped at N rows — partial"), never silent; genuinely-large analytics degrade to the **assembled pattern** (M5 FR-8: deliberate, bounded, acknowledged) or the query is **refused with the reason and the alternative** ("requires joining ~2M rows across sources — run as an assembled job?"). A federation that knows its limits and says so is the trust story — and, with FR-9's cost instrumentation as the feedback loop, the direct answer to the cost/latency objection: every plan inspectable **and budgeted**.
 
 ---
 

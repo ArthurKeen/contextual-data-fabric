@@ -5,7 +5,7 @@ ArangoDB as an **ontology-based metadata / agent-brain hub**: auto-derive a use-
 Part of **Project Vantage**. Built for and pressure-tested against the Zscaler customer-context engagement.
 
 > **Status:** planning docs, draft v0.3, for team review. This repo currently holds the PRD, North Star, use cases, and per-module / per-repo architecture specs. Code modules land per the phased plan.
-> **v0.2** reconciled all specs against the actual repos — the structured→ontology gate is resolved (exists); PRD §10 added cross-cutting requirements (evaluation, agent interface/MCP, consistency, partial failure, caching, security, deployment, pinning, packaging).
+> **v0.2** reconciled all specs against the actual repos — the structured→ontology gate is resolved (exists); PRD §10 added cross-cutting requirements (evaluation, agent interface/MCP, consistency, partial failure, caching, security/credentials, deployment, pinning, packaging, resource guardrails).
 > **v0.3** absorbs the deep-analysis passes: **ADR-0001** decides the conceptual-query IR (typed graph-pattern → SPARQL; CSI v1 as the mapping hub; Ontop buy-vs-build open as PRD §9.10) — M5 is now mostly **integration of owned components** (`arango-sparql-py`, `arango-cypher-py`, RSA/`arangodb-schema-analyzer`); AOE PRD §6.17–§6.19 definitizes alignment / A-box / competency questions; use cases are formalized from PJ's 12 locked questions; `customer-context` is cloned + verified.
 
 ## Start here
