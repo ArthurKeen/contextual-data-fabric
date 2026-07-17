@@ -1,0 +1,205 @@
+{
+  "csiVersion": "1",
+  "conceptualModel": {
+    "entities": [
+      {
+        "name": "Chunk",
+        "labels": [
+          "Chunk"
+        ],
+        "properties": [
+          {
+            "name": "_uri",
+            "type": "string"
+          },
+          {
+            "name": "account_id",
+            "type": "string"
+          },
+          {
+            "name": "document_id",
+            "type": "string"
+          },
+          {
+            "name": "seq",
+            "type": "string"
+          },
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "source": "baseline",
+        "lastValidatedAt": "2026-07-17T21:56:40Z",
+        "firstSeenAt": "2026-07-17T21:56:40Z"
+      },
+      {
+        "name": "Document",
+        "labels": [
+          "Document"
+        ],
+        "properties": [
+          {
+            "name": "_uri",
+            "type": "string"
+          },
+          {
+            "name": "account_id",
+            "type": "string"
+          },
+          {
+            "name": "citable_url",
+            "type": "string"
+          },
+          {
+            "name": "event_date",
+            "type": "string"
+          },
+          {
+            "name": "filename",
+            "type": "string"
+          },
+          {
+            "name": "questions_served",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string"
+          },
+          {
+            "name": "source",
+            "type": "string"
+          }
+        ],
+        "source": "baseline",
+        "lastValidatedAt": "2026-07-17T21:56:40Z",
+        "firstSeenAt": "2026-07-17T21:56:40Z"
+      },
+      {
+        "name": "Ticket",
+        "labels": [
+          "Ticket"
+        ],
+        "properties": [
+          {
+            "name": "_uri",
+            "type": "string"
+          },
+          {
+            "name": "account_id",
+            "type": "string"
+          },
+          {
+            "name": "severity",
+            "type": "string"
+          },
+          {
+            "name": "subject",
+            "type": "string"
+          }
+        ],
+        "source": "baseline",
+        "lastValidatedAt": "2026-07-17T21:56:40Z",
+        "firstSeenAt": "2026-07-17T21:56:40Z"
+      }
+    ],
+    "relationships": [],
+    "properties": []
+  },
+  "arangoPhysicalMapping": {
+    "entities": {
+      "Chunk": {
+        "style": "COLLECTION",
+        "collectionName": "chunks",
+        "properties": {
+          "_uri": {
+            "field": "_uri"
+          },
+          "account_id": {
+            "field": "account_id"
+          },
+          "document_id": {
+            "field": "document_id"
+          },
+          "seq": {
+            "field": "seq"
+          },
+          "text": {
+            "field": "text"
+          }
+        },
+        "source": "baseline",
+        "lastValidatedAt": "2026-07-17T21:56:40Z",
+        "firstSeenAt": "2026-07-17T21:56:40Z"
+      },
+      "Document": {
+        "style": "COLLECTION",
+        "collectionName": "documents",
+        "properties": {
+          "_uri": {
+            "field": "_uri"
+          },
+          "account_id": {
+            "field": "account_id"
+          },
+          "citable_url": {
+            "field": "citable_url"
+          },
+          "event_date": {
+            "field": "event_date"
+          },
+          "filename": {
+            "field": "filename"
+          },
+          "questions_served": {
+            "field": "questions_served"
+          },
+          "role": {
+            "field": "role"
+          },
+          "source": {
+            "field": "source"
+          }
+        },
+        "source": "baseline",
+        "lastValidatedAt": "2026-07-17T21:56:40Z",
+        "firstSeenAt": "2026-07-17T21:56:40Z"
+      },
+      "Ticket": {
+        "style": "COLLECTION",
+        "collectionName": "tickets",
+        "properties": {
+          "_uri": {
+            "field": "_uri"
+          },
+          "account_id": {
+            "field": "account_id"
+          },
+          "severity": {
+            "field": "severity"
+          },
+          "subject": {
+            "field": "subject"
+          }
+        },
+        "source": "baseline",
+        "lastValidatedAt": "2026-07-17T21:56:40Z",
+        "firstSeenAt": "2026-07-17T21:56:40Z"
+      }
+    },
+    "relationships": {},
+    "shardFamilies": []
+  },
+  "provenance": {
+    "producer": "arango-schema-analyzer",
+    "producerVersion": "0.10.0",
+    "direction": "reverse",
+    "source": {
+      "kind": "arango",
+      "ref": "cmf"
+    },
+    "generatedAt": "2026-07-17T21:56:40Z",
+    "confidence": 0.1
+  }
+}
