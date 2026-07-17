@@ -185,6 +185,13 @@ C1 ─▶ C2 ───────────────────▲ (parti
   doc). E1 consumes it as-is and may renegotiate any of its four decisions
   before pinning (CC-9) — it has one consumer today.
 
+> **Status update (2026-07-17):** the walking skeleton below is **built and
+> proven live** (E1–E3, both legs, HTTP seam, browser demo; r2g A1/A4 shipped
+> too). What remains between the proven toy and the credible demo is sequenced
+> in **[[contextual-data-fabric/docs/architecture/p1-closeout-plan|the P1
+> close-out plan]]** (data spine, r2g-emitted mappings, canonical join,
+> D1-thin, golden content, one-command demo, CI).
+
 ## P1 — the 1-week walking skeleton (honest scope)
 
 **Goal (M5 spec §8 / PRD B4):** one seed CSM question answered end-to-end,
