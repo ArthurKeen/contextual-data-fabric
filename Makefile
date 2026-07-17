@@ -15,6 +15,7 @@
 export CDF_ARANGO_PORT   ?= 8530
 export CDF_POSTGRES_PORT ?= 5433
 export CDF_ONTOP_PORT    ?= 8090
+export CDF_UI_PORT       ?= 8099
 
 # The two owned sibling libraries (SPARQL->AQL transpiler, ArangoDB analyzer)
 # are installed from local checkouts by default — override if they live
@@ -29,7 +30,7 @@ DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
 
 PY = .venv/bin/python
 
-.PHONY: install up seed gate demo test down jdbc
+.PHONY: install up seed gate demo test down jdbc free-ui
 
 install:
 	python3 -m venv .venv
@@ -60,7 +61,11 @@ seed:
 gate:
 	$(DEMO_ENV) $(PY) deploy/demo/gate.py
 
-demo: up seed gate
+free-ui:
+	@pids=$$(lsof -ti tcp:$(CDF_UI_PORT) 2>/dev/null); \
+	if [ -n "$$pids" ]; then echo "freeing port $(CDF_UI_PORT) (was: $$pids)"; kill $$pids 2>/dev/null; sleep 1; fi
+
+demo: up seed gate free-ui
 	$(DEMO_ENV) $(PY) deploy/demo/server.py
 
 test:
