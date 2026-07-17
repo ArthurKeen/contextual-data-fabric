@@ -31,10 +31,13 @@ os.environ.setdefault("ARANGO_USER", "root")
 os.environ.setdefault("ARANGO_PASSWORD", "cdf")
 
 # A real cross-source JOIN (on the account_id business key) — the demo query.
+# Vocabulary matches the r2g-GENERATED CSI/R2RML (WP-P1.2): snake_case table
+# and column names (c:accounts / c:account_name), not the retired hand-authored
+# concepts.
 DEFAULT_SPARQL = """PREFIX c: <urn:arango-sparql:concept#>
-SELECT ?name ?subject ?arr WHERE {
-  ?t   a c:Ticket  ; c:subject ?subject ; c:account_id ?aid .
-  ?acc a c:Account ; c:account_id ?aid ; c:name ?name ; c:arr ?arr .
+SELECT ?name ?tier ?subject WHERE {
+  ?acc a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier ; c:account_id ?aid .
+  ?t   a c:Ticket   ; c:subject ?subject  ; c:account_id ?aid .
 }"""
 
 app = create_app(FederationService.from_env())
