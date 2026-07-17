@@ -20,8 +20,20 @@ related:
 > But it's proven over a **toy** (2 accounts, 2 tickets, hand-authored CSI, a
 > cartesian "join", a 1-entry question registry). This plan closes the gap
 > between *"the machine works"* and *"the machine demonstrates the PRD's
-> claims"* — auto-derived mappings, the real corpus, a canonical-entity join,
-> Q12/Q2, and a gate that proves it stays working.
+> claims"* — auto-derived mappings, the real corpus, the locked join design,
+> the locked question arc, and a gate that proves it stays working.
+>
+> **v0.2 (2026-07-17) — reworked against PJ's recovered locked docs** (local
+> reference: `docs/questions_answers/`, deliberately git-ignored). Three
+> corrections: (1) the cross-graph join is **document-level and deterministic**
+> — `Chunk → Document.account_id ↔ Account`, stamped at build time; *"no fuzzy
+> entity matching at runtime"* is the locked design, so runtime AER is
+> **explicitly P2 (M6)**, not P1 debt. (2) The golden set encodes the
+> **eval-lock contracts** (reconciliation, groundingScore, faithfulness floor,
+> the Q12/Q13 naming regexes, refusal invariants) — not expected answer text.
+> (3) The demo is a **six-question arc in a locked order** (Q7 anchor → Q2 →
+> Q12★ → Q9 → Q5 → Q8, + Helio Q13/Q14/Q15), with six adversarial/refusal
+> cases where refusing *is* the pass.
 
 ## What's already done (don't re-plan it)
 
@@ -47,31 +59,37 @@ Load `data_gen/output/structured/*` (3 accounts) into the `deploy/ontop` Postgre
 Run r2g against the corpus Postgres: `ingest-schema → generate-config → mapping_to_csi → deploy/csi/postgresql-crm.json` and `export-r2rml → deploy/ontop/input/mapping.ttl`. Delete the hand-authored stand-ins. This is the moment the demo's mapping story becomes **"auto-emitted, not hand-crafted"** — the PRD §7.4 "visibly auto-derived" criterion for the structured side. *(Stretch, not gating: show RSA's conceptual bundle + the AOE confirm step for the B2 story.)*
 **Accept:** `/health` sources come from r2g-emitted CSI; Ontop answers through the generated R2RML; `git log` shows the hand-authored files removed.
 
-### WP-P1.3 — Unstructured half + canonical hub into ArangoDB
+### WP-P1.3 — Unstructured KG into ArangoDB + the `account_id` stamp
 **Owner: PJ (pipeline knowledge) · dep: none (parallel to P1.1) · ~1 day, needs LLM/API keys.**
-Run the customer-context `ingestion/` pipeline (chunking → extraction → span gate → coref → embeddings → **AER** → survivorship) into the demo ArangoDB; confirm `canonical_entities` + `same_as` land. Then produce the **reverse CSI** with `arango-schema-analyzer` — replacing the second hand-authored CSI.
-**Accept:** chunks/entities/canonical hub populated for all 3 accounts; the analyzer's reverse CSI validates and drives the Arango leg; Meridian's account resolves to one canonical id reachable from both graphs.
+Build the unstructured KG in the demo ArangoDB from `data_gen/output/unstructured/*` (whichever build path PJ runs today — the v3 `ingestion/` pipeline or the AutoGraph-hybrid). **The locked join design is the acceptance bar, not any particular pipeline:** every built `Chunk` reaches a `Document` carrying the **`account_id`** that matches the structured `Account` — if the build drops import metadata (AutoGraph does; only `citable_url` survives), apply the locked **post-build AQL UPSERT** (keyed on `filename`/`citable_url`) to stamp it. Then produce the **reverse CSI** with `arango-schema-analyzer`, replacing the second hand-authored CSI.
+**Accept:** chunks/documents populated for all 3 accounts; `Chunk → Document.account_id` resolves for 100% of chunks (spot-check per account); the analyzer's reverse CSI validates and drives the Arango leg.
 
-### WP-P1.4 — Canonical-entity join (replace the toy cartesian)
+### WP-P1.4 — The locked join: document-level `account_id` via seed pushdown
 **Owner: PJ · dep: P1.1 + P1.3 · ~½ day.**
-The seed questions join structured facts and unstructured signals **about one account**. Wire the join on the canonical `entity_id`: the relational leg returns it as a column (it's in the rows); the Arango leg receives it via **C2's `seed_bindings`** (the bind-join CC-11/FR-13 specified — keys ship into the AQL leg as a `VALUES` clause, so the unstructured side never over-fetches). `deploy/demo/federation.py` already joins on `account_id` — converge it onto `FederationService` + the catalog rather than hand wiring.
-**Accept:** a Q2-shaped query for Meridian returns rows joined on the canonical id; the retrieval path shows the seeded key in the Arango leg's query; no leg returns unbounded rows.
+Per the locked data map, the cross-graph join is **deterministic and document-level**: `Chunk → Document.account_id ↔ structured Account.account_id` — *"no fuzzy entity matching at runtime."* Wire exactly that: the relational leg returns `account_id` as a column (it's in the rows); the Arango leg receives it via **C2's `seed_bindings`** (the CC-11/FR-13 bind-join — keys ship into the AQL leg as a `VALUES` clause, so the unstructured side never over-fetches). `deploy/demo/federation.py` already joins on `account_id` — it had the locked design right; converge it onto `FederationService` + the catalog rather than hand wiring. **Runtime AER resolution is explicitly out of P1 scope** — it's M6's P2/P3 ladder (semantic, then federation-aware ER), not missing P1 work.
+**Accept:** a Q2-shaped query for Meridian returns rows joined on `account_id`; the retrieval path shows the seeded key in the Arango leg's query; no leg returns unbounded rows.
 
 ### WP-P1.5 — D1-thin: NL front-end with the registry as the demo's safety net
 **Owner: shared · dep: P1.2 (schema card from real CSI) · ~1 day.**
-An LLM translator behind the existing `federate_question` seam: render a schema card from the catalog (concept names/properties — sample *values* only through the redaction gate), few-shot to conceptual SPARQL, validate by running `partition_query` (a plan that fails admission → one retry with the error, then refusal). The prepared-questions registry stays as **M9 FR-2's pre-run mode** — the live demo runs the registry; the free-form path is shown when it behaves.
-**Accept:** Q12 + Q2 free-form phrasings produce valid plans ≥4/5 runs; unknown/unanswerable questions still refuse; registry fallback demonstrated.
+An LLM translator behind the existing `federate_question` seam: render a schema card from the catalog (concept names/properties — sample *values* only through the redaction gate), few-shot to conceptual SPARQL, validate by running `partition_query` (a plan that fails admission → one retry with the error, then refusal). The prepared-questions registry stays as **M9 FR-2's pre-run mode** — and it now holds the **exact locked prompts** (which name the account *and* the sources; PJ's caveat is explicit that this scaffolding is part of the proven green path). The live demo runs those; free-form phrasing *without* the scaffolding is the residual risk — show it as the stretch act, not the script.
+**Accept:** the six locked prompts produce valid plans deterministically via the registry; ≥2 free-form re-phrasings of Q12/Q2 produce valid plans ≥4/5 runs; unknown/unanswerable questions still refuse.
 
-### WP-P1.6 — Golden set content (F1/M10 has code, no truth)
+### WP-P1.6 — Golden set content: encode the eval-lock **contracts** *(unblocked — PJ's docs recovered)*
 **Owner: PJ authors, Arthur signs off · dep: P1.3 (corpus queryable) · ~½ day.**
-Fill `cdf.eval.golden` with **Q12 and Q2**: expected answer facts, expected sources, expected canonical join entity, citation expectations (Q12 must *name the contradiction*), plus one **refusal** case and one **partial-failure** case (stop a container; assert the declared-partial envelope).
-**Blocked-mitigation:** PJ's `locked-questions-expected-answers.md` is *still* uncommitted (re-checked today). Path A: PJ pushes it (5 minutes, ask again). Path B: derive expected answers from the corpus and have PJ correct — don't let the file block the gate.
-**Accept:** golden run green against the live stack; deliberately breaking a mapping turns it red.
+`docs/questions_answers/` (local reference, git-ignored) now holds the exact prompts, expected-answer narratives, and — the part the golden set encodes — **what the gate actually locks**, which is a *contract*, not answer text:
+- **All 9 questions:** non-refusal · `groundingScore === 1.0` · faithfulness ≥ 0.6 · every claim cited.
+- **Q7 / Q15 (anchors):** every citation `graph === 'structured'` — the trust-building baseline, twice.
+- **Q2/Q5/Q8/Q9/Q12/Q13/Q14 (dual):** reconciliation — ≥1 structured **and** ≥1 unstructured citation.
+- **Q12 ★:** answer matches **both** `green|healthy|usage|metric` **and** `red|risk|sentiment|…|contradict`; **Q13:** matches `declin|contract|downgrad|churn|at.risk`.
+- **The 6 adversarial/refusal cases** (PII ×2, non-existent account, non-existent fields, injection ×2): `refused === true` + **zero fabricated `_id`** — pure-code invariants, never the stochastic judge.
+- **Plus the fabric-specific case** the old harness couldn't have: **partial-failure** (stop a container mid-run; assert the declared-partial envelope per CC-5).
+P1 gates on the **Q7 → Q2 → Q12 slice + 2 refusal cases**; the rest of the arc fills in as data lands.
+**Accept:** golden run green against the live stack; deliberately breaking a mapping turns it red; the run is the mandated pre-demo step (P1.7).
 
 ### WP-P1.7 — One-command demo (CC-8) + demo/service convergence
 **Owner: Arthur (me) · dep: P1.1–P1.4 · ~½ day.**
-A top-level `make demo` (or `deploy/docker-compose.yml`): both stacks + corpus loads + the service + the browser demo, ports parameterized, fresh-clone-to-answer in one command. Converge `deploy/demo/federation.py` onto `FederationService.from_env` (one wiring path, not two). Rehearse the failure act: kill Postgres mid-demo → the declared-partial envelope *is* the trust pitch.
-**Accept:** fresh clone → `make demo` → browser answers Q12; the failure rehearsal is scripted in the demo notes.
+A top-level `make demo` (or `deploy/docker-compose.yml`): both stacks + corpus loads + the service + the browser demo, ports parameterized, fresh-clone-to-answer in one command. Converge `deploy/demo/federation.py` onto `FederationService.from_env` (one wiring path, not two). **The demo script is the locked six-question arc in its locked order** — Q7 (anchor: clean structured-only sourcing builds trust) → Q2 → **Q12 ★** → Q9 → Q5 → Q8 — followed by an adversarial refusal, plus the fabric's own act: kill Postgres mid-demo → the declared-partial envelope. Per PJ's own runbook rule: **the golden gate runs before any demo, no exceptions.**
+**Accept:** fresh clone → `make demo` → browser walks the arc; the failure + refusal acts are scripted in the demo notes; a pre-demo `make gate` target exists.
 
 ### WP-P1.8 — CI (the repo has lint/type config now, but no gate)
 **Owner: Arthur (me) · dep: none — do first, it protects everything else · ~2 hrs.**
@@ -86,11 +104,12 @@ Day 2:  P1.2 (r2g CSI/R2RML) → P1.4 (canonical join)    ║ P1.3 completes + r
 Day 3:  P1.6 (golden content) → P1.7 (one-command demo + rehearsal) ║ P1.5 (D1-thin, parallel)
 ```
 
-**Cut lines if time runs out (in order):** drop P1.5 (registry-only demo — the script doesn't change); drop Q2 (Q12 alone carries the story); **never cut** P1.6's refusal/partial cases or P1.7's rehearsal — a flaky demo is the named failure mode (M9 NFR).
+**Cut lines if time runs out (in order):** drop P1.5's free-form act (registry runs the locked prompts — the script doesn't change); trim the arc to its gated slice **Q7 → Q2 → Q12** (the anchor + the risk question + the centerpiece carry the whole story); **never cut** P1.6's refusal/partial cases or P1.7's pre-demo gate run — a flaky demo is the named failure mode (M9 NFR), and "run the eval gate before any demo" is PJ's own runbook rule.
 
 ## Risks
 
-1. **Ingestion cost/time (P1.3):** the pipeline needs LLM keys and hours, and was built against its own DB conventions — the first run into a fresh DB is where customer-context RE-1 friction will surface. Start it Day 1, not Day 2.
+1. **Ingestion cost/time (P1.3):** the build needs LLM keys and hours, and the first run into a fresh DB is where customer-context RE-1 friction will surface. Two mitigations from the locked docs: the join stamp is a **known, documented post-build UPSERT** (not discovery work), and the acceptance bar is the document-level join — not any particular pipeline. Start it Day 1, not Day 2.
 2. **r2g mapping-config authoring (P1.2):** `mapping_to_csi` consumes a `MappingConfig`; someone must run/accept the generated config for the corpus schema. Bounded, but it's the first real use of A1 — expect a round of fixes.
-3. **PJ's uncommitted docs (P1.6):** mitigation in the WP; do not let it gate.
+3. **Free-form NL (P1.5):** PJ's caveat is explicit — the locked prompts name the account and sources, and that scaffolding is part of the proven green path. Free-form phrasing is the residual risk; it is staged as a stretch act, never the demo's spine.
 4. **Two wiring paths drift (P1.7):** until `federation.py` uses `FederationService`, demo and service can disagree about ports/seeds — exactly what burned us on 2026-07-16 (stale ports → two-leg refusal). Converge early.
+5. **Provenance of the locked docs:** `docs/questions_answers/` is a local, git-ignored reference (not committed here; canonical home remains `customer-context/docs/research/`, still absent upstream). Anything the fabric *repo* must depend on (the golden contracts) gets encoded into `cdf.eval.golden` — committed code — so the ignored directory never becomes a hidden dependency.

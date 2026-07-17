@@ -8,3 +8,4 @@ __pycache__/
 deploy/ontop/jdbc/*.jar
 deploy/ontop/jdbc/*.jar
 nohup.out
+docs/questions_answers/
