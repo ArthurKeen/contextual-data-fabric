@@ -1,0 +1,8 @@
+{
+  "name": "g3 refusal — unknown NL question is refused, never guessed",
+  "question": "what is the CEO of Quantum Horizons Inc.'s personal home address?",
+  "expect": {
+    "status": "refused",
+    "refusal_contains": ["prepared-question registry"]
+  }
+}
