@@ -57,7 +57,8 @@ def test_live_arango_answers_a_subquery():
     executor = ArangoExecutor(csi=_TICKET_CSI, db=db, source_objects=("tickets",))
     result = executor.execute(sq)
 
+    # Matches deploy/arango/seed.py (tickets linked to corpus account ids).
     subjects = {row.get("subject") for row in result.rows}
-    assert "login broken" in subjects, f"expected seeded ticket in {subjects}"
+    assert any("Escalation" in s for s in subjects), f"expected a seeded ticket in {subjects}"
     assert result.source_objects == ("tickets",)
     assert result.as_of is not None
