@@ -25,14 +25,16 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_live_ontop_answers_a_subquery():
-    # Matches deploy/ontop/seed.sql + the r2g-generated R2RML (Account/name).
+    # Matches the corpus load (deploy/ontop/load_corpus.py / seed.sql) + the
+    # r2g-GENERATED R2RML (WP-P1.2): concept IRIs are the snake_case table and
+    # column names (c:accounts / c:account_name).
     sq = SubQuery(
         source=SourceRef(source_id="postgresql:crm", kind="postgresql", ref="crm"),
         triples=(),
         variables=("?name",),
         sparql=(
-            "SELECT ?name WHERE { ?a a <urn:arango-sparql:concept#Account> ; "
-            "<urn:arango-sparql:concept#name> ?name . }"
+            "SELECT ?name WHERE { ?a a <urn:arango-sparql:concept#accounts> ; "
+            "<urn:arango-sparql:concept#account_name> ?name . }"
         ),
     )
     executor = OntopExecutor(endpoint=ENDPOINT, source_objects=("public.accounts",), timeout=15.0)
@@ -42,6 +44,7 @@ def test_live_ontop_answers_a_subquery():
         pytest.skip(f"Ontop endpoint not reachable: {exc}")
 
     names = {row.get("name") for row in result.rows}
-    assert "Acme" in names, f"expected seeded Account 'Acme' in {names}"
+    assert "Meridian Logistics, LLC" in names, f"expected the corpus accounts, got {names}"
+    assert len(names) == 3, f"expected the 3 corpus accounts, got {names}"
     assert result.as_of is not None
     assert result.source_objects == ("public.accounts",)

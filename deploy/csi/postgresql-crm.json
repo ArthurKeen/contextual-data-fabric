@@ -1,14 +1,342 @@
 {
   "csiVersion": "1",
   "conceptualModel": {
-    "entities": [{"name": "Account", "properties": [{"name": "name"}]}]
+    "entities": [
+      {
+        "name": "contracts",
+        "labels": [
+          "contracts"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "account_id"
+          },
+          {
+            "name": "auto_renew"
+          },
+          {
+            "name": "billing_frequency"
+          },
+          {
+            "name": "contract_id"
+          },
+          {
+            "name": "days_to_renewal"
+          },
+          {
+            "name": "end_date"
+          },
+          {
+            "name": "is_downgrade"
+          },
+          {
+            "name": "payment_terms"
+          },
+          {
+            "name": "product_scope"
+          },
+          {
+            "name": "renewal_date"
+          },
+          {
+            "name": "seat_count"
+          },
+          {
+            "name": "signed_date"
+          },
+          {
+            "name": "status"
+          },
+          {
+            "name": "term_months"
+          },
+          {
+            "name": "value_usd"
+          }
+        ]
+      },
+      {
+        "name": "usage_metrics",
+        "labels": [
+          "usage_metrics"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "account_id"
+          },
+          {
+            "name": "cluster_nodes"
+          },
+          {
+            "name": "contracted_seats_mirror"
+          },
+          {
+            "name": "edition"
+          },
+          {
+            "name": "graphrag_enabled"
+          },
+          {
+            "name": "is_peak_period"
+          },
+          {
+            "name": "period"
+          },
+          {
+            "name": "queries_per_node_m"
+          },
+          {
+            "name": "query_volume_growth_pct"
+          },
+          {
+            "name": "query_volume_m"
+          },
+          {
+            "name": "seats_active"
+          },
+          {
+            "name": "smartgraphs_enabled"
+          },
+          {
+            "name": "volume_trend"
+          }
+        ]
+      },
+      {
+        "name": "contacts",
+        "labels": [
+          "contacts"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "account_id"
+          },
+          {
+            "name": "active_from"
+          },
+          {
+            "name": "active_to"
+          },
+          {
+            "name": "contact_id"
+          },
+          {
+            "name": "email"
+          },
+          {
+            "name": "engagement_status"
+          },
+          {
+            "name": "full_name"
+          },
+          {
+            "name": "influence"
+          },
+          {
+            "name": "is_primary"
+          },
+          {
+            "name": "role"
+          },
+          {
+            "name": "title"
+          }
+        ]
+      },
+      {
+        "name": "nps_surveys",
+        "labels": [
+          "nps_surveys"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "account_id"
+          },
+          {
+            "name": "nps_score"
+          },
+          {
+            "name": "score"
+          },
+          {
+            "name": "score_band"
+          },
+          {
+            "name": "sentiment_aligned"
+          },
+          {
+            "name": "survey_date"
+          },
+          {
+            "name": "survey_period"
+          },
+          {
+            "name": "survey_year"
+          },
+          {
+            "name": "verbatim_sentiment"
+          }
+        ]
+      },
+      {
+        "name": "opportunities",
+        "labels": [
+          "opportunities"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "account_id"
+          },
+          {
+            "name": "amount_usd"
+          },
+          {
+            "name": "close_date"
+          },
+          {
+            "name": "contract_id"
+          },
+          {
+            "name": "forecast_category"
+          },
+          {
+            "name": "is_open"
+          },
+          {
+            "name": "is_won"
+          },
+          {
+            "name": "opportunity_type"
+          },
+          {
+            "name": "product_scope"
+          },
+          {
+            "name": "renewal_date"
+          },
+          {
+            "name": "stage"
+          },
+          {
+            "name": "stage_detail"
+          }
+        ]
+      },
+      {
+        "name": "accounts",
+        "labels": [
+          "accounts"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "account_id"
+          },
+          {
+            "name": "account_name"
+          },
+          {
+            "name": "account_trajectory"
+          },
+          {
+            "name": "csm_owner"
+          },
+          {
+            "name": "current_acv_usd"
+          },
+          {
+            "name": "current_product_tier"
+          },
+          {
+            "name": "deployment_date"
+          },
+          {
+            "name": "health_band"
+          },
+          {
+            "name": "health_score"
+          },
+          {
+            "name": "industry"
+          },
+          {
+            "name": "last_activity_date"
+          },
+          {
+            "name": "primary_champion"
+          },
+          {
+            "name": "products_contracted"
+          },
+          {
+            "name": "region"
+          },
+          {
+            "name": "seats_sold"
+          },
+          {
+            "name": "segment"
+          }
+        ]
+      }
+    ],
+    "relationships": []
   },
-  "physicalMapping": {
-    "entities": {"Account": {"tableName": "accounts"}}
+  "arangoPhysicalMapping": {
+    "entities": {
+      "contracts": {
+        "style": "COLLECTION",
+        "collectionName": "contracts"
+      },
+      "usage_metrics": {
+        "style": "COLLECTION",
+        "collectionName": "usage_metrics"
+      },
+      "contacts": {
+        "style": "COLLECTION",
+        "collectionName": "contacts"
+      },
+      "nps_surveys": {
+        "style": "COLLECTION",
+        "collectionName": "nps_surveys"
+      },
+      "opportunities": {
+        "style": "COLLECTION",
+        "collectionName": "opportunities"
+      },
+      "accounts": {
+        "style": "COLLECTION",
+        "collectionName": "accounts"
+      }
+    },
+    "relationships": {}
   },
   "provenance": {
     "producer": "r2g",
+    "producerVersion": "0.2.0",
     "direction": "forward",
-    "source": {"kind": "postgresql", "ref": "crm"}
+    "source": {
+      "kind": "postgresql",
+      "ref": "crm",
+      "fingerprint": null
+    },
+    "generatedAt": "2026-07-17T14:48:57.058983+00:00"
   }
 }
