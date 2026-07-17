@@ -16,6 +16,7 @@ Part of **Project Vantage**. Built for and pressure-tested against the Zscaler c
 - **[Architecture Index](docs/architecture/README.md)** — the "super-module": module map, module→repo dependencies, phase mapping, and the **building-block version pins**.
 - **[ADR-0001 — Conceptual-query language](docs/architecture/module-05-federated-query-engine/adr/ADR-0001-conceptual-query-language.md)** + **[M5 implementation plan](docs/architecture/module-05-federated-query-engine/implementation-plan.md)** — the decided query architecture and the sequenced work packages (incl. the honest 1-week P1 slice).
 - **[Phase-1 deployment topology](docs/architecture/deployment-p1.md)** — what physically runs where for the demo (build-time vs demo-time split).
+- **[Running the demo](deploy/README.md)** — `make install && make demo`, a topology diagram of the two live databases and what each contains, the example questions, and troubleshooting.
 
 ## How it works
 
