@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3WGb2TxQEEUIsaeDrdASIA3ZqxZl246Vy6n6uzr9Fhhat3hu2wpSA42EqdUiRpX
+\restrict uhaypabZmtrAh3OLyCeb6Dk9AyazDQn0e4m8P84X5BXctTZhEzDSA1dSLEmNcgU
 
 -- Dumped from database version 16.14 (Debian 16.14-1.pgdg13+1)
 -- Dumped by pg_dump version 16.14 (Debian 16.14-1.pgdg13+1)
@@ -570,59 +570,10 @@ ALTER TABLE ONLY public.usage_metrics
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
---
-
-GRANT USAGE ON SCHEMA public TO cdf_demo;
-
-
---
--- Name: TABLE accounts; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.accounts TO cdf_demo;
-
-
---
--- Name: TABLE contacts; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.contacts TO cdf_demo;
-
-
---
--- Name: TABLE contracts; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.contracts TO cdf_demo;
-
-
---
--- Name: TABLE nps_surveys; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.nps_surveys TO cdf_demo;
-
-
---
--- Name: TABLE opportunities; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.opportunities TO cdf_demo;
-
-
---
--- Name: TABLE usage_metrics; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE public.usage_metrics TO cdf_demo;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3WGb2TxQEEUIsaeDrdASIA3ZqxZl246Vy6n6uzr9Fhhat3hu2wpSA42EqdUiRpX
+\unrestrict uhaypabZmtrAh3OLyCeb6Dk9AyazDQn0e4m8P84X5BXctTZhEzDSA1dSLEmNcgU
 
 
 -- CC-7 / CC-11 floor (mirrors load_corpus.py): read-only demo role with a
