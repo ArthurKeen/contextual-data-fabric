@@ -40,12 +40,16 @@ SELECT ?name ?tier ?source ?url WHERE {
   ?d   a c:Document ; c:source ?source     ; c:citable_url ?url ; c:account_id ?aid .
 }"""
 
-app = create_app(FederationService.from_env())
+_SERVICE = FederationService.from_env()
+app = create_app(_SERVICE)
 
 
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
-    return PAGE.replace("__SPARQL__", DEFAULT_SPARQL)
+    import json as _json
+
+    questions = _json.dumps(sorted(_SERVICE.prepared_questions))
+    return PAGE.replace("__SPARQL__", DEFAULT_SPARQL).replace("__QUESTIONS__", questions)
 
 
 PAGE = """<!doctype html>
@@ -76,6 +80,9 @@ PAGE = """<!doctype html>
   button { background:var(--accent); color:#fff; border:0; border-radius:8px;
     padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; }
   button:disabled { opacity:.6; cursor:default; }
+  .chip { background:#eef0f6; color:#333; border:1px solid var(--line); border-radius:16px;
+    padding:6px 12px; font-size:12.5px; font-weight:500; cursor:pointer; }
+  .chip:hover { background:#e2e6f0; }
   .row { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
   label.chk { color:var(--muted); font-size:13px; display:flex; gap:6px; align-items:center; }
   .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px;
@@ -103,18 +110,26 @@ PAGE = """<!doctype html>
 </style></head>
 <body><div class="wrap">
   <h1>Contextual Data Fabric — Federated Query</h1>
-  <p class="sub">One conceptual SPARQL question, partitioned by source, run live across
-     <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL) and <b>ArangoDB</b>
+  <p class="sub">Ask a question in English (or run conceptual SPARQL). It's partitioned by source,
+     run live across <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL) and <b>ArangoDB</b>
      (via arango-sparql-py, SPARQL&rarr;AQL), joined on a business key, cited — no data moved.
      Served by the engine's <code>POST /federate</code> seam.</p>
 
   <div class="card">
-    <textarea id="q">__SPARQL__</textarea>
-    <div class="row">
-      <button id="run" onclick="run()">Run federated query</button>
+    <label for="nlq" style="font-weight:600">Ask a question</label>
+    <input id="nlq" type="text" placeholder="Type a question, or click an example below…"
+           style="width:100%;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px">
+    <div id="examples" class="row" style="flex-wrap:wrap;gap:6px"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="ask" onclick="ask()">Ask</button>
       <label class="chk"><input type="checkbox" id="ap"> allow partial (concierge mode)</label>
       <span id="status"></span>
     </div>
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;color:var(--muted)">Advanced: edit the conceptual SPARQL directly</summary>
+      <textarea id="q" style="margin-top:8px">__SPARQL__</textarea>
+      <div class="row"><button id="run" onclick="run()">Run SPARQL</button></div>
+    </details>
   </div>
 
   <div id="out"></div>
@@ -124,20 +139,44 @@ const el = (h) => { const d=document.createElement('div'); d.innerHTML=h; return
 const esc = (s) => (s==null?'':(''+s)).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const srcTag = (kind, id) => `<span class="src src-${esc(kind)}">${esc(id)}</span>`;
 
-async function run() {
-  const btn=document.getElementById('run'), out=document.getElementById('out'),
-        stat=document.getElementById('status');
-  btn.disabled=true; stat.innerHTML='running…'; out.innerHTML='';
+const EXAMPLES = __QUESTIONS__;
+
+function renderExamples() {
+  const box = document.getElementById('examples');
+  EXAMPLES.forEach(q => {
+    const chip = el(`<button class="chip" type="button">${esc(q)}</button>`);
+    chip.onclick = () => { document.getElementById('nlq').value = q; ask(); };
+    box.appendChild(chip);
+  });
+}
+
+async function post(payload, out, stat) {
+  stat.innerHTML='running…'; out.innerHTML='';
   try {
     const r = await fetch('/federate', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({sparql: document.getElementById('q').value,
-                            allow_partial: document.getElementById('ap').checked})});
+      body: JSON.stringify({...payload, allow_partial: document.getElementById('ap').checked})});
     const d = await r.json();
     stat.innerHTML='';
     if (!r.ok) { out.appendChild(el(`<div class="card err"><b>${r.status}:</b> ${esc(d.detail||JSON.stringify(d))}</div>`)); return; }
     render(d, out);
   } catch(e) { stat.innerHTML=`<span class="err">${esc(''+e)}</span>`; }
-  finally { btn.disabled=false; }
+}
+
+async function ask() {
+  const q = document.getElementById('nlq').value.trim();
+  if (!q) return;
+  const btn=document.getElementById('ask');
+  btn.disabled=true;
+  await post({question:q}, document.getElementById('out'), document.getElementById('status'));
+  btn.disabled=false;
+}
+
+async function run() {
+  const btn=document.getElementById('run');
+  btn.disabled=true;
+  await post({sparql: document.getElementById('q').value},
+             document.getElementById('out'), document.getElementById('status'));
+  btn.disabled=false;
 }
 
 function render(d, out) {
@@ -183,8 +222,8 @@ function render(d, out) {
     out.appendChild(card);
   });
 }
-window.addEventListener('keydown', e => { if ((e.metaKey||e.ctrlKey) && e.key==='Enter') run(); });
-run();
+document.getElementById('nlq').addEventListener('keydown', e => { if (e.key==='Enter') ask(); });
+renderExamples();
 </script>
 </div></body></html>
 """
