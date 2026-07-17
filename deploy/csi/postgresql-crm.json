@@ -1,0 +1,14 @@
+{
+  "csiVersion": "1",
+  "conceptualModel": {
+    "entities": [{"name": "Account", "properties": [{"name": "name"}]}]
+  },
+  "physicalMapping": {
+    "entities": {"Account": {"tableName": "accounts"}}
+  },
+  "provenance": {
+    "producer": "r2g",
+    "direction": "forward",
+    "source": {"kind": "postgresql", "ref": "crm"}
+  }
+}

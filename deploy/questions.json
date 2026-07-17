@@ -1,0 +1,3 @@
+{
+  "what accounts do we have, and what support tickets are open?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { ?a a c:Account ; c:name ?name . ?t a c:Ticket ; c:subject ?subject }"
+}
