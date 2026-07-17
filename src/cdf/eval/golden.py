@@ -27,9 +27,24 @@ Case schema (only the keys you assert on are checked)::
         "sources_touched": ["postgresql:crm"],      # optional, the OK legs
         "failed_sources": ["arango:tickets"],       # optional
         "citations": [ {"source_id": "...", "source_objects": ["..."]} ],  # optional
+        "reconciliation": true,                     # optional — the locked dual-graph
+                                                    #   contract: >=1 arango AND >=1
+                                                    #   non-arango citation
+        "anchor_kind": "postgresql",                # optional — the locked anchor
+                                                    #   contract (Q7/Q15): EVERY
+                                                    #   citation is of this kind
         "refusal_contains": ["name"]                # optional substrings
       }
     }
+
+The ``reconciliation`` / ``anchor_kind`` expectations encode the customer-context
+eval-lock contracts (see the P1 close-out plan WP-P1.6): the gate asserts a
+*contract* — grounded, reconciled, cited, refusing where refusing is correct —
+never exact answer text.
+
+For live gating (the pre-demo ``make gate``), :func:`run_golden_live` runs a
+case through a wired :class:`~cdf.service.FederationService` instead of fixture
+executors — same ``expect`` block, real stacks.
 """
 
 from __future__ import annotations
@@ -108,11 +123,52 @@ def run_golden(case: dict[str, Any]) -> GoldenOutcome:
     )
 
 
+def run_golden_live(case: dict[str, Any], service: Any) -> GoldenOutcome:
+    """Run one golden case through a live :class:`~cdf.service.FederationService`.
+
+    The case supplies ``question`` (NL, resolved via the prepared-question
+    registry) or ``sparql``; ``sources``/fixtures are ignored — the service's
+    real executors answer. Same ``expect`` contract as :func:`run_golden`.
+    """
+    name = case.get("name", "<unnamed>")
+    allow_partial = bool(case.get("allow_partial", False))
+    if case.get("sparql"):
+        envelope = service.federate_sparql(case["sparql"], allow_partial=allow_partial)
+    else:
+        envelope = service.federate_question(case["question"], allow_partial=allow_partial)
+    mismatches = _diff(case.get("expect", {}), envelope)
+    return GoldenOutcome(
+        name=name, passed=not mismatches, mismatches=tuple(mismatches), envelope=envelope
+    )
+
+
 def _diff(expect: dict[str, Any], env: AnswerEnvelope) -> list[str]:
     out: list[str] = []
 
     if "status" in expect and env.status != expect["status"]:
         out.append(f"status: expected {expect['status']!r}, got {env.status!r}")
+
+    if expect.get("reconciliation"):
+        kinds = {c.kind for c in env.citations}
+        if "arango" not in kinds or not (kinds - {"arango"}):
+            out.append(
+                "reconciliation: expected >=1 arango AND >=1 non-arango citation, "
+                f"got kinds {sorted(kinds)}"
+            )
+
+    if expect.get("citations_empty") and env.citations:
+        out.append(
+            "citations_empty: expected zero citations (a refusal must not carry "
+            f"fabricated evidence), got {[c.source_id for c in env.citations]}"
+        )
+
+    if "anchor_kind" in expect:
+        wrong = sorted({c.kind for c in env.citations} - {expect["anchor_kind"]})
+        if wrong or not env.citations:
+            out.append(
+                f"anchor_kind: expected every citation kind == {expect['anchor_kind']!r}, "
+                f"got {wrong or 'no citations'}"
+            )
 
     if "bindings" in expect:
         want = _bag(expect["bindings"])

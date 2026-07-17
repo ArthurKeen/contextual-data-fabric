@@ -1,0 +1,13 @@
+{
+  "name": "g2 dual — cross-graph join on account_id (the Q2/Q12 contract shape)",
+  "question": "which accounts have open support tickets, and what are they about?",
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "bindings": [
+      {"name": "Meridian Logistics, LLC", "subject": "Escalation: ops burden and competitor evaluation"},
+      {"name": "Northwind Analytics, Inc.", "subject": "Question: GraphRAG on ArangoGraph"}
+    ],
+    "sources_touched": ["arango:tickets", "postgresql:crm"]
+  }
+}

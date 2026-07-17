@@ -1,0 +1,14 @@
+{
+  "name": "g1 anchor — structured-only (the Q7/Q15 contract shape)",
+  "question": "for each account, what product tier are they on?",
+  "expect": {
+    "status": "grounded",
+    "anchor_kind": "postgresql",
+    "bindings": [
+      {"name": "Helio Retail Corp.", "tier": "Enterprise"},
+      {"name": "Meridian Logistics, LLC", "tier": "Enterprise"},
+      {"name": "Northwind Analytics, Inc.", "tier": "ArangoGraph"}
+    ],
+    "sources_touched": ["postgresql:crm"]
+  }
+}

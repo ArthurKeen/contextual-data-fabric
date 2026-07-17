@@ -1,0 +1,11 @@
+{
+  "name": "g4 refusal \u2014 a concept no source maps to refuses with zero citations",
+  "sparql": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?ssn WHERE { ?p a c:employees ; c:social_security_number ?ssn }",
+  "expect": {
+    "status": "refused",
+    "refusal_contains": [
+      "no known source"
+    ],
+    "citations_empty": true
+  }
+}
