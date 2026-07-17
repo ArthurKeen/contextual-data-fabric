@@ -32,9 +32,11 @@ up: jdbc
 	docker compose -p cdf-ontop  -f deploy/ontop/docker-compose.yml  up -d --wait
 
 seed:
-	$(DEMO_ENV) $(PY) deploy/arango/seed.py
 	PG_DSN=postgresql://cdf:cdf@127.0.0.1:$(CDF_POSTGRES_PORT)/crm $(PY) deploy/ontop/load_corpus.py
 	docker compose -p cdf-ontop -f deploy/ontop/docker-compose.yml restart ontop
+	$(DEMO_ENV) $(PY) deploy/arango/seed.py           # tickets (kept as a small typed collection)
+	$(DEMO_ENV) $(PY) deploy/arango/load_corpus.py    # documents + chunks (account_id stamp)
+	$(DEMO_ENV) $(PY) deploy/arango/export_csi.py     # reverse CSI over the live graph
 	@sleep 12  # Ontop reloads the R2RML mapping on start
 
 gate:

@@ -35,9 +35,9 @@ os.environ.setdefault("ARANGO_PASSWORD", "cdf")
 # and column names (c:accounts / c:account_name), not the retired hand-authored
 # concepts.
 DEFAULT_SPARQL = """PREFIX c: <urn:arango-sparql:concept#>
-SELECT ?name ?tier ?subject WHERE {
+SELECT ?name ?tier ?source ?url WHERE {
   ?acc a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier ; c:account_id ?aid .
-  ?t   a c:Ticket   ; c:subject ?subject  ; c:account_id ?aid .
+  ?d   a c:Document ; c:source ?source     ; c:citable_url ?url ; c:account_id ?aid .
 }"""
 
 app = create_app(FederationService.from_env())

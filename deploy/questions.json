@@ -1,4 +1,4 @@
 {
   "for each account, what product tier are they on?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?tier WHERE { ?a a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier }",
-  "which accounts have open support tickets, and what are they about?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { ?a a c:accounts ; c:account_name ?name ; c:account_id ?acct . ?t a c:Ticket ; c:subject ?subject ; c:account_id ?acct }"
+  "for each account, what documents do we hold and where did they come from?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?tier ?source ?url WHERE { ?a a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier ; c:account_id ?acct . ?d a c:Document ; c:source ?source ; c:citable_url ?url ; c:account_id ?acct }"
 }

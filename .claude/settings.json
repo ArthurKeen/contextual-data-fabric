@@ -22,7 +22,10 @@
       "Bash(ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:8090/sparql .venv/bin/python -m pytest tests/test_ontop_live.py -q)",
       "Bash(.venv/bin/python -m pytest tests -q)",
       "Bash(.venv/bin/python -m pytest tests/test_bind_join.py::test_second_leg_is_seeded_with_first_legs_join_keys -q)",
-      "Bash(curl -s http://127.0.0.1:8600/federate -H 'Content-Type: application/json' -d '{\"question\": \"which accounts have open support tickets, and what are they about?\"}')"
+      "Bash(curl -s http://127.0.0.1:8600/federate -H 'Content-Type: application/json' -d '{\"question\": \"which accounts have open support tickets, and what are they about?\"}')",
+      "Bash(git -C /Users/arthurkeen/code/arango-query-core log --oneline -15)",
+      "Bash(git -C /Users/arthurkeen/code/arango-query-core branch -a)",
+      "Bash(git -C /Users/arthurkeen/code/arango-query-core status -s)"
     ]
   }
 }
