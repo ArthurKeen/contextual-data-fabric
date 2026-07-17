@@ -30,8 +30,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T22:48:14Z",
-        "firstSeenAt": "2026-07-17T22:48:14Z"
+        "lastValidatedAt": "2026-07-17T23:07:50Z",
+        "firstSeenAt": "2026-07-17T23:07:50Z"
       },
       {
         "name": "Document",
@@ -73,8 +73,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T22:48:14Z",
-        "firstSeenAt": "2026-07-17T22:48:14Z"
+        "lastValidatedAt": "2026-07-17T23:07:50Z",
+        "firstSeenAt": "2026-07-17T23:07:50Z"
       },
       {
         "name": "Ticket",
@@ -100,8 +100,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T22:48:14Z",
-        "firstSeenAt": "2026-07-17T22:48:14Z"
+        "lastValidatedAt": "2026-07-17T23:07:50Z",
+        "firstSeenAt": "2026-07-17T23:07:50Z"
       }
     ],
     "relationships": [],
@@ -130,8 +130,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T22:48:14Z",
-        "firstSeenAt": "2026-07-17T22:48:14Z"
+        "lastValidatedAt": "2026-07-17T23:07:50Z",
+        "firstSeenAt": "2026-07-17T23:07:50Z"
       },
       "Document": {
         "style": "COLLECTION",
@@ -163,8 +163,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T22:48:14Z",
-        "firstSeenAt": "2026-07-17T22:48:14Z"
+        "lastValidatedAt": "2026-07-17T23:07:50Z",
+        "firstSeenAt": "2026-07-17T23:07:50Z"
       },
       "Ticket": {
         "style": "COLLECTION",
@@ -184,8 +184,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T22:48:14Z",
-        "firstSeenAt": "2026-07-17T22:48:14Z"
+        "lastValidatedAt": "2026-07-17T23:07:50Z",
+        "firstSeenAt": "2026-07-17T23:07:50Z"
       }
     },
     "relationships": {},
@@ -193,13 +193,13 @@
   },
   "provenance": {
     "producer": "arango-schema-analyzer",
-    "producerVersion": "0.10.0",
+    "producerVersion": "0.11.0",
     "direction": "reverse",
     "source": {
       "kind": "arango",
       "ref": "cmf"
     },
-    "generatedAt": "2026-07-17T22:48:14Z",
+    "generatedAt": "2026-07-17T23:07:50Z",
     "confidence": 0.1
   }
 }
