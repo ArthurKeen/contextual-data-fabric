@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(.venv/bin/mypy src *)",
+      "Bash(.venv/bin/python deploy/ontop/load_corpus.py)",
+      "Bash(.venv/bin/r2g ingest-schema *)",
+      "Bash(.venv/bin/r2g generate-config *)",
+      "Bash(mkdir -p deploy/mappings)",
+      "Bash(~/code/r2g/.venv/bin/r2g ingest-schema *)",
+      "Bash(~/code/r2g/.venv/bin/r2g generate-config *)",
+      "Bash(~/code/r2g/.venv/bin/r2g export-csi *)",
+      "Bash(~/code/r2g/.venv/bin/r2g export-r2rml *)",
+      "Bash(CDF_POSTGRES_PORT=5433 CDF_ONTOP_PORT=8090 docker compose -p cdf-ontop restart ontop)",
+      "Bash(curl -s \"http://127.0.0.1:8090/sparql\" --data-urlencode 'query=PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?tier WHERE { ?a a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier }' -H 'Accept: application/sparql-results+json')",
+      "Bash(.venv/bin/python -c \"import json,sys; [print\\(b['name']['value'],'|',b['tier']['value']\\) for b in json.load\\(sys.stdin\\)['results']['bindings']]\")",
+      "Bash(curl -s \"http://127.0.0.1:8090/sparql\" --data-urlencode 'query=PREFIX c: <urn:arango-sparql:concept#> SELECT ?name WHERE { ?a a c:accounts ; c:account_name ?name }' -H 'Accept: application/sparql-results+json')",
+      "Bash(python3 -c \"import json,sys; [print\\(b['name']['value'],'|',b['tier']['value']\\) for b in json.load\\(sys.stdin\\)['results']['bindings']]\")",
+      "Bash(grep -iB3 \"AssertionError\\\\|MappingException\\\\|InvalidMapping\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://127.0.0.1:8090/sparql?query=SELECT%20*%20WHERE%20%7B%7D\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:8090/sparql .venv/bin/python -m pytest tests/test_ontop_live.py -q)",
+      "Bash(.venv/bin/python -m pytest tests -q)"
+    ]
+  }
+}

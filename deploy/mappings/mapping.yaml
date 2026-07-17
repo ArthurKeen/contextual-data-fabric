@@ -1,0 +1,60 @@
+source_schema: public
+collections:
+  contracts:
+    source_table: contracts
+    target_collection: contracts
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+  usage_metrics:
+    source_table: usage_metrics
+    target_collection: usage_metrics
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+  contacts:
+    source_table: contacts
+    target_collection: contacts
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+  nps_surveys:
+    source_table: nps_surveys
+    target_collection: nps_surveys
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+  opportunities:
+    source_table: opportunities
+    target_collection: opportunities
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+  accounts:
+    source_table: accounts
+    target_collection: accounts
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+edges: []
+type_overrides: {}
+key_separator: _
+naming_convention: null

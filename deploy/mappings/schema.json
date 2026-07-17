@@ -1,0 +1,644 @@
+{
+  "tables": {
+    "contracts": {
+      "name": "contracts",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "bigint",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "classification": null
+        },
+        {
+          "name": "account_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "auto_renew",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "billing_frequency",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "contract_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "days_to_renewal",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "end_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "is_downgrade",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "payment_terms",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "product_scope",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "renewal_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "seat_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "signed_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "status",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "term_months",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "value_usd",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    },
+    "usage_metrics": {
+      "name": "usage_metrics",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "bigint",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "classification": null
+        },
+        {
+          "name": "account_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "cluster_nodes",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "contracted_seats_mirror",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "edition",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "graphrag_enabled",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "is_peak_period",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "period",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "queries_per_node_m",
+          "data_type": "double precision",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "query_volume_growth_pct",
+          "data_type": "double precision",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "query_volume_m",
+          "data_type": "double precision",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "seats_active",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "smartgraphs_enabled",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "volume_trend",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    },
+    "contacts": {
+      "name": "contacts",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "bigint",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "classification": null
+        },
+        {
+          "name": "account_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "active_from",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "active_to",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "contact_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "email",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "engagement_status",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "full_name",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "influence",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "is_primary",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "role",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "title",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    },
+    "nps_surveys": {
+      "name": "nps_surveys",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "bigint",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "classification": null
+        },
+        {
+          "name": "account_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "nps_score",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "score",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "score_band",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "sentiment_aligned",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "survey_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "survey_period",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "survey_year",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "verbatim_sentiment",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    },
+    "opportunities": {
+      "name": "opportunities",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "bigint",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "classification": null
+        },
+        {
+          "name": "account_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "amount_usd",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "close_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "contract_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "forecast_category",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "is_open",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "is_won",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "opportunity_type",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "product_scope",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "renewal_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "stage",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "stage_detail",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    },
+    "accounts": {
+      "name": "accounts",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "bigint",
+          "is_nullable": false,
+          "is_primary_key": true,
+          "classification": null
+        },
+        {
+          "name": "account_id",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "account_name",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "account_trajectory",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "csm_owner",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "current_acv_usd",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "current_product_tier",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "deployment_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "health_band",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "health_score",
+          "data_type": "double precision",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "industry",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "last_activity_date",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "primary_champion",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "products_contracted",
+          "data_type": "jsonb",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "region",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "seats_sold",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "segment",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    }
+  }
+}
