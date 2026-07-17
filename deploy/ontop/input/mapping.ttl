@@ -12,6 +12,10 @@
         rr:class <urn:arango-sparql:concept#Account> ;
     ] ;
     rr:predicateObjectMap [
+        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:objectMap [ rr:column "account_id" ] ;
+    ] ;
+    rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#name> ;
         rr:objectMap [ rr:column "name" ] ;
     ] ;

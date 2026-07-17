@@ -11,9 +11,12 @@ services:
     environment:
       ARANGO_ROOT_PASSWORD: cdf
     ports:
-      - "8529:8529"
+      # Host port is overridable: this machine tends to have several ArangoDBs.
+      - "${CDF_ARANGO_PORT:-8529}:8529"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - --header=\"Authorization: Basic cm9vdDpjZGY=\" http://localhost:8529/_api/version || exit 1"]
+      # 127.0.0.1, not localhost: in-container localhost resolves to ::1 and
+      # arangod listens on IPv4 only, so the localhost form always fails.
+      test: ["CMD-SHELL", "wget -q -O - --header=\"Authorization: Basic cm9vdDpjZGY=\" http://127.0.0.1:8529/_api/version || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 12

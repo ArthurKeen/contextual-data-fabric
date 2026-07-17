@@ -27,16 +27,29 @@ def main() -> None:
     db = client.db(DB, username=USER, password=PASSWORD)
     if not db.has_collection("tickets"):
         db.create_collection("tickets")
+    # `account_id` is the cross-source business key: it matches an accounts row
+    # in the Ontop/Postgres leg so the federated query can join on it.
     db.collection("tickets").insert(
         {
             "_key": "1",
             "_uri": "tickets/1",
             "subject": "login broken",
             "severity": "high",
+            "account_id": "ACME",
         },
         overwrite=True,
     )
-    print(f"seeded {DB}.tickets with 1 document at {URL}")
+    db.collection("tickets").insert(
+        {
+            "_key": "2",
+            "_uri": "tickets/2",
+            "subject": "billing question",
+            "severity": "low",
+            "account_id": "GLOBEX",
+        },
+        overwrite=True,
+    )
+    print(f"seeded {DB}.tickets with 2 documents at {URL}")
 
 
 if __name__ == "__main__":

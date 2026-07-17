@@ -1,0 +1,15 @@
+{
+  "csiVersion": "1",
+  "conceptualModel": {
+    "entities": [{"name": "Ticket", "properties": [{"name": "subject"}]}]
+  },
+  "arangoPhysicalMapping": {
+    "entities": {"Ticket": {"style": "COLLECTION", "collectionName": "tickets"}},
+    "relationships": {}
+  },
+  "provenance": {
+    "producer": "analyzer",
+    "direction": "reverse",
+    "source": {"kind": "arango", "ref": "tickets"}
+  }
+}
