@@ -4,7 +4,7 @@ type:
   - internal
   - implementation-plan
 status: draft
-version: 0.1
+version: 0.2
 date: 2026-07-17
 related:
   - "[[contextual-data-fabric/docs/architecture/module-05-federated-query-engine/implementation-plan|M5 implementation plan]]"
