@@ -1,49 +1,48 @@
-"""Local browser UI for the live federated-query demo (M5).
+"""Local browser UI for the live federated-query demo (M5 / M9).
 
-Serves one page that lets you run a conceptual SPARQL question and see, live:
-the partition plan, each per-source sub-query, the joined answer, and the
-citations (source objects, the actual SQL/AQL, as-of stamps) — with the
-cite-or-refuse status. Hits the local Ontop + ArangoDB stacks via
-:mod:`federation`.
+Consolidated onto the engine's HTTP seam: this serves one page from the *same*
+FastAPI app that exposes ``POST /federate`` (:mod:`cdf.service.app`), and the
+page calls that endpoint. No query wiring lives here — the service owns it
+(:func:`cdf.service.app.FederationService.from_env`, credentials-in-engine per
+CC-7). The page just renders the grounded envelope: the per-source partition,
+the joined answer, and the citations (actual SQL/AQL, source objects, as-of),
+with the cite-or-refuse status.
 
-    .venv/bin/python deploy/demo/server.py         # then open http://localhost:8099
+    .venv/bin/python deploy/demo/server.py      # then open http://localhost:8099
 """
 
 from __future__ import annotations
 
 import os
-import sys
-import traceback
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
+from fastapi.responses import HTMLResponse
 
-import federation  # noqa: E402
-from fastapi import FastAPI  # noqa: E402
-from fastapi.responses import HTMLResponse, JSONResponse  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
+from cdf.service.app import FederationService, create_app
 
-app = FastAPI(title="CDF Federated Query — live demo")
+# Turnkey defaults matching the two deploy/ stacks (explicit env always wins).
+_REPO = Path(__file__).resolve().parents[2]
+os.environ.setdefault("CDF_CSI_DIR", str(_REPO / "deploy" / "csi"))
+os.environ.setdefault("CDF_PREPARED_QUESTIONS", str(_REPO / "deploy" / "questions.json"))
+os.environ.setdefault("ONTOP_SPARQL_ENDPOINT", "http://localhost:8090/sparql")
+os.environ.setdefault("ARANGO_URL", "http://localhost:8530")
+os.environ.setdefault("ARANGO_DB", "cmf")
+os.environ.setdefault("ARANGO_USER", "root")
+os.environ.setdefault("ARANGO_PASSWORD", "cdf")
 
+# A real cross-source JOIN (on the account_id business key) — the demo query.
+DEFAULT_SPARQL = """PREFIX c: <urn:arango-sparql:concept#>
+SELECT ?name ?subject ?arr WHERE {
+  ?t   a c:Ticket  ; c:subject ?subject ; c:account_id ?aid .
+  ?acc a c:Account ; c:account_id ?aid ; c:name ?name ; c:arr ?arr .
+}"""
 
-class Query(BaseModel):
-    question: str | None = None
-    allow_partial: bool = False
+app = create_app(FederationService.from_env())
 
 
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
-    return PAGE.replace("__QUESTION__", federation.DEFAULT_QUESTION)
-
-
-@app.post("/api/query")
-def api_query(q: Query) -> JSONResponse:
-    try:
-        return JSONResponse(federation.run(q.question, allow_partial=q.allow_partial))
-    except Exception as exc:  # noqa: BLE001 — surface any wiring error to the page
-        return JSONResponse(
-            {"error": f"{type(exc).__name__}: {exc}", "trace": traceback.format_exc()},
-            status_code=500,
-        )
+    return PAGE.replace("__SPARQL__", DEFAULT_SPARQL)
 
 
 PAGE = """<!doctype html>
@@ -81,6 +80,7 @@ PAGE = """<!doctype html>
   .b-ok { background:color-mix(in srgb,var(--ok) 18%,transparent); color:var(--ok); }
   .b-refuse { background:color-mix(in srgb,var(--refuse) 18%,transparent); color:var(--refuse); }
   .b-partial { background:color-mix(in srgb,var(--partial) 18%,transparent); color:var(--partial); }
+  .b-failed { background:color-mix(in srgb,var(--refuse) 14%,transparent); color:var(--refuse); }
   .src { display:inline-block; padding:1px 8px; border-radius:6px; font-size:11.5px;
     font-weight:700; }
   .src-postgresql { background:color-mix(in srgb,var(--pg) 16%,transparent); color:var(--pg); }
@@ -94,7 +94,6 @@ PAGE = """<!doctype html>
   th { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
   .flow { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12.5px;
     flex-wrap:wrap; margin-top:4px; }
-  .join { color:var(--accent); font-weight:700; }
   details summary { cursor:pointer; color:var(--muted); font-size:12.5px; }
   .meta { color:var(--muted); font-size:12.5px; }
   .err { color:var(--refuse); }
@@ -103,10 +102,11 @@ PAGE = """<!doctype html>
   <h1>Contextual Data Fabric — Federated Query</h1>
   <p class="sub">One conceptual SPARQL question, partitioned by source, run live across
      <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL) and <b>ArangoDB</b>
-     (via arango-sparql-py, SPARQL&rarr;AQL), joined on a business key, cited — no data moved.</p>
+     (via arango-sparql-py, SPARQL&rarr;AQL), joined on a business key, cited — no data moved.
+     Served by the engine's <code>POST /federate</code> seam.</p>
 
   <div class="card">
-    <textarea id="q">__QUESTION__</textarea>
+    <textarea id="q">__SPARQL__</textarea>
     <div class="row">
       <button id="run" onclick="run()">Run federated query</button>
       <label class="chk"><input type="checkbox" id="ap"> allow partial (concierge mode)</label>
@@ -118,7 +118,7 @@ PAGE = """<!doctype html>
 
 <script>
 const el = (h) => { const d=document.createElement('div'); d.innerHTML=h; return d.firstElementChild; };
-const esc = (s) => (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const esc = (s) => (s==null?'':(''+s)).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const srcTag = (kind, id) => `<span class="src src-${esc(kind)}">${esc(id)}</span>`;
 
 async function run() {
@@ -126,12 +126,12 @@ async function run() {
         stat=document.getElementById('status');
   btn.disabled=true; stat.innerHTML='running…'; out.innerHTML='';
   try {
-    const r = await fetch('/api/query', {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({question: document.getElementById('q').value,
+    const r = await fetch('/federate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({sparql: document.getElementById('q').value,
                             allow_partial: document.getElementById('ap').checked})});
     const d = await r.json();
     stat.innerHTML='';
-    if (d.error) { out.appendChild(el(`<div class="card err"><b>Error:</b> ${esc(d.error)}</div>`)); return; }
+    if (!r.ok) { out.appendChild(el(`<div class="card err"><b>${r.status}:</b> ${esc(d.detail||JSON.stringify(d))}</div>`)); return; }
     render(d, out);
   } catch(e) { stat.innerHTML=`<span class="err">${esc(''+e)}</span>`; }
   finally { btn.disabled=false; }
@@ -141,34 +141,34 @@ function render(d, out) {
   const bmap={grounded:'b-ok',refused:'b-refuse',partial:'b-partial'};
   out.appendChild(el(`<div class="row" style="margin:6px 2px 0">
      <span class="badge ${bmap[d.status]||''}">${esc(d.status)}</span>
-     <span class="meta">join key: <span class="join">${(d.join_keys||[]).map(esc).join(', ')||'—'}</span></span>
      ${d.refusal_reason?`<span class="err">${esc(d.refusal_reason)}</span>`:''}</div>`));
 
-  // Partition / sub-queries
+  // Partition / execution — one card per leg (from the retrieval path).
   out.appendChild(el('<h2>How it was answered — partition by source</h2>'));
-  (d.sub_queries||[]).forEach(sq => {
+  (d.retrieval_path||[]).forEach(s => {
     const c = el(`<div class="card"></div>`);
-    c.appendChild(el(`<div class="flow">${srcTag(sq.kind, sq.source_id)}
-       <span>&larr; this slice of the query ran here</span></div>`));
-    c.appendChild(el(`<pre>${esc(sq.sparql)}</pre>`));
+    c.appendChild(el(`<div class="flow">${srcTag(s.kind, s.source_id)}
+       <span class="badge ${s.status==='ok'?'b-ok':'b-failed'}">${esc(s.status)}</span>
+       <span>· ${s.row_count} rows</span>
+       ${s.error?`<span class="err">${esc(s.error)}</span>`:''}</div>`));
+    if (s.sparql) c.appendChild(el(`<pre>${esc(s.sparql)}</pre>`));
     out.appendChild(c);
   });
 
-  // Answer
+  // Answer.
   out.appendChild(el('<h2>Answer — joined live across both sources</h2>'));
   const rows = d.bindings||[];
   if (!rows.length) out.appendChild(el(`<div class="card meta">no rows</div>`));
   else {
-    const cols = Object.keys(rows[0]);
-    const t = el(`<div class="card" style="overflow-x:auto"><table><thead><tr>${
+    const cols = [...new Set(rows.flatMap(Object.keys))];
+    out.appendChild(el(`<div class="card" style="overflow-x:auto"><table><thead><tr>${
       cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${
-      rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(''+r[c])}</td>`).join('')}</tr>`).join('')
-      }</tbody></table></div>`);
-    out.appendChild(t);
+      rows.map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')
+      }</tbody></table></div>`));
   }
 
-  // Citations
-  out.appendChild(el('<h2>Citations — provenance for every leg</h2>'));
+  // Citations.
+  out.appendChild(el('<h2>Citations — provenance for every grounded leg</h2>'));
   (d.citations||[]).forEach(c => {
     const card = el(`<div class="card"></div>`);
     card.appendChild(el(`<div class="flow">${srcTag(c.kind, c.source_id)}
