@@ -1,0 +1,60 @@
+# CI for the fabric engine (P1 close-out WP-P1.8).
+#
+# Two jobs:
+#   * check — ruff + mypy + the unit suite on every push/PR. Fast, no infra.
+#   * live  — the opt-in integration layer made mandatory in CI: brings up the
+#     deploy/ stacks (ArangoDB; Postgres + Ontop over the repo's R2RML) and runs
+#     the live-leg tests end-to-end. This is CC-9's enforcement hook — a pin
+#     bump or engine change that breaks a live leg goes red here, not in a demo.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[test,service]" ruff mypy
+      - run: ruff check src tests deploy
+      - run: mypy src
+      - run: pytest tests -q
+
+  live:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install engine + live-leg libraries
+        run: |
+          pip install -e ".[test,service]" python-arango \
+            "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
+      - name: Postgres JDBC driver for Ontop
+        run: curl -sL -o deploy/ontop/jdbc/postgresql.jar https://jdbc.postgresql.org/download/postgresql-42.7.4.jar
+      - name: Bring up the stacks
+        run: |
+          docker compose -f deploy/arango/docker-compose.yml up -d --wait
+          docker compose -f deploy/ontop/docker-compose.yml up -d --wait
+      - name: Seed ArangoDB
+        run: ARANGO_URL=http://127.0.0.1:8529 ARANGO_PASSWORD=cdf python deploy/arango/seed.py
+      - name: Live-leg tests
+        run: |
+          ARANGO_URL=http://127.0.0.1:8529 ARANGO_DB=cmf ARANGO_PASSWORD=cdf \
+          ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:8080/sparql \
+            pytest tests/test_arango_live.py tests/test_ontop_live.py -q
+      - name: Stack logs on failure
+        if: failure()
+        run: |
+          docker compose -f deploy/arango/docker-compose.yml logs --tail 50
+          docker compose -f deploy/ontop/docker-compose.yml logs --tail 100
