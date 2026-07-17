@@ -1,17 +1,25 @@
 # Contextual Data Fabric — one-command demo + gates (WP-P1.7 / CC-8).
 #
-#   make up      bring up both stacks (ArangoDB; Postgres + Ontop)
-#   make seed    load the corpus (Postgres via seed.sql on first boot; re-run
-#                load_corpus.py for an existing volume) + the Arango seeds
-#   make gate    the pre-demo golden gate — run before ANY demo (PJ's rule)
-#   make demo    up + seed + gate, then serve the browser demo
-#   make test    lint + types + unit suite (what CI runs)
-#   make down    stop the stacks (volumes preserved)
+#   make install  create .venv and install the engine + live-leg libraries
+#   make up       bring up both stacks (ArangoDB; Postgres + Ontop)
+#   make seed     load the corpus (structured -> Postgres, unstructured ->
+#                 ArangoDB) + emit the mappings
+#   make gate     the pre-demo golden gate — run before ANY demo (PJ's rule)
+#   make demo     up + seed + gate, then serve the browser demo at :8099
+#   make test     lint + types + unit suite (what CI runs)
+#   make down     stop the stacks (volumes preserved)
+#
+# From a fresh clone (Docker running):  make install && make demo
 
 # Host ports — overridable; defaults match this machine's running stacks.
 export CDF_ARANGO_PORT   ?= 8530
 export CDF_POSTGRES_PORT ?= 5433
 export CDF_ONTOP_PORT    ?= 8090
+
+# The two owned sibling libraries (SPARQL->AQL transpiler, ArangoDB analyzer)
+# are installed from local checkouts by default — override if they live
+# elsewhere. arango-sparql-py is also public on GitHub (see `make install`).
+CDF_SIBLINGS ?= $(HOME)/code
 
 # Engine environment (CC-7: credentials stay here, in the engine's env).
 DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
@@ -21,7 +29,17 @@ DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
 
 PY = .venv/bin/python
 
-.PHONY: up seed gate demo test down jdbc
+.PHONY: install up seed gate demo test down jdbc
+
+install:
+	python3 -m venv .venv
+	$(PY) -m pip install -q --upgrade pip
+	$(PY) -m pip install -e ".[test,service,dev]" "psycopg[binary]" python-arango
+	# Owned sibling libraries: local checkout if present, else public GitHub.
+	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-sparql-py" 2>/dev/null \
+	  || $(PY) -m pip install "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
+	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-schema-analyzer"
+	@echo "OK — now: make demo   (Docker must be running)"
 
 jdbc: deploy/ontop/jdbc/postgresql.jar
 deploy/ontop/jdbc/postgresql.jar:
