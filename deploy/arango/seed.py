@@ -33,9 +33,9 @@ def main() -> None:
         {
             "_key": "1",
             "_uri": "tickets/1",
-            "subject": "login broken",
+            "subject": "Escalation: ops burden and competitor evaluation",
             "severity": "high",
-            "account_id": "ACME",
+            "account_id": "001bbkuFW1b7KegAZT",  # Meridian Logistics (corpus)
         },
         overwrite=True,
     )
@@ -43,9 +43,9 @@ def main() -> None:
         {
             "_key": "2",
             "_uri": "tickets/2",
-            "subject": "billing question",
+            "subject": "Question: GraphRAG on ArangoGraph",
             "severity": "low",
-            "account_id": "GLOBEX",
+            "account_id": "001LxbLlyzNOfmaOHp",  # Northwind Analytics (corpus)
         },
         overwrite=True,
     )

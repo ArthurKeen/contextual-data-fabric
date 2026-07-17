@@ -20,7 +20,9 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://127.0.0.1:8090/sparql?query=SELECT%20*%20WHERE%20%7B%7D\")",
       "Bash(python3 -m json.tool)",
       "Bash(ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:8090/sparql .venv/bin/python -m pytest tests/test_ontop_live.py -q)",
-      "Bash(.venv/bin/python -m pytest tests -q)"
+      "Bash(.venv/bin/python -m pytest tests -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_bind_join.py::test_second_leg_is_seeded_with_first_legs_join_keys -q)",
+      "Bash(curl -s http://127.0.0.1:8600/federate -H 'Content-Type: application/json' -d '{\"question\": \"which accounts have open support tickets, and what are they about?\"}')"
     ]
   }
 }

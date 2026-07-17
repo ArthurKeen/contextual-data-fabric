@@ -1,4 +1,4 @@
 {
   "for each account, what product tier are they on?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?tier WHERE { ?a a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier }",
-  "what accounts do we have, and what support tickets are open?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { ?a a c:accounts ; c:account_name ?name . ?t a c:Ticket ; c:subject ?subject }"
+  "which accounts have open support tickets, and what are they about?": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { ?a a c:accounts ; c:account_name ?name ; c:account_id ?acct . ?t a c:Ticket ; c:subject ?subject ; c:account_id ?acct }"
 }
