@@ -22,9 +22,10 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from cdf.query import SourceCatalog, execute_plan, ground, partition_query
 from cdf.query.executor import SourceExecutor
@@ -64,7 +65,7 @@ class FederationService:
         return self.federate_sparql(sparql, allow_partial=allow_partial)
 
     @classmethod
-    def from_env(cls, environ: Mapping[str, str] | None = None) -> "FederationService":
+    def from_env(cls, environ: Mapping[str, str] | None = None) -> FederationService:
         """Wire the two P1 legs from the environment (CC-7/CC-8).
 
         - ``CDF_CSI_DIR`` — directory of ``*.json`` CSI v1 documents (default
