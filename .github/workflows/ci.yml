@@ -37,9 +37,21 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install engine + live-leg libraries
+        run: pip install -e ".[test,service]" python-arango
+      - name: Arango-leg transpiler (best effort — private repo)
+        # ArthurKeen/arango-sparql-py is private: without a token the Arango
+        # live test importorskips (declared, not hidden). Set the
+        # SPARQL_PY_TOKEN repo secret (read-only PAT) — or publish the package
+        # to PyPI (CC-10) — to make the Arango leg gate for real.
+        env:
+          TOKEN: ${{ secrets.SPARQL_PY_TOKEN }}
         run: |
-          pip install -e ".[test,service]" python-arango \
-            "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
+          if [ -n "$TOKEN" ]; then
+            pip install "arango-sparql-py @ git+https://x-access-token:${TOKEN}@github.com/ArthurKeen/arango-sparql-py"
+          else
+            pip install "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py" \
+              || echo "::warning::arango-sparql-py unavailable (private, no SPARQL_PY_TOKEN) — the Arango live test will skip"
+          fi
       - name: Postgres JDBC driver for Ontop
         run: curl -sL -o deploy/ontop/jdbc/postgresql.jar https://jdbc.postgresql.org/download/postgresql-42.7.4.jar
       - name: Bring up the stacks
