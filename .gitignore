@@ -4,6 +4,10 @@ __pycache__/
 *.egg-info/
 .prd-drift-queue/
 
+# Secrets — never commit an API key / credentials
+.env
+.env.*
+
 # Ontop JDBC driver (fetched at deploy time, not versioned)
 deploy/ontop/jdbc/*.jar
 deploy/ontop/jdbc/*.jar

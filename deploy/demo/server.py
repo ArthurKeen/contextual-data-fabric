@@ -22,6 +22,25 @@ from cdf.service.app import FederationService, create_app
 
 # Turnkey defaults matching the two deploy/ stacks (explicit env always wins).
 _REPO = Path(__file__).resolve().parents[2]
+
+
+def _load_dotenv(path: Path) -> None:
+    """Minimal .env loader (no dependency). Populates any var not already
+    exported — so a key placed in a .env (e.g. NL2SPARQL_API_KEY / OPENAI_API_KEY
+    to enable the NL front-end) is picked up, while an explicit `export` wins."""
+    if not path.is_file():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+
+
+# CDF_ENV_FILE overrides the location; otherwise <cdf-repo>/.env.
+_load_dotenv(Path(os.environ.get("CDF_ENV_FILE", str(_REPO / ".env"))))
+
 os.environ.setdefault("CDF_CSI_DIR", str(_REPO / "deploy" / "csi"))
 os.environ.setdefault("CDF_PREPARED_QUESTIONS", str(_REPO / "deploy" / "questions.json"))
 os.environ.setdefault("ONTOP_SPARQL_ENDPOINT", "http://localhost:8090/sparql")
