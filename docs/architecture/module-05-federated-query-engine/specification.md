@@ -53,7 +53,7 @@ This is the runtime heart of the Query building block. Given a natural-language 
 
 ## 4. Functional requirements
 - **FR-1 (P1):** Resolve a question to ontology concepts and produce a **query plan** naming the sources to hit and the join keys. The plan's conceptual query is expressed in a **small typed graph-pattern IR over the ontology that serializes to SPARQL** ([[adr/ADR-0001-conceptual-query-language|ADR-0001]]); **decomposition = partition this query graph by the source each concept/property maps to.**
-- **FR-2 (P1):** Generate and execute **SQL pushdown** against one relational DB (Postgres) using M4 mappings — filters pushed down; no bulk pull into Arango. **The relational leg SHOULD use a Virtual Knowledge Graph engine (Ontop) driven by R2RML mappings (r2g P12.1) — SPARQL→SQL rewriting with no materialization is off-the-shelf and already covers all our relational sources (ADR-0001, §Research). Bespoke SQL generation (r2g P12.2) is a stopgap/fallback, pending the buy-vs-build decision in ADR-0001.**
+- **FR-2 (P1):** Generate and execute **SQL pushdown** against one relational DB (Postgres) using M4 mappings — filters pushed down; no bulk pull into Arango. **The relational leg SHOULD use a Virtual Knowledge Graph engine (Ontop) driven by R2RML mappings (r2g P12.1) — SPARQL→SQL rewriting with no materialization is off-the-shelf and already covers all our relational sources (ADR-0001, §Research). Bespoke SQL generation (r2g P12.2) is a retired fallback — the adopt-vs-build decision in ADR-0001 RESOLVED to adopt Ontop (Apache-2.0 OSS, free).**
 - **FR-3 (P1):** Generate and execute **AQL** against the Arango unstructured graph for the same question. **SPARQL→AQL is provided by the *owned* [`arango-sparql-py`](https://github.com/ArthurKeen/arango-sparql-py) transpiler (ADR-0001) — and the remaining work is DONE (2026-07-15): evaluation correctness is CI-gated (WP-C1) and the `translate_partition` federation entry point shipped (WP-C2; canonical keys, `seed_bindings` pushdown, `as_of`; contract: `arango-sparql-py/docs/architecture/proposals/federation-entry-point.md`). `arango-cypher-py`'s role is now the NL engine (D1), not a transpiler fallback.**
 - **FR-4 (P1):** **Reassemble** structured + unstructured results into one answer, joined via the canonical entity hub.
 - **FR-5 (P1):** Emit a complete **retrieval path** (actual SQL + AQL + source objects) for M7 to cite; refuse (via M7) if any leg is uncitable.
@@ -76,7 +76,7 @@ This is the runtime heart of the Query building block. Given a natural-language 
 
 ## 6. Dependencies
 - **Modules:** M4 (mappings), M1 (connectors), M6 (canonical hub), M7 (grounding).
-- **Repos (per ADR-0001 + the implementation plan):** **r2g** — the **[[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|federated-query enhancement]]**, reframed: P12.1 forward-CSI+R2RML is the durable contract; P12.2 pushdown SQL is the P1 stopgap vs Ontop. **`arango-sparql-py`** (SPARQL→AQL, owned — finish eval gate + federation entry). **`arango-cypher-py`** (NL→IR engine to harvest; P1 Arango-leg fallback). **`arangodb-schema-analyzer`** (CSI v1 hub). **Ontop** (relational VKG engine, buy-vs-build — PRD §9.10). Reuses agent/query patterns from `customer-context`.
+- **Repos (per ADR-0001 + the implementation plan):** **r2g** — the **[[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|federated-query enhancement]]**, reframed: P12.1 forward-CSI+R2RML is the durable contract; P12.2 pushdown SQL is the P1 stopgap vs Ontop. **`arango-sparql-py`** (SPARQL→AQL, owned — finish eval gate + federation entry). **`arango-cypher-py`** (NL→IR engine to harvest; P1 Arango-leg fallback). **`arangodb-schema-analyzer`** (CSI v1 hub). **Ontop** (relational VKG engine, **adopted — Apache-2.0 OSS, free**; PRD §9.10). Reuses agent/query patterns from `customer-context`.
 
 ## 7. Phase mapping
 - **P1:** loosely-coupled, one relational DB (Postgres) + Arango unstructured graph, LLM planner, full retrieval path.
@@ -105,7 +105,7 @@ This is the runtime heart of the Query building block. Given a natural-language 
   eval-correctness isn't gated) and fix the variable-predicate→IRI bug; add a
   **query-graph partition entry point + canonical-key return** (it only takes a
   full SPARQL string today). Bounded — weeks.
-- **Still a team decision — relational engine:** Ontop (buy) vs r2g P12.2
+- **RESOLVED — relational engine:** adopt **Ontop** (Apache-2.0 OSS, free — not a purchase) over r2g P12.2
   (build); ADR recommends Ontop, keep r2g **P12.1 R2RML export** as the contract
   (needed either way per the CSI plan).
 - **Net-new regardless of IR:** neither transpiler is federation-shaped — the

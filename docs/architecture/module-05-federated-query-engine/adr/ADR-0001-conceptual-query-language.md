@@ -103,7 +103,7 @@ Decision drivers (from the PRD + North Star):
 
 | Option | Ontology semantics | "Mapping-is-query" rewrite | Owned transpilers (relational / Arango) | Federation | Maturity for our use | Verdict |
 |---|---|---|---|---|---|---|
-| **(a) SPARQL IR + OBDA** | ★★★ (OWL 2 QL) | ★★★ (R2RML) | Ontop *(buy)* / **arango-sparql-py** *(own, v0.1)* | ★★ (SERVICE) | relational ★★★ / Arango ★★ (eval coverage WIP) | **Recommended canonical IR — both legs owned/available** |
+| **(a) SPARQL IR + OBDA** | ★★★ (OWL 2 QL) | ★★★ (R2RML) | Ontop *(adopt — Apache-2.0 OSS)* / **arango-sparql-py** *(own, v0.1)* | ★★ (SERVICE) | relational ★★★ / Arango ★★ (eval coverage WIP) | **Recommended canonical IR — both legs owned/available** |
 | **(b) Small typed graph-pattern IR → serializes to SPARQL** | ★★★ | ★★★ | via (a) | ★★★ (our planner) | small build over (a) | **Chosen IR *shape* under (a)** |
 | **(c) Cypher (openCypher) IR** | ★ (no OWL reasoning) | ★★ (schema-mapper) | ✗ standard Cypher→SQL / **arango-cypher-py** *(own, v0.2, +NL engine)* | ★★ | Arango ★★★ / relational ✗ | **Live alternative — most mature *today*; weak relational leg** |
 | (d) GraphQL federation | ✗ | ★★ (resolver=code) | — | ★★★ | ★★★ | Reject as IR; fine as *external* API |
@@ -160,8 +160,9 @@ Decision drivers (from the PRD + North Star):
   eval harness.
 - **r2g Phase 12 is reframed.** P12.1 (R2RML/runtime-mapping export) becomes the
   primary, durable deliverable. P12.2 (bespoke pushdown SQL generation) is now a
-  **build-vs-buy decision** against Ontop — likely demoted to "optional / only
-  if we choose not to run a VKG engine." (Tracked as an open decision below.)
+  **adopt-vs-build decision** against Ontop (Apache-2.0 OSS, free — not a
+  purchase) — RESOLVED: adopt Ontop; native generation demoted to "optional /
+  only if a deployment declines to run a VKG engine."
 - **Reasoning is materialized at ontology-build time** (M2/M3): fold
   `sameAs`/`equivalentClass` alignment into the master ontology so M5 query-time
   reasoning stays minimal, fast, and deterministic.
@@ -224,7 +225,7 @@ biggest open decisions:
    weeks-not-quarters. **→ PAID (2026-07-15, days not weeks): WPs A2/A3/C1/C2
    landed in `arango-sparql-py` (`b26f35d`); contract doc
    `docs/architecture/proposals/federation-entry-point.md`.**
-2. **Relational engine: Ontop (buy) vs r2g P12.2 (build)?** Ontop is mature +
+2. **Relational engine: adopt Ontop (Apache-2.0 OSS, free) vs r2g P12.2 (build)? — RESOLVED: adopt Ontop.** Ontop is mature +
    covers all sources but adds a Java VKG service + R2RML discipline; r2g P12.2
    avoids new infra but reinvents a solved problem. **Recommendation: Ontop for
    the relational legs; keep r2g P12.1 (R2RML export) as the contract.**
