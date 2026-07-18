@@ -40,6 +40,9 @@ class FederationService:
     catalog: SourceCatalog
     executors: Mapping[str, SourceExecutor]
     prepared_questions: Mapping[str, str] = field(default_factory=dict)
+    nl_client: Any | None = None
+    """Optional LLM client (WP-D1). When set, an unregistered question is
+    translated to conceptual SPARQL via :func:`cdf.query.nl.nl_to_sparql`."""
 
     def federate_sparql(self, sparql: str, *, allow_partial: bool = False) -> AnswerEnvelope:
         plan = partition_query(sparql, self.catalog)
@@ -48,18 +51,28 @@ class FederationService:
 
     def federate_question(self, question: str, *, allow_partial: bool = False) -> AnswerEnvelope:
         sparql = self.prepared_questions.get(_normalize(question))
+        if sparql is None and self.nl_client is not None:
+            # WP-D1: translate NL → conceptual SPARQL, grounded in the catalog
+            # and validated by the partitioner (refuse, never guess).
+            from cdf.query.nl import nl_to_sparql
+
+            result = nl_to_sparql(question, self.catalog, client=self.nl_client)
+            if not result.ok:
+                return AnswerEnvelope(
+                    status="refused", bindings=(), citations=(), retrieval_path=(),
+                    refusal_reason=(result.error or "could not translate the question"),
+                )
+            sparql = result.sparql
         if sparql is None:
-            # Refuse, never guess: NL→IR is WP-D1; until then only prepared
-            # (seed) questions are answerable by name.
+            # No prepared match and no NL front-end configured.
             return AnswerEnvelope(
                 status="refused",
                 bindings=(),
                 citations=(),
                 retrieval_path=(),
                 refusal_reason=(
-                    "question is not in the prepared-question registry and the "
-                    "NL→conceptual-query front-end (WP-D1) is not wired yet; "
-                    "send 'sparql' instead"
+                    "question is not in the prepared-question registry and no NL "
+                    "front-end is configured (set NL2SPARQL_API_KEY, or send 'sparql')"
                 ),
             )
         return self.federate_sparql(sparql, allow_partial=allow_partial)
@@ -112,7 +125,14 @@ class FederationService:
             raw = json.loads(Path(questions_file).read_text())
             questions = {_normalize(q): s for q, s in raw.items()}
 
-        return cls(catalog=catalog, executors=executors, prepared_questions=questions)
+        from cdf.query.nl import default_client
+
+        return cls(
+            catalog=catalog,
+            executors=executors,
+            prepared_questions=questions,
+            nl_client=default_client(),
+        )
 
 
 def _normalize(question: str) -> str:
@@ -176,5 +196,23 @@ def create_app(service: FederationService) -> Any:
             # surface it as a client error with the reason.
             raise HTTPException(422, f"unsupported query construct: {exc}") from exc
         return asdict(envelope)
+
+    @app.post("/nl-preview")
+    def nl_preview(req: FederateRequest) -> dict[str, Any]:
+        """Show the SPARQL an English question translates to (no execution)."""
+        if not req.question:
+            raise HTTPException(422, "provide 'question'")
+        if service.nl_client is None:
+            raise HTTPException(503, "no NL front-end configured (set NL2SPARQL_API_KEY)")
+        from cdf.query.nl import nl_to_sparql
+
+        result = nl_to_sparql(req.question, service.catalog, client=service.nl_client)
+        return {
+            "question": result.question,
+            "sparql": result.sparql,
+            "ok": result.ok,
+            "warnings": list(result.warnings),
+            "error": result.error,
+        }
 
     return app

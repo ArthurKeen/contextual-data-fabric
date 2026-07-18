@@ -90,7 +90,8 @@ def test_federate_prepared_question_resolves(client: TestClient) -> None:
 def test_unknown_question_is_refused_not_guessed(client: TestClient) -> None:
     body = client.post("/federate", json={"question": "meaning of life?"}).json()
     assert body["status"] == "refused"
-    assert "WP-D1" in body["refusal_reason"]
+    # No prepared match and (in tests) no NL client configured -> refuse, not guess.
+    assert "NL front-end" in body["refusal_reason"]
 
 
 def test_exactly_one_input_required(client: TestClient) -> None:

@@ -120,3 +120,44 @@ class SourceCatalog:
         for srcs in self._property_sources.values():
             out |= srcs
         return out
+
+    def _local(self, iri: str) -> str:
+        base = self.concept_base
+        return iri[len(base):] if iri.startswith(base) else iri
+
+    def vocabulary(self) -> list[dict[str, Any]]:
+        """Per-source concept + property vocabulary for NL-query grounding.
+
+        One entry per source — ``{source_id, kind, ref, classes, properties}``
+        with bare local names (the ``concept_base`` prefix stripped, sorted for
+        determinism) — so an NL front-end can ground an LLM in exactly which
+        concepts exist and which source backs each.
+        """
+        by_source: dict[str, dict[str, Any]] = {}
+
+        def _entry(src: SourceRef) -> dict[str, Any]:
+            return by_source.setdefault(
+                src.source_id,
+                {
+                    "source_id": src.source_id,
+                    "kind": src.kind,
+                    "ref": src.ref,
+                    "classes": set(),
+                    "properties": set(),
+                },
+            )
+
+        for iri, src in self._class_source.items():
+            _entry(src)["classes"].add(self._local(iri))
+        for iri, srcs in self._property_sources.items():
+            for src in srcs:
+                _entry(src)["properties"].add(self._local(iri))
+
+        return [
+            {
+                **entry,
+                "classes": sorted(entry["classes"]),
+                "properties": sorted(entry["properties"]),
+            }
+            for entry in sorted(by_source.values(), key=lambda e: e["source_id"])
+        ]
