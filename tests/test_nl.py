@@ -73,13 +73,32 @@ def _catalog() -> SourceCatalog:
 # -- vocabulary --------------------------------------------------------------
 
 
-def test_vocabulary_groups_concepts_by_source():
+def test_vocabulary_groups_properties_under_their_class():
     vocab = {v["source_id"]: v for v in _catalog().vocabulary()}
     assert set(vocab) == {"postgresql:crm", "arango:tickets"}
-    assert vocab["postgresql:crm"]["classes"] == ["Account"]
-    assert "name" in vocab["postgresql:crm"]["properties"]
-    assert vocab["arango:tickets"]["classes"] == ["Ticket"]
-    assert "subject" in vocab["arango:tickets"]["properties"]
+    pg = {c["name"]: c["properties"] for c in vocab["postgresql:crm"]["classes"]}
+    assert pg["Account"] == sorted(["account_id", "name", "arr"])
+    ar = {c["name"]: c["properties"] for c in vocab["arango:tickets"]["classes"]}
+    assert "subject" in ar["Ticket"]
+
+
+def test_prompt_ties_each_property_to_its_owning_class():
+    # Regression: a Chunk's document_id must NOT read as a Document property —
+    # a flat property bag let the LLM attach it to Document and get 0 rows.
+    cat = SourceCatalog.from_csi_documents(
+        [
+            _csi("arango", "cmf", [
+                ("Document", ["source", "filename", "account_id"]),
+                ("Chunk", ["document_id", "text", "account_id"]),
+            ]),
+        ]
+    )
+    prompt = build_system_prompt(cat)
+    doc_line = next(ln for ln in prompt.splitlines() if "class Document" in ln)
+    chunk_line = next(ln for ln in prompt.splitlines() if "class Chunk" in ln)
+    assert "document_id" not in doc_line  # Document does NOT own document_id
+    assert "document_id" in chunk_line    # Chunk does
+    assert "filename" in doc_line
 
 
 def test_system_prompt_grounds_in_catalog_concepts():

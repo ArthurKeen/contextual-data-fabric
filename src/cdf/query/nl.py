@@ -65,25 +65,30 @@ def build_system_prompt(catalog: SourceCatalog) -> str:
         "SPARQL query — no prose, no explanation.",
         "",
         f"Every class and property IRI is under <{base}...>. Use ONLY the concepts",
-        "listed below (a query that invents concepts will be rejected):",
+        "listed below. Each class lists ITS OWN properties — a property may be",
+        "used only on a subject typed as the class that owns it:",
         "",
     ]
     for src in catalog.vocabulary():
         lines.append(f"# source {src['source_id']} ({src['kind']})")
-        if src["classes"]:
-            lines.append("  classes:    " + ", ".join(src["classes"]))
-        if src["properties"]:
-            lines.append("  properties: " + ", ".join(src["properties"]))
+        for cls in src["classes"]:
+            props = ", ".join(cls["properties"]) or "(no properties)"
+            lines.append(f"  class {cls['name']} — properties: {props}")
+        if src.get("relationships"):
+            lines.append("  relationships: " + ", ".join(src["relationships"]))
     lines += [
         "",
         "Rules:",
         f"- Prefix: PREFIX c: <{base}>  and write concepts as c:Name.",
         "- Type every subject: `?x a c:ClassName`.",
+        "- Use on a subject ONLY the properties listed under ITS class above. Do",
+        "  not borrow a property from another class (that yields an empty answer).",
         "- Use ONLY basic triple patterns. Do NOT use FILTER, OPTIONAL, UNION,",
         "  MINUS, BIND, GRAPH, subqueries, or aggregation.",
         "- To join across sources, reuse the SAME variable for a shared property",
         "  that both entities carry (e.g. c:account_id) — that is the join key.",
-        "- SELECT the variables the question asks about.",
+        "- SELECT the variables the question asks about; don't add properties the",
+        "  question didn't ask for (extra required triples can exclude all rows).",
     ]
     return "\n".join(lines)
 
