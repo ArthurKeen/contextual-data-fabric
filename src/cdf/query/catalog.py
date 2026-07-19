@@ -52,6 +52,14 @@ class SourceCatalog:
         # name like "name" can legitimately exist in several sources; the
         # planner disambiguates by the subject's class).
         self._property_sources: dict[str, set[SourceRef]] = {}
+        # class IRI -> its own property local-names. The planner doesn't need
+        # this (it routes by class), but NL grounding does: it must tell an LLM
+        # which properties belong to *which* class, or the model attaches a
+        # property to the wrong entity (e.g. a Chunk's document_id onto a
+        # Document) and the query silently returns no rows.
+        self._class_properties: dict[str, set[str]] = {}
+        # source_id -> relationship (object-property) local-names it exposes.
+        self._relationships: dict[str, set[str]] = {}
 
     def iri(self, name: str) -> str:
         """The conceptual IRI for a bare entity/property name."""
@@ -90,15 +98,18 @@ class SourceCatalog:
             if not name:
                 continue
             self._class_source[self.iri(name)] = source
+            class_props = self._class_properties.setdefault(self.iri(name), set())
             for prop in entity.get("properties") or []:
                 prop_name = prop.get("name")
                 if prop_name:
                     self._property_sources.setdefault(self.iri(prop_name), set()).add(source)
+                    class_props.add(prop_name)
 
         for rel in conceptual.get("relationships") or []:
             rtype = rel.get("type")
             if rtype:
                 self._property_sources.setdefault(self.iri(rtype), set()).add(source)
+                self._relationships.setdefault(source.source_id, set()).add(rtype)
 
         return source
 
@@ -126,12 +137,19 @@ class SourceCatalog:
         return iri[len(base):] if iri.startswith(base) else iri
 
     def vocabulary(self) -> list[dict[str, Any]]:
-        """Per-source concept + property vocabulary for NL-query grounding.
+        """Per-source, **class-structured** vocabulary for NL-query grounding.
 
-        One entry per source — ``{source_id, kind, ref, classes, properties}``
-        with bare local names (the ``concept_base`` prefix stripped, sorted for
-        determinism) — so an NL front-end can ground an LLM in exactly which
-        concepts exist and which source backs each.
+        One entry per source::
+
+            {source_id, kind, ref,
+             classes: [{name, properties: [...]}, ...],   # properties per class
+             relationships: [...]}                         # object-property names
+
+        Local names (``concept_base`` stripped), sorted for determinism. The
+        per-class grouping is essential: it lets an NL front-end tell an LLM
+        that ``document_id`` belongs to ``Chunk`` and not ``Document`` — a flat
+        property bag lets the model attach a property to the wrong class and get
+        a silently-empty answer.
         """
         by_source: dict[str, dict[str, Any]] = {}
 
@@ -142,22 +160,17 @@ class SourceCatalog:
                     "source_id": src.source_id,
                     "kind": src.kind,
                     "ref": src.ref,
-                    "classes": set(),
-                    "properties": set(),
+                    "classes": [],
+                    "relationships": sorted(self._relationships.get(src.source_id, set())),
                 },
             )
 
-        for iri, src in self._class_source.items():
-            _entry(src)["classes"].add(self._local(iri))
-        for iri, srcs in self._property_sources.items():
-            for src in srcs:
-                _entry(src)["properties"].add(self._local(iri))
+        for iri, src in sorted(self._class_source.items(), key=lambda kv: kv[0]):
+            _entry(src)["classes"].append(
+                {
+                    "name": self._local(iri),
+                    "properties": sorted(self._class_properties.get(iri, set())),
+                }
+            )
 
-        return [
-            {
-                **entry,
-                "classes": sorted(entry["classes"]),
-                "properties": sorted(entry["properties"]),
-            }
-            for entry in sorted(by_source.values(), key=lambda e: e["source_id"])
-        ]
+        return sorted(by_source.values(), key=lambda e: e["source_id"])
