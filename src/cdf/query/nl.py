@@ -87,8 +87,20 @@ def build_system_prompt(catalog: SourceCatalog) -> str:
         "  MINUS, BIND, GRAPH, subqueries, or aggregation.",
         "- To join across sources, reuse the SAME variable for a shared property",
         "  that both entities carry (e.g. c:account_id) — that is the join key.",
-        "- SELECT the variables the question asks about; don't add properties the",
-        "  question didn't ask for (extra required triples can exclude all rows).",
+        '- When the question refers to an entity (e.g. "for each account"), return',
+        "  its human-readable name/label (e.g. c:account_name), NOT just an opaque",
+        "  id — join across sources on the shared key when that name lives in a",
+        "  different source than the rest of the data.",
+        "- Add only triples needed to answer; each added triple must use a",
+        "  property that exists on its subject's class (listed above).",
+        "- EVERY variable in SELECT must be bound by a triple in WHERE.",
+        "",
+        "Shape for a cross-source question — a shared-key variable does the join,",
+        "and each SELECT variable is bound by a triple:",
+        "  SELECT ?labelA ?propB WHERE {",
+        "    ?a a c:ClassA ; c:shared_key ?k ; c:labelA ?labelA .",
+        "    ?b a c:ClassB ; c:shared_key ?k ; c:propB  ?propB .",
+        "  }",
     ]
     return "\n".join(lines)
 
@@ -165,12 +177,22 @@ def nl_to_sparql(
                     "Return valid SPARQL 1.1."
                 )
             else:
+                bound = {v for sq in plan.sub_queries for v in sq.variables}
+                unbound = [v for v in plan.projection if v not in bound]
                 if plan.unresolved:
                     feedback = _unresolved_feedback(plan)
                 elif not plan.sub_queries:
                     feedback = (
                         "The query didn't route to any source. Type each subject "
                         "with `a c:ClassName` using the listed concepts."
+                    )
+                elif unbound:
+                    # Projected a variable no triple produces -> the executor
+                    # would refuse. Give the model a chance to bind or drop it.
+                    feedback = (
+                        f"SELECT variable(s) {', '.join(unbound)} are not bound by "
+                        "any triple. Add a triple that produces each (a property "
+                        "that exists on its class), or remove it from SELECT."
                     )
                 else:
                     return NlResult(
