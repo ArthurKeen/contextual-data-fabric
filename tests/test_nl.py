@@ -12,8 +12,8 @@ from cdf.query.nl import build_system_prompt, extract_sparql, nl_to_sparql
 PREFIX = "PREFIX c: <urn:arango-sparql:concept#>\n"
 
 GOOD = PREFIX + """SELECT ?name ?subject WHERE {
-  ?a a c:Account ; c:account_id ?aid ; c:name ?name .
-  ?t a c:Ticket  ; c:account_id ?aid ; c:subject ?subject .
+  ?a a c:Account ; c:accountId ?aid ; c:name ?name .
+  ?t a c:Ticket  ; c:accountId ?aid ; c:subject ?subject .
 }"""
 
 # References concepts the catalog does not know -> must be refused/repaired.
@@ -64,8 +64,8 @@ def _csi(kind, ref, entities, relationships=()):
 def _catalog() -> SourceCatalog:
     return SourceCatalog.from_csi_documents(
         [
-            _csi("postgresql", "crm", [("Account", ["account_id", "name", "arr"])]),
-            _csi("arango", "tickets", [("Ticket", ["account_id", "subject"])]),
+            _csi("postgresql", "crm", [("Account", ["accountId", "name", "arr"])]),
+            _csi("arango", "tickets", [("Ticket", ["accountId", "subject"])]),
         ]
     )
 
@@ -77,27 +77,27 @@ def test_vocabulary_groups_properties_under_their_class():
     vocab = {v["source_id"]: v for v in _catalog().vocabulary()}
     assert set(vocab) == {"postgresql:crm", "arango:tickets"}
     pg = {c["name"]: c["properties"] for c in vocab["postgresql:crm"]["classes"]}
-    assert pg["Account"] == sorted(["account_id", "name", "arr"])
+    assert pg["Account"] == sorted(["accountId", "name", "arr"])
     ar = {c["name"]: c["properties"] for c in vocab["arango:tickets"]["classes"]}
     assert "subject" in ar["Ticket"]
 
 
 def test_prompt_ties_each_property_to_its_owning_class():
-    # Regression: a Chunk's document_id must NOT read as a Document property —
+    # Regression: a Chunk's documentId must NOT read as a Document property —
     # a flat property bag let the LLM attach it to Document and get 0 rows.
     cat = SourceCatalog.from_csi_documents(
         [
             _csi("arango", "cmf", [
-                ("Document", ["source", "filename", "account_id"]),
-                ("Chunk", ["document_id", "text", "account_id"]),
+                ("Document", ["source", "filename", "accountId"]),
+                ("Chunk", ["documentId", "text", "accountId"]),
             ]),
         ]
     )
     prompt = build_system_prompt(cat)
     doc_line = next(ln for ln in prompt.splitlines() if "class Document" in ln)
     chunk_line = next(ln for ln in prompt.splitlines() if "class Chunk" in ln)
-    assert "document_id" not in doc_line  # Document does NOT own document_id
-    assert "document_id" in chunk_line    # Chunk does
+    assert "documentId" not in doc_line  # Document does NOT own documentId
+    assert "documentId" in chunk_line    # Chunk does
     assert "filename" in doc_line
 
 
@@ -105,7 +105,7 @@ def test_system_prompt_grounds_in_catalog_concepts():
     prompt = build_system_prompt(_catalog())
     assert "urn:arango-sparql:concept#" in prompt
     assert "Account" in prompt and "Ticket" in prompt
-    assert "account_id" in prompt
+    assert "accountId" in prompt
 
 
 # -- extraction --------------------------------------------------------------
@@ -125,7 +125,7 @@ def test_extract_sparql_bare():
 def test_translates_valid_question_in_one_call():
     result = nl_to_sparql("accounts and their tickets", _catalog(), client=_FakeClient([GOOD]))
     assert result.ok
-    assert result.sparql and "c:account_id" in result.sparql
+    assert result.sparql and "c:accountId" in result.sparql
     assert result.llm_calls == 1
     assert result.error is None
 

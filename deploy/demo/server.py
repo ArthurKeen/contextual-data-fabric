@@ -55,8 +55,8 @@ os.environ.setdefault("ARANGO_PASSWORD", "cdf")
 # concepts.
 DEFAULT_SPARQL = """PREFIX c: <urn:arango-sparql:concept#>
 SELECT ?name ?tier ?source ?url WHERE {
-  ?acc a c:accounts ; c:account_name ?name ; c:current_product_tier ?tier ; c:account_id ?aid .
-  ?d   a c:Document ; c:source ?source     ; c:citable_url ?url ; c:account_id ?aid .
+  ?acc a c:Account  ; c:accountName ?name ; c:currentProductTier ?tier ; c:accountId ?aid .
+  ?d   a c:Document ; c:source ?source    ; c:citableUrl ?url          ; c:accountId ?aid .
 }"""
 
 _SERVICE = FederationService.from_env()

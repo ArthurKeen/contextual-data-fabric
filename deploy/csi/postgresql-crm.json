@@ -3,146 +3,146 @@
   "conceptualModel": {
     "entities": [
       {
-        "name": "contracts",
+        "name": "Contract",
         "labels": [
-          "contracts"
+          "Contract"
         ],
         "properties": [
           {
             "name": "id"
           },
           {
-            "name": "account_id"
+            "name": "accountId"
           },
           {
-            "name": "auto_renew"
+            "name": "autoRenew"
           },
           {
-            "name": "billing_frequency"
+            "name": "billingFrequency"
           },
           {
-            "name": "contract_id"
+            "name": "contractId"
           },
           {
-            "name": "days_to_renewal"
+            "name": "daysToRenewal"
           },
           {
-            "name": "end_date"
+            "name": "endDate"
           },
           {
-            "name": "is_downgrade"
+            "name": "isDowngrade"
           },
           {
-            "name": "payment_terms"
+            "name": "paymentTerms"
           },
           {
-            "name": "product_scope"
+            "name": "productScope"
           },
           {
-            "name": "renewal_date"
+            "name": "renewalDate"
           },
           {
-            "name": "seat_count"
+            "name": "seatCount"
           },
           {
-            "name": "signed_date"
+            "name": "signedDate"
           },
           {
             "name": "status"
           },
           {
-            "name": "term_months"
+            "name": "termMonths"
           },
           {
-            "name": "value_usd"
+            "name": "valueUsd"
           }
         ]
       },
       {
-        "name": "usage_metrics",
+        "name": "UsageMetric",
         "labels": [
-          "usage_metrics"
+          "UsageMetric"
         ],
         "properties": [
           {
             "name": "id"
           },
           {
-            "name": "account_id"
+            "name": "accountId"
           },
           {
-            "name": "cluster_nodes"
+            "name": "clusterNodes"
           },
           {
-            "name": "contracted_seats_mirror"
+            "name": "contractedSeatsMirror"
           },
           {
             "name": "edition"
           },
           {
-            "name": "graphrag_enabled"
+            "name": "graphragEnabled"
           },
           {
-            "name": "is_peak_period"
+            "name": "isPeakPeriod"
           },
           {
             "name": "period"
           },
           {
-            "name": "queries_per_node_m"
+            "name": "queriesPerNodeM"
           },
           {
-            "name": "query_volume_growth_pct"
+            "name": "queryVolumeGrowthPct"
           },
           {
-            "name": "query_volume_m"
+            "name": "queryVolumeM"
           },
           {
-            "name": "seats_active"
+            "name": "seatsActive"
           },
           {
-            "name": "smartgraphs_enabled"
+            "name": "smartgraphsEnabled"
           },
           {
-            "name": "volume_trend"
+            "name": "volumeTrend"
           }
         ]
       },
       {
-        "name": "contacts",
+        "name": "Contact",
         "labels": [
-          "contacts"
+          "Contact"
         ],
         "properties": [
           {
             "name": "id"
           },
           {
-            "name": "account_id"
+            "name": "accountId"
           },
           {
-            "name": "active_from"
+            "name": "activeFrom"
           },
           {
-            "name": "active_to"
+            "name": "activeTo"
           },
           {
-            "name": "contact_id"
+            "name": "contactId"
           },
           {
             "name": "email"
           },
           {
-            "name": "engagement_status"
+            "name": "engagementStatus"
           },
           {
-            "name": "full_name"
+            "name": "fullName"
           },
           {
             "name": "influence"
           },
           {
-            "name": "is_primary"
+            "name": "isPrimary"
           },
           {
             "name": "role"
@@ -153,143 +153,143 @@
         ]
       },
       {
-        "name": "nps_surveys",
+        "name": "NpsSurvey",
         "labels": [
-          "nps_surveys"
+          "NpsSurvey"
         ],
         "properties": [
           {
             "name": "id"
           },
           {
-            "name": "account_id"
+            "name": "accountId"
           },
           {
-            "name": "nps_score"
+            "name": "npsScore"
           },
           {
             "name": "score"
           },
           {
-            "name": "score_band"
+            "name": "scoreBand"
           },
           {
-            "name": "sentiment_aligned"
+            "name": "sentimentAligned"
           },
           {
-            "name": "survey_date"
+            "name": "surveyDate"
           },
           {
-            "name": "survey_period"
+            "name": "surveyPeriod"
           },
           {
-            "name": "survey_year"
+            "name": "surveyYear"
           },
           {
-            "name": "verbatim_sentiment"
+            "name": "verbatimSentiment"
           }
         ]
       },
       {
-        "name": "opportunities",
+        "name": "Opportunity",
         "labels": [
-          "opportunities"
+          "Opportunity"
         ],
         "properties": [
           {
             "name": "id"
           },
           {
-            "name": "account_id"
+            "name": "accountId"
           },
           {
-            "name": "amount_usd"
+            "name": "amountUsd"
           },
           {
-            "name": "close_date"
+            "name": "closeDate"
           },
           {
-            "name": "contract_id"
+            "name": "contractId"
           },
           {
-            "name": "forecast_category"
+            "name": "forecastCategory"
           },
           {
-            "name": "is_open"
+            "name": "isOpen"
           },
           {
-            "name": "is_won"
+            "name": "isWon"
           },
           {
-            "name": "opportunity_type"
+            "name": "opportunityType"
           },
           {
-            "name": "product_scope"
+            "name": "productScope"
           },
           {
-            "name": "renewal_date"
+            "name": "renewalDate"
           },
           {
             "name": "stage"
           },
           {
-            "name": "stage_detail"
+            "name": "stageDetail"
           }
         ]
       },
       {
-        "name": "accounts",
+        "name": "Account",
         "labels": [
-          "accounts"
+          "Account"
         ],
         "properties": [
           {
             "name": "id"
           },
           {
-            "name": "account_id"
+            "name": "accountId"
           },
           {
-            "name": "account_name"
+            "name": "accountName"
           },
           {
-            "name": "account_trajectory"
+            "name": "accountTrajectory"
           },
           {
-            "name": "csm_owner"
+            "name": "csmOwner"
           },
           {
-            "name": "current_acv_usd"
+            "name": "currentAcvUsd"
           },
           {
-            "name": "current_product_tier"
+            "name": "currentProductTier"
           },
           {
-            "name": "deployment_date"
+            "name": "deploymentDate"
           },
           {
-            "name": "health_band"
+            "name": "healthBand"
           },
           {
-            "name": "health_score"
+            "name": "healthScore"
           },
           {
             "name": "industry"
           },
           {
-            "name": "last_activity_date"
+            "name": "lastActivityDate"
           },
           {
-            "name": "primary_champion"
+            "name": "primaryChampion"
           },
           {
-            "name": "products_contracted"
+            "name": "productsContracted"
           },
           {
             "name": "region"
           },
           {
-            "name": "seats_sold"
+            "name": "seatsSold"
           },
           {
             "name": "segment"
@@ -301,29 +301,287 @@
   },
   "arangoPhysicalMapping": {
     "entities": {
-      "contracts": {
+      "Contract": {
         "style": "COLLECTION",
-        "collectionName": "contracts"
+        "collectionName": "contracts",
+        "properties": {
+          "id": {
+            "field": "id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "autoRenew": {
+            "field": "auto_renew"
+          },
+          "billingFrequency": {
+            "field": "billing_frequency"
+          },
+          "contractId": {
+            "field": "contract_id"
+          },
+          "daysToRenewal": {
+            "field": "days_to_renewal"
+          },
+          "endDate": {
+            "field": "end_date"
+          },
+          "isDowngrade": {
+            "field": "is_downgrade"
+          },
+          "paymentTerms": {
+            "field": "payment_terms"
+          },
+          "productScope": {
+            "field": "product_scope"
+          },
+          "renewalDate": {
+            "field": "renewal_date"
+          },
+          "seatCount": {
+            "field": "seat_count"
+          },
+          "signedDate": {
+            "field": "signed_date"
+          },
+          "status": {
+            "field": "status"
+          },
+          "termMonths": {
+            "field": "term_months"
+          },
+          "valueUsd": {
+            "field": "value_usd"
+          }
+        }
       },
-      "usage_metrics": {
+      "UsageMetric": {
         "style": "COLLECTION",
-        "collectionName": "usage_metrics"
+        "collectionName": "usage_metrics",
+        "properties": {
+          "id": {
+            "field": "id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "clusterNodes": {
+            "field": "cluster_nodes"
+          },
+          "contractedSeatsMirror": {
+            "field": "contracted_seats_mirror"
+          },
+          "edition": {
+            "field": "edition"
+          },
+          "graphragEnabled": {
+            "field": "graphrag_enabled"
+          },
+          "isPeakPeriod": {
+            "field": "is_peak_period"
+          },
+          "period": {
+            "field": "period"
+          },
+          "queriesPerNodeM": {
+            "field": "queries_per_node_m"
+          },
+          "queryVolumeGrowthPct": {
+            "field": "query_volume_growth_pct"
+          },
+          "queryVolumeM": {
+            "field": "query_volume_m"
+          },
+          "seatsActive": {
+            "field": "seats_active"
+          },
+          "smartgraphsEnabled": {
+            "field": "smartgraphs_enabled"
+          },
+          "volumeTrend": {
+            "field": "volume_trend"
+          }
+        }
       },
-      "contacts": {
+      "Contact": {
         "style": "COLLECTION",
-        "collectionName": "contacts"
+        "collectionName": "contacts",
+        "properties": {
+          "id": {
+            "field": "id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "activeFrom": {
+            "field": "active_from"
+          },
+          "activeTo": {
+            "field": "active_to"
+          },
+          "contactId": {
+            "field": "contact_id"
+          },
+          "email": {
+            "field": "email"
+          },
+          "engagementStatus": {
+            "field": "engagement_status"
+          },
+          "fullName": {
+            "field": "full_name"
+          },
+          "influence": {
+            "field": "influence"
+          },
+          "isPrimary": {
+            "field": "is_primary"
+          },
+          "role": {
+            "field": "role"
+          },
+          "title": {
+            "field": "title"
+          }
+        }
       },
-      "nps_surveys": {
+      "NpsSurvey": {
         "style": "COLLECTION",
-        "collectionName": "nps_surveys"
+        "collectionName": "nps_surveys",
+        "properties": {
+          "id": {
+            "field": "id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "npsScore": {
+            "field": "nps_score"
+          },
+          "score": {
+            "field": "score"
+          },
+          "scoreBand": {
+            "field": "score_band"
+          },
+          "sentimentAligned": {
+            "field": "sentiment_aligned"
+          },
+          "surveyDate": {
+            "field": "survey_date"
+          },
+          "surveyPeriod": {
+            "field": "survey_period"
+          },
+          "surveyYear": {
+            "field": "survey_year"
+          },
+          "verbatimSentiment": {
+            "field": "verbatim_sentiment"
+          }
+        }
       },
-      "opportunities": {
+      "Opportunity": {
         "style": "COLLECTION",
-        "collectionName": "opportunities"
+        "collectionName": "opportunities",
+        "properties": {
+          "id": {
+            "field": "id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "amountUsd": {
+            "field": "amount_usd"
+          },
+          "closeDate": {
+            "field": "close_date"
+          },
+          "contractId": {
+            "field": "contract_id"
+          },
+          "forecastCategory": {
+            "field": "forecast_category"
+          },
+          "isOpen": {
+            "field": "is_open"
+          },
+          "isWon": {
+            "field": "is_won"
+          },
+          "opportunityType": {
+            "field": "opportunity_type"
+          },
+          "productScope": {
+            "field": "product_scope"
+          },
+          "renewalDate": {
+            "field": "renewal_date"
+          },
+          "stage": {
+            "field": "stage"
+          },
+          "stageDetail": {
+            "field": "stage_detail"
+          }
+        }
       },
-      "accounts": {
+      "Account": {
         "style": "COLLECTION",
-        "collectionName": "accounts"
+        "collectionName": "accounts",
+        "properties": {
+          "id": {
+            "field": "id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "accountName": {
+            "field": "account_name"
+          },
+          "accountTrajectory": {
+            "field": "account_trajectory"
+          },
+          "csmOwner": {
+            "field": "csm_owner"
+          },
+          "currentAcvUsd": {
+            "field": "current_acv_usd"
+          },
+          "currentProductTier": {
+            "field": "current_product_tier"
+          },
+          "deploymentDate": {
+            "field": "deployment_date"
+          },
+          "healthBand": {
+            "field": "health_band"
+          },
+          "healthScore": {
+            "field": "health_score"
+          },
+          "industry": {
+            "field": "industry"
+          },
+          "lastActivityDate": {
+            "field": "last_activity_date"
+          },
+          "primaryChampion": {
+            "field": "primary_champion"
+          },
+          "productsContracted": {
+            "field": "products_contracted"
+          },
+          "region": {
+            "field": "region"
+          },
+          "seatsSold": {
+            "field": "seats_sold"
+          },
+          "segment": {
+            "field": "segment"
+          }
+        }
       }
     },
     "relationships": {}
@@ -337,6 +595,6 @@
       "ref": "crm",
       "fingerprint": null
     },
-    "generatedAt": "2026-07-17T14:48:57.058983+00:00"
+    "generatedAt": "2026-07-19T22:49:30.848888+00:00"
   }
 }

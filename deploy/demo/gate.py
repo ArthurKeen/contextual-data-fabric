@@ -21,6 +21,15 @@ GOLDEN_DIR = Path(__file__).resolve().parents[1] / "golden"
 
 
 def main() -> int:
+    # The mandatory pre-demo gate is DETERMINISTIC: the NL front-end (WP-D1,
+    # LLM-driven) is pinned off so golden outcomes can't drift with a model.
+    # NL behavior is covered by the fake-client unit tests (tests/test_nl.py);
+    # run `gate.py --nl` explicitly to smoke the live LLM path (non-gating).
+    import os
+
+    if "--nl" not in sys.argv:
+        os.environ["CDF_NL_DISABLED"] = "1"
+
     service = FederationService.from_env()
     if not service.executors:
         print("gate: no executors wired — are the stacks up and env vars set?")

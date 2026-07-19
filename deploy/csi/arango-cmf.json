@@ -13,11 +13,11 @@
             "type": "string"
           },
           {
-            "name": "account_id",
+            "name": "accountId",
             "type": "string"
           },
           {
-            "name": "document_id",
+            "name": "documentId",
             "type": "string"
           },
           {
@@ -30,8 +30,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T23:07:50Z",
-        "firstSeenAt": "2026-07-17T23:07:50Z"
+        "lastValidatedAt": "2026-07-19T22:50:07Z",
+        "firstSeenAt": "2026-07-19T22:50:07Z"
       },
       {
         "name": "Document",
@@ -44,15 +44,15 @@
             "type": "string"
           },
           {
-            "name": "account_id",
+            "name": "accountId",
             "type": "string"
           },
           {
-            "name": "citable_url",
+            "name": "citableUrl",
             "type": "string"
           },
           {
-            "name": "event_date",
+            "name": "eventDate",
             "type": "string"
           },
           {
@@ -60,7 +60,7 @@
             "type": "string"
           },
           {
-            "name": "questions_served",
+            "name": "questionsServed",
             "type": "string"
           },
           {
@@ -73,8 +73,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T23:07:50Z",
-        "firstSeenAt": "2026-07-17T23:07:50Z"
+        "lastValidatedAt": "2026-07-19T22:50:07Z",
+        "firstSeenAt": "2026-07-19T22:50:07Z"
       },
       {
         "name": "Ticket",
@@ -87,7 +87,7 @@
             "type": "string"
           },
           {
-            "name": "account_id",
+            "name": "accountId",
             "type": "string"
           },
           {
@@ -100,8 +100,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T23:07:50Z",
-        "firstSeenAt": "2026-07-17T23:07:50Z"
+        "lastValidatedAt": "2026-07-19T22:50:07Z",
+        "firstSeenAt": "2026-07-19T22:50:07Z"
       }
     ],
     "relationships": [],
@@ -116,10 +116,10 @@
           "_uri": {
             "field": "_uri"
           },
-          "account_id": {
+          "accountId": {
             "field": "account_id"
           },
-          "document_id": {
+          "documentId": {
             "field": "document_id"
           },
           "seq": {
@@ -130,8 +130,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T23:07:50Z",
-        "firstSeenAt": "2026-07-17T23:07:50Z"
+        "lastValidatedAt": "2026-07-19T22:50:07Z",
+        "firstSeenAt": "2026-07-19T22:50:07Z"
       },
       "Document": {
         "style": "COLLECTION",
@@ -140,19 +140,19 @@
           "_uri": {
             "field": "_uri"
           },
-          "account_id": {
+          "accountId": {
             "field": "account_id"
           },
-          "citable_url": {
+          "citableUrl": {
             "field": "citable_url"
           },
-          "event_date": {
+          "eventDate": {
             "field": "event_date"
           },
           "filename": {
             "field": "filename"
           },
-          "questions_served": {
+          "questionsServed": {
             "field": "questions_served"
           },
           "role": {
@@ -163,8 +163,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T23:07:50Z",
-        "firstSeenAt": "2026-07-17T23:07:50Z"
+        "lastValidatedAt": "2026-07-19T22:50:07Z",
+        "firstSeenAt": "2026-07-19T22:50:07Z"
       },
       "Ticket": {
         "style": "COLLECTION",
@@ -173,7 +173,7 @@
           "_uri": {
             "field": "_uri"
           },
-          "account_id": {
+          "accountId": {
             "field": "account_id"
           },
           "severity": {
@@ -184,8 +184,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-17T23:07:50Z",
-        "firstSeenAt": "2026-07-17T23:07:50Z"
+        "lastValidatedAt": "2026-07-19T22:50:07Z",
+        "firstSeenAt": "2026-07-19T22:50:07Z"
       }
     },
     "relationships": {},
@@ -199,7 +199,7 @@
       "kind": "arango",
       "ref": "cmf"
     },
-    "generatedAt": "2026-07-17T23:07:50Z",
+    "generatedAt": "2026-07-19T22:50:07Z",
     "confidence": 0.1
   }
 }
