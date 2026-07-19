@@ -26,15 +26,15 @@ pytestmark = pytest.mark.skipif(
 
 def test_live_ontop_answers_a_subquery():
     # Matches the corpus load (deploy/ontop/load_corpus.py / seed.sql) + the
-    # r2g-GENERATED R2RML (WP-P1.2): concept IRIs are the snake_case table and
-    # column names (c:accounts / c:account_name).
+    # r2g-GENERATED R2RML (WP-P1.2 + CC-12): concept IRIs are OWL-style —
+    # singular PascalCase classes, lowerCamel properties (c:Account / c:accountName).
     sq = SubQuery(
         source=SourceRef(source_id="postgresql:crm", kind="postgresql", ref="crm"),
         triples=(),
         variables=("?name",),
         sparql=(
-            "SELECT ?name WHERE { ?a a <urn:arango-sparql:concept#accounts> ; "
-            "<urn:arango-sparql:concept#account_name> ?name . }"
+            "SELECT ?name WHERE { ?a a <urn:arango-sparql:concept#Account> ; "
+            "<urn:arango-sparql:concept#accountName> ?name . }"
         ),
     )
     executor = OntopExecutor(endpoint=ENDPOINT, source_objects=("public.accounts",), timeout=15.0)

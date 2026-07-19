@@ -6,63 +6,63 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<#contracts>
+<#Contract>
     a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "contracts" ] ;
     rr:subjectMap [
-        rr:template "http://r2g.example/resource/contracts/{id}" ;
-        rr:class <urn:arango-sparql:concept#contracts> ;
+        rr:template "http://r2g.example/resource/Contract/{id}" ;
+        rr:class <urn:arango-sparql:concept#Contract> ;
     ] ;
     rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#id> ;
         rr:objectMap [ rr:column "id" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:predicate <urn:arango-sparql:concept#accountId> ;
         rr:objectMap [ rr:column "account_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#auto_renew> ;
+        rr:predicate <urn:arango-sparql:concept#autoRenew> ;
         rr:objectMap [ rr:column "auto_renew" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#billing_frequency> ;
+        rr:predicate <urn:arango-sparql:concept#billingFrequency> ;
         rr:objectMap [ rr:column "billing_frequency" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#contract_id> ;
+        rr:predicate <urn:arango-sparql:concept#contractId> ;
         rr:objectMap [ rr:column "contract_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#days_to_renewal> ;
+        rr:predicate <urn:arango-sparql:concept#daysToRenewal> ;
         rr:objectMap [ rr:column "days_to_renewal" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#end_date> ;
+        rr:predicate <urn:arango-sparql:concept#endDate> ;
         rr:objectMap [ rr:column "end_date" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#is_downgrade> ;
+        rr:predicate <urn:arango-sparql:concept#isDowngrade> ;
         rr:objectMap [ rr:column "is_downgrade" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#payment_terms> ;
+        rr:predicate <urn:arango-sparql:concept#paymentTerms> ;
         rr:objectMap [ rr:column "payment_terms" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#product_scope> ;
+        rr:predicate <urn:arango-sparql:concept#productScope> ;
         rr:objectMap [ rr:column "product_scope" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#renewal_date> ;
+        rr:predicate <urn:arango-sparql:concept#renewalDate> ;
         rr:objectMap [ rr:column "renewal_date" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#seat_count> ;
+        rr:predicate <urn:arango-sparql:concept#seatCount> ;
         rr:objectMap [ rr:column "seat_count" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#signed_date> ;
+        rr:predicate <urn:arango-sparql:concept#signedDate> ;
         rr:objectMap [ rr:column "signed_date" ] ;
     ] ;
     rr:predicateObjectMap [
@@ -70,35 +70,35 @@
         rr:objectMap [ rr:column "status" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#term_months> ;
+        rr:predicate <urn:arango-sparql:concept#termMonths> ;
         rr:objectMap [ rr:column "term_months" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#value_usd> ;
+        rr:predicate <urn:arango-sparql:concept#valueUsd> ;
         rr:objectMap [ rr:column "value_usd" ; rr:datatype xsd:integer ] ;
     ] .
 
-<#usage_metrics>
+<#UsageMetric>
     a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "usage_metrics" ] ;
     rr:subjectMap [
-        rr:template "http://r2g.example/resource/usage_metrics/{id}" ;
-        rr:class <urn:arango-sparql:concept#usage_metrics> ;
+        rr:template "http://r2g.example/resource/UsageMetric/{id}" ;
+        rr:class <urn:arango-sparql:concept#UsageMetric> ;
     ] ;
     rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#id> ;
         rr:objectMap [ rr:column "id" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:predicate <urn:arango-sparql:concept#accountId> ;
         rr:objectMap [ rr:column "account_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#cluster_nodes> ;
+        rr:predicate <urn:arango-sparql:concept#clusterNodes> ;
         rr:objectMap [ rr:column "cluster_nodes" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#contracted_seats_mirror> ;
+        rr:predicate <urn:arango-sparql:concept#contractedSeatsMirror> ;
         rr:objectMap [ rr:column "contracted_seats_mirror" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
@@ -106,11 +106,11 @@
         rr:objectMap [ rr:column "edition" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#graphrag_enabled> ;
+        rr:predicate <urn:arango-sparql:concept#graphragEnabled> ;
         rr:objectMap [ rr:column "graphrag_enabled" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#is_peak_period> ;
+        rr:predicate <urn:arango-sparql:concept#isPeakPeriod> ;
         rr:objectMap [ rr:column "is_peak_period" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
@@ -118,55 +118,55 @@
         rr:objectMap [ rr:column "period" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#queries_per_node_m> ;
+        rr:predicate <urn:arango-sparql:concept#queriesPerNodeM> ;
         rr:objectMap [ rr:column "queries_per_node_m" ; rr:datatype xsd:double ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#query_volume_growth_pct> ;
+        rr:predicate <urn:arango-sparql:concept#queryVolumeGrowthPct> ;
         rr:objectMap [ rr:column "query_volume_growth_pct" ; rr:datatype xsd:double ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#query_volume_m> ;
+        rr:predicate <urn:arango-sparql:concept#queryVolumeM> ;
         rr:objectMap [ rr:column "query_volume_m" ; rr:datatype xsd:double ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#seats_active> ;
+        rr:predicate <urn:arango-sparql:concept#seatsActive> ;
         rr:objectMap [ rr:column "seats_active" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#smartgraphs_enabled> ;
+        rr:predicate <urn:arango-sparql:concept#smartgraphsEnabled> ;
         rr:objectMap [ rr:column "smartgraphs_enabled" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#volume_trend> ;
+        rr:predicate <urn:arango-sparql:concept#volumeTrend> ;
         rr:objectMap [ rr:column "volume_trend" ] ;
     ] .
 
-<#contacts>
+<#Contact>
     a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "contacts" ] ;
     rr:subjectMap [
-        rr:template "http://r2g.example/resource/contacts/{id}" ;
-        rr:class <urn:arango-sparql:concept#contacts> ;
+        rr:template "http://r2g.example/resource/Contact/{id}" ;
+        rr:class <urn:arango-sparql:concept#Contact> ;
     ] ;
     rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#id> ;
         rr:objectMap [ rr:column "id" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:predicate <urn:arango-sparql:concept#accountId> ;
         rr:objectMap [ rr:column "account_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#active_from> ;
+        rr:predicate <urn:arango-sparql:concept#activeFrom> ;
         rr:objectMap [ rr:column "active_from" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#active_to> ;
+        rr:predicate <urn:arango-sparql:concept#activeTo> ;
         rr:objectMap [ rr:column "active_to" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#contact_id> ;
+        rr:predicate <urn:arango-sparql:concept#contactId> ;
         rr:objectMap [ rr:column "contact_id" ] ;
     ] ;
     rr:predicateObjectMap [
@@ -174,11 +174,11 @@
         rr:objectMap [ rr:column "email" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#engagement_status> ;
+        rr:predicate <urn:arango-sparql:concept#engagementStatus> ;
         rr:objectMap [ rr:column "engagement_status" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#full_name> ;
+        rr:predicate <urn:arango-sparql:concept#fullName> ;
         rr:objectMap [ rr:column "full_name" ] ;
     ] ;
     rr:predicateObjectMap [
@@ -186,7 +186,7 @@
         rr:objectMap [ rr:column "influence" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#is_primary> ;
+        rr:predicate <urn:arango-sparql:concept#isPrimary> ;
         rr:objectMap [ rr:column "is_primary" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
@@ -198,23 +198,23 @@
         rr:objectMap [ rr:column "title" ] ;
     ] .
 
-<#nps_surveys>
+<#NpsSurvey>
     a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "nps_surveys" ] ;
     rr:subjectMap [
-        rr:template "http://r2g.example/resource/nps_surveys/{id}" ;
-        rr:class <urn:arango-sparql:concept#nps_surveys> ;
+        rr:template "http://r2g.example/resource/NpsSurvey/{id}" ;
+        rr:class <urn:arango-sparql:concept#NpsSurvey> ;
     ] ;
     rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#id> ;
         rr:objectMap [ rr:column "id" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:predicate <urn:arango-sparql:concept#accountId> ;
         rr:objectMap [ rr:column "account_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#nps_score> ;
+        rr:predicate <urn:arango-sparql:concept#npsScore> ;
         rr:objectMap [ rr:column "nps_score" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
@@ -222,79 +222,79 @@
         rr:objectMap [ rr:column "score" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#score_band> ;
+        rr:predicate <urn:arango-sparql:concept#scoreBand> ;
         rr:objectMap [ rr:column "score_band" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#sentiment_aligned> ;
+        rr:predicate <urn:arango-sparql:concept#sentimentAligned> ;
         rr:objectMap [ rr:column "sentiment_aligned" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#survey_date> ;
+        rr:predicate <urn:arango-sparql:concept#surveyDate> ;
         rr:objectMap [ rr:column "survey_date" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#survey_period> ;
+        rr:predicate <urn:arango-sparql:concept#surveyPeriod> ;
         rr:objectMap [ rr:column "survey_period" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#survey_year> ;
+        rr:predicate <urn:arango-sparql:concept#surveyYear> ;
         rr:objectMap [ rr:column "survey_year" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#verbatim_sentiment> ;
+        rr:predicate <urn:arango-sparql:concept#verbatimSentiment> ;
         rr:objectMap [ rr:column "verbatim_sentiment" ] ;
     ] .
 
-<#opportunities>
+<#Opportunity>
     a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "opportunities" ] ;
     rr:subjectMap [
-        rr:template "http://r2g.example/resource/opportunities/{id}" ;
-        rr:class <urn:arango-sparql:concept#opportunities> ;
+        rr:template "http://r2g.example/resource/Opportunity/{id}" ;
+        rr:class <urn:arango-sparql:concept#Opportunity> ;
     ] ;
     rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#id> ;
         rr:objectMap [ rr:column "id" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:predicate <urn:arango-sparql:concept#accountId> ;
         rr:objectMap [ rr:column "account_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#amount_usd> ;
+        rr:predicate <urn:arango-sparql:concept#amountUsd> ;
         rr:objectMap [ rr:column "amount_usd" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#close_date> ;
+        rr:predicate <urn:arango-sparql:concept#closeDate> ;
         rr:objectMap [ rr:column "close_date" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#contract_id> ;
+        rr:predicate <urn:arango-sparql:concept#contractId> ;
         rr:objectMap [ rr:column "contract_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#forecast_category> ;
+        rr:predicate <urn:arango-sparql:concept#forecastCategory> ;
         rr:objectMap [ rr:column "forecast_category" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#is_open> ;
+        rr:predicate <urn:arango-sparql:concept#isOpen> ;
         rr:objectMap [ rr:column "is_open" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#is_won> ;
+        rr:predicate <urn:arango-sparql:concept#isWon> ;
         rr:objectMap [ rr:column "is_won" ; rr:datatype xsd:boolean ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#opportunity_type> ;
+        rr:predicate <urn:arango-sparql:concept#opportunityType> ;
         rr:objectMap [ rr:column "opportunity_type" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#product_scope> ;
+        rr:predicate <urn:arango-sparql:concept#productScope> ;
         rr:objectMap [ rr:column "product_scope" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#renewal_date> ;
+        rr:predicate <urn:arango-sparql:concept#renewalDate> ;
         rr:objectMap [ rr:column "renewal_date" ] ;
     ] ;
     rr:predicateObjectMap [
@@ -302,55 +302,55 @@
         rr:objectMap [ rr:column "stage" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#stage_detail> ;
+        rr:predicate <urn:arango-sparql:concept#stageDetail> ;
         rr:objectMap [ rr:column "stage_detail" ] ;
     ] .
 
-<#accounts>
+<#Account>
     a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "accounts" ] ;
     rr:subjectMap [
-        rr:template "http://r2g.example/resource/accounts/{id}" ;
-        rr:class <urn:arango-sparql:concept#accounts> ;
+        rr:template "http://r2g.example/resource/Account/{id}" ;
+        rr:class <urn:arango-sparql:concept#Account> ;
     ] ;
     rr:predicateObjectMap [
         rr:predicate <urn:arango-sparql:concept#id> ;
         rr:objectMap [ rr:column "id" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_id> ;
+        rr:predicate <urn:arango-sparql:concept#accountId> ;
         rr:objectMap [ rr:column "account_id" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_name> ;
+        rr:predicate <urn:arango-sparql:concept#accountName> ;
         rr:objectMap [ rr:column "account_name" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#account_trajectory> ;
+        rr:predicate <urn:arango-sparql:concept#accountTrajectory> ;
         rr:objectMap [ rr:column "account_trajectory" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#csm_owner> ;
+        rr:predicate <urn:arango-sparql:concept#csmOwner> ;
         rr:objectMap [ rr:column "csm_owner" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#current_acv_usd> ;
+        rr:predicate <urn:arango-sparql:concept#currentAcvUsd> ;
         rr:objectMap [ rr:column "current_acv_usd" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#current_product_tier> ;
+        rr:predicate <urn:arango-sparql:concept#currentProductTier> ;
         rr:objectMap [ rr:column "current_product_tier" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#deployment_date> ;
+        rr:predicate <urn:arango-sparql:concept#deploymentDate> ;
         rr:objectMap [ rr:column "deployment_date" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#health_band> ;
+        rr:predicate <urn:arango-sparql:concept#healthBand> ;
         rr:objectMap [ rr:column "health_band" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#health_score> ;
+        rr:predicate <urn:arango-sparql:concept#healthScore> ;
         rr:objectMap [ rr:column "health_score" ; rr:datatype xsd:double ] ;
     ] ;
     rr:predicateObjectMap [
@@ -358,15 +358,15 @@
         rr:objectMap [ rr:column "industry" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#last_activity_date> ;
+        rr:predicate <urn:arango-sparql:concept#lastActivityDate> ;
         rr:objectMap [ rr:column "last_activity_date" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#primary_champion> ;
+        rr:predicate <urn:arango-sparql:concept#primaryChampion> ;
         rr:objectMap [ rr:column "primary_champion" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#products_contracted> ;
+        rr:predicate <urn:arango-sparql:concept#productsContracted> ;
         rr:objectMap [ rr:column "products_contracted" ] ;
     ] ;
     rr:predicateObjectMap [
@@ -374,7 +374,7 @@
         rr:objectMap [ rr:column "region" ] ;
     ] ;
     rr:predicateObjectMap [
-        rr:predicate <urn:arango-sparql:concept#seats_sold> ;
+        rr:predicate <urn:arango-sparql:concept#seatsSold> ;
         rr:objectMap [ rr:column "seats_sold" ; rr:datatype xsd:integer ] ;
     ] ;
     rr:predicateObjectMap [

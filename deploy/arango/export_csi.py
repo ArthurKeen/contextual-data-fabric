@@ -54,8 +54,8 @@ def main() -> None:
     }
     print(f"wrote {OUT.relative_to(Path.cwd())} — entities: {sorted(ents)}")
     for name in ("Document", "Chunk"):
-        if "account_id" not in ents.get(name, []):
-            raise SystemExit(f"{name} is missing the account_id join key")
+        if "accountId" not in ents.get(name, []):  # CC-12 conceptual name
+            raise SystemExit(f"{name} is missing the accountId join key")
 
 
 if __name__ == "__main__":

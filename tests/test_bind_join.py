@@ -14,10 +14,10 @@ _ACCOUNTS_CSI = {
     "csiVersion": "1",
     "conceptualModel": {
         "entities": [
-            {"name": "accounts", "properties": [{"name": "account_id"}, {"name": "account_name"}]}
+            {"name": "Account", "properties": [{"name": "accountId"}, {"name": "accountName"}]}
         ]
     },
-    "physicalMapping": {"entities": {"accounts": {"tableName": "accounts"}}},
+    "physicalMapping": {"entities": {"Account": {"tableName": "accounts"}}},
     "provenance": {"producer": "r2g", "direction": "forward",
                    "source": {"kind": "postgresql", "ref": "crm"}},
 }
@@ -26,7 +26,7 @@ _TICKETS_CSI = {
     "csiVersion": "1",
     "conceptualModel": {
         "entities": [
-            {"name": "Ticket", "properties": [{"name": "subject"}, {"name": "account_id"}]}
+            {"name": "Ticket", "properties": [{"name": "subject"}, {"name": "accountId"}]}
         ]
     },
     "arangoPhysicalMapping": {
@@ -42,8 +42,8 @@ _TICKETS_CSI = {
 _JOIN_SPARQL = (
     "PREFIX c: <urn:arango-sparql:concept#> "
     "SELECT ?name ?subject WHERE { "
-    "  ?a a c:accounts ; c:account_name ?name ; c:account_id ?acct . "
-    "  ?t a c:Ticket ; c:subject ?subject ; c:account_id ?acct . }"
+    "  ?a a c:Account ; c:accountName ?name ; c:accountId ?acct . "
+    "  ?t a c:Ticket ; c:subject ?subject ; c:accountId ?acct . }"
 )
 
 

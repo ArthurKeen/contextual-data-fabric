@@ -125,13 +125,21 @@ class FederationService:
             raw = json.loads(Path(questions_file).read_text())
             questions = {_normalize(q): s for q, s in raw.items()}
 
-        from cdf.query.nl import default_client
+        # CDF_NL_DISABLED=1 pins the NL front-end off regardless of which
+        # provider API keys happen to be in the environment — the golden gate
+        # uses it to stay deterministic (deploy/demo/gate.py).
+        if env.get("CDF_NL_DISABLED", "").strip() in ("1", "true", "yes"):
+            nl_client = None
+        else:
+            from cdf.query.nl import default_client
+
+            nl_client = default_client()
 
         return cls(
             catalog=catalog,
             executors=executors,
             prepared_questions=questions,
-            nl_client=default_client(),
+            nl_client=nl_client,
         )
 
 

@@ -39,16 +39,16 @@ def test_partial_failure_is_declared_never_silent() -> None:
         "name": "partial-failure",
         "question": (
             "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?subject WHERE { "
-            "?a a c:accounts ; c:account_name ?name ; c:account_id ?acct . "
-            "?t a c:Ticket ; c:subject ?subject ; c:account_id ?acct . }"
+            "?a a c:Account ; c:accountName ?name ; c:accountId ?acct . "
+            "?t a c:Ticket ; c:subject ?subject ; c:accountId ?acct . }"
         ),
         "sources": [
             {
                 "csi": {
                     "csiVersion": "1",
-                    "conceptualModel": {"entities": [{"name": "accounts", "properties": [
-                        {"name": "account_id"}, {"name": "account_name"}]}]},
-                    "physicalMapping": {"entities": {"accounts": {"tableName": "accounts"}}},
+                    "conceptualModel": {"entities": [{"name": "Account", "properties": [
+                        {"name": "accountId"}, {"name": "accountName"}]}]},
+                    "physicalMapping": {"entities": {"Account": {"tableName": "accounts"}}},
                     "provenance": {"producer": "r2g", "direction": "forward",
                                    "source": {"kind": "postgresql", "ref": "crm"}},
                 },
@@ -58,7 +58,7 @@ def test_partial_failure_is_declared_never_silent() -> None:
                 "csi": {
                     "csiVersion": "1",
                     "conceptualModel": {"entities": [{"name": "Ticket", "properties": [
-                        {"name": "subject"}, {"name": "account_id"}]}]},
+                        {"name": "subject"}, {"name": "accountId"}]}]},
                     "arangoPhysicalMapping": {"entities": {"Ticket": {
                         "style": "COLLECTION", "collectionName": "tickets"}},
                         "relationships": {}},
