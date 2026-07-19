@@ -140,6 +140,16 @@ def test_repair_loop_recovers():
     assert len(client.calls[-1]) > 2
 
 
+def test_unbound_projected_var_triggers_repair():
+    # Projects ?ghost, which no triple binds -> must repair, not accept.
+    bad_unbound = PREFIX + "SELECT ?name ?ghost WHERE { ?a a c:Account ; c:name ?name }"
+    client = _FakeClient([bad_unbound, GOOD])
+    result = nl_to_sparql("q", _catalog(), client=client, max_repairs=2)
+    assert result.ok
+    assert result.llm_calls == 2
+    assert any("not bound" in w or "repair" in w for w in result.warnings)
+
+
 def test_refuses_when_never_grounded():
     result = nl_to_sparql("q", _catalog(), client=_FakeClient([BAD]), max_repairs=2)
     assert not result.ok
