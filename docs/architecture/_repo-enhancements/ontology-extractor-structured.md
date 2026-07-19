@@ -38,6 +38,7 @@ Customer Ask #1 is "structured data in, ontology out" and auto-derivation across
 - **RE-4 (P3, narrowed v0.2):** Belief revision on *new evidence* is **built** (§1). The remaining gap is the **source-change cascade**: a source schema/document *update or deletion* propagating retractions/revisions through dependent ontology elements (today revisions trigger from extraction runs, not source lifecycle events). Spec: same AOE doc, Part B.
 - **RE-5 (P3, narrowed v0.2):** Time-travel **exists** (VCR, snapshots, diffs). Remaining: **programmatic change-control hooks** — bless-before-release on ontology expansions, callable by agent or human per policy (the staging→production promotion flow exposed as an API gate).
 - **RE-6 (future):** SHACL/constraint export for governance (M8) — SHACL handling exists in AOE; the export contract for M8 is the future work.
+- **RE-7 (P1, new 2026-07-18):** **OWL naming convention (CC-12)** — extraction prompts instruct the W3C-community style (classes singular PascalCase, properties lowerCamel), and extracted/curated ontologies are **validated with the same `validate_csi` naming check** the analyzers use, so AOE-derived and analyzer-derived ontologies are uniformly named. Naming violations surface in the existing quality-judge/curation flow, not as silent output.
 
 ## 4. Interface contract (with M2 / M3)
 - **Input:** metadata bundle (structured, from M1) or corpus handle (unstructured).
