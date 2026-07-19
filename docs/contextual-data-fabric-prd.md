@@ -225,7 +225,7 @@ Snowflake/Databricks; assembled/materialized pattern; OBAC; belief-management ch
 
 ## 10. Cross-Cutting Requirements *(new in v0.2)*
 
-Requirements that bind every module; each module spec references the ones that apply. Numbered CC-1…CC-11 with the phase they take effect.
+Requirements that bind every module; each module spec references the ones that apply. Numbered CC-1…CC-12 with the phase they take effect.
 
 ### 10.1 Evaluation & correctness (CC-1, P1)
 "Trust is structural" must be testable. **A golden set of seed questions with expected answers, expected sources touched, and expected citations** is a P1 deliverable alongside the demo (start with the §4 seed questions). Every planner change (LLM or deterministic) runs against it; regressions block. P2 extends it with decomposition-accuracy scoring (did the plan hit the right sources / join keys?) and adopts the LLM-as-judge patterns AOE already implements (faithfulness scoring, qualitative evaluation agent). Owned by module **M10 (Evaluation)** — see the architecture index.
@@ -284,6 +284,14 @@ Federated architectures fail three ways: large cross-source joins, large result 
 - **Plan-time admission (P1 floor / P2 full):** no naked scans — every leg carries a selective binding derived from the question's concepts; per-leg row/byte budgets with mandatory LIMITs; engine-side joins are **bind/semi-joins on canonical keys** with a bounded key-set size (beyond it: push the join down, switch to the assembled pattern, or refuse); a round-trip budget (max legs, max sequential depth — kills N+1 plans structurally); pre-flight `EXPLAIN` (Postgres/AQL/Ontop) as confirmation with a cost ceiling.
 - **Run-time enforcement (P1 floor):** per-leg timeouts + row caps at the cursor; overall query deadline + federator memory budget, no disk spill; per-source circuit breaker (reuse AOE's pattern); defense in depth at the source — the CC-7 read-only role also carries `statement_timeout`/memory caps; Snowflake resource monitors in P2.
 - **Trip semantics (CC-5 extended from failure to exhaustion):** a capped/truncated leg is **declared in the retrieval path** ("leg capped at N rows — partial"), never silent; genuinely-large analytics degrade to the **assembled pattern** (M5 FR-8: deliberate, bounded, acknowledged) or the query is **refused with the reason and the alternative** ("requires joining ~2M rows across sources — run as an assembled job?"). A federation that knows its limits and says so is the trust story — and, with FR-9's cost instrumentation as the feedback loop, the direct answer to the cost/latency objection: every plan inspectable **and budgeted**.
+
+### 10.12 Ontology naming convention (CC-12, P1 — decided 2026-07-18)
+Every derived conceptual model follows the **W3C-community OWL naming style**: **classes singular PascalCase** (`Employee`, `MortgageTransaction` — never `employees`), **properties lowerCamel, singular unless inherently plural** (`socialSecurityNumber`, `hasPart` — never `social_security_number`, `HAS_NAME`). Conceptual queries are read by people; `?p a c:Employee ; c:socialSecurityNumber ?ssn` is glance-friendly and interoperable with the OWL ecosystem.
+
+- **Enforced at the contract, not by convention:** the rule is **normative in the CSI v1 contract** and checked by `validate_csi` (the hub every producer emits into — one rule covers CDF, AOE, and both analyzers uniformly). Producer defaults: RSA and `arangodb-schema-analyzer` normalize entity + property names at baseline; r2g's `export-csi`/`export-r2rml` apply its existing Phase-5f `apply_naming_convention` (which already defaults to PascalCase/camelCase); AOE instructs the convention in extraction prompts **and** validates output with the same validator.
+- **Only the conceptual layer renames.** `physicalMapping` (and R2RML logical tables/columns) keep the raw physical names — `Account.accountId → accounts.account_id` is precisely what the conceptual↔physical split exists for. Transpilers and Ontop are unaffected; only queries see the new names.
+- **Singularization is assisted, not blind:** RSA's recorded concern ("English singularization is unreliable") is handled with r2g's `singularize` + a per-source override map, and the M3 "confirm ~2%" curation step is the human backstop for the `courses→course`-class mistakes.
+- **Timing:** adopted **before pinning** (CC-9) while generated artifacts have one consumer — every CSI/R2RML/question/golden regenerates; deferring would make this a breaking change to accreted customer mappings.
 
 ---
 
