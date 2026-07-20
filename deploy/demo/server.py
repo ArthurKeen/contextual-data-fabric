@@ -144,12 +144,19 @@ PAGE = """<!doctype html>
       <label class="chk"><input type="checkbox" id="ap"> allow partial (concierge mode)</label>
       <span id="status"></span>
     </div>
-    <details style="margin-top:12px">
-      <summary style="cursor:pointer;color:var(--muted)">Advanced: edit the conceptual SPARQL directly</summary>
-      <textarea id="q" style="margin-top:8px">__SPARQL__</textarea>
-      <div class="row"><button id="run" onclick="run()">Run SPARQL</button></div>
-    </details>
   </div>
+
+  <details id="advanced" class="card">
+    <summary style="font-weight:600;color:inherit;font-size:14px">Advanced
+      <span class="meta" style="font-weight:400">— conceptual query (editable), per-source decomposition, transpiled SQL/AQL</span>
+    </summary>
+    <h2 style="margin-top:14px">Conceptual query — one question over the ontology</h2>
+    <p class="meta" style="margin:2px 0 0">Asking a question fills this in with the conceptual
+      SPARQL it became; edit it and Run to take the power path.</p>
+    <textarea id="q" style="margin-top:8px">__SPARQL__</textarea>
+    <div class="row" style="margin-top:8px"><button id="run" onclick="run()">Run SPARQL</button></div>
+    <div id="advbody"></div>
+  </details>
 
   <div id="out"></div>
 
@@ -210,7 +217,7 @@ function render(d, out) {
   const summary = legs.map(s =>
     `${esc(s.source_id)} (${s.status==='ok' ? s.row_count+' rows' : esc(s.status)})`).join(' + ');
   if (legs.length) out.appendChild(el(
-    `<div class="meta" style="margin:4px 2px 10px">federated across ${summary} — every claim cited (details under Advanced)</div>`));
+    `<div class="meta" style="margin:4px 2px 10px">federated across ${summary} — every claim cited (see Advanced, above)</div>`));
 
   out.appendChild(el('<h2>Answer</h2>'));
   const rows = d.bindings||[];
@@ -223,21 +230,16 @@ function render(d, out) {
       }</tbody></table></div>`));
   }
 
-  // ---- Advanced: the full query provenance, collapsed by default. ----
-  const adv = el(`<details class="card" style="margin-top:14px">
-    <summary style="cursor:pointer;font-weight:600">Advanced — how it was answered
-      <span class="meta" style="font-weight:400">(conceptual query, per-source decomposition, transpiled SQL/AQL, citations)</span>
-    </summary><div class="advbody"></div></details>`);
-  const body = adv.querySelector('.advbody');
-
-  if (d.conceptual_sparql) {
-    body.appendChild(el('<h2>Conceptual query — one question over the ontology</h2>'));
-    body.appendChild(el(`<div class="card"><pre>${esc(d.conceptual_sparql)}</pre></div>`));
-  }
+  // ---- Advanced panel (the single expander between question and answer):
+  //      the editable conceptual-query box reflects what actually ran, and
+  //      the decomposition + transpiled queries render beneath it. ----
+  if (d.conceptual_sparql) document.getElementById('q').value = d.conceptual_sparql;
+  const body = document.getElementById('advbody');
+  body.innerHTML = '';
 
   body.appendChild(el('<h2>Partition by source — decomposed conceptual queries</h2>'));
   legs.forEach(s => {
-    const c = el(`<div class="card"></div>`);
+    const c = el(`<div style="margin-top:8px"></div>`);
     c.appendChild(el(`<div class="flow">${srcTag(s.kind, s.source_id)}
        <span class="badge ${s.status==='ok'?'b-ok':'b-failed'}">${esc(s.status)}</span>
        <span>· ${s.row_count} rows</span>
@@ -249,7 +251,7 @@ function render(d, out) {
 
   body.appendChild(el('<h2>Citations — the transpiled queries that actually ran</h2>'));
   (d.citations||[]).forEach(c => {
-    const card = el(`<div class="card"></div>`);
+    const card = el(`<div style="margin-top:8px"></div>`);
     card.appendChild(el(`<div class="flow">${srcTag(c.kind, c.source_id)}
        <span>objects: <b>${(c.source_objects||[]).map(esc).join(', ')||'—'}</b></span>
        <span>· ${c.row_count} rows</span>
@@ -257,8 +259,6 @@ function render(d, out) {
     card.appendChild(el(`<pre>${esc(c.native_query||'')}</pre>`));
     body.appendChild(card);
   });
-
-  out.appendChild(adv);
 }
 document.getElementById('nlq').addEventListener('keydown', e => { if (e.key==='Enter') ask(); });
 renderExamples();
