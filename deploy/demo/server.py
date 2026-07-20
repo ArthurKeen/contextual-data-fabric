@@ -200,24 +200,19 @@ async function run() {
 
 function render(d, out) {
   const bmap={grounded:'b-ok',refused:'b-refuse',partial:'b-partial'};
+  const legs = d.retrieval_path||[];
+
+  // ---- Default view: the answer, plus a one-line trust summary. ----
   out.appendChild(el(`<div class="row" style="margin:6px 2px 0">
      <span class="badge ${bmap[d.status]||''}">${esc(d.status)}</span>
      ${d.refusal_reason?`<span class="err">${esc(d.refusal_reason)}</span>`:''}</div>`));
 
-  // Partition / execution — one card per leg (from the retrieval path).
-  out.appendChild(el('<h2>How it was answered — partition by source</h2>'));
-  (d.retrieval_path||[]).forEach(s => {
-    const c = el(`<div class="card"></div>`);
-    c.appendChild(el(`<div class="flow">${srcTag(s.kind, s.source_id)}
-       <span class="badge ${s.status==='ok'?'b-ok':'b-failed'}">${esc(s.status)}</span>
-       <span>· ${s.row_count} rows</span>
-       ${s.error?`<span class="err">${esc(s.error)}</span>`:''}</div>`));
-    if (s.sparql) c.appendChild(el(`<pre>${esc(s.sparql)}</pre>`));
-    out.appendChild(c);
-  });
+  const summary = legs.map(s =>
+    `${esc(s.source_id)} (${s.status==='ok' ? s.row_count+' rows' : esc(s.status)})`).join(' + ');
+  if (legs.length) out.appendChild(el(
+    `<div class="meta" style="margin:4px 2px 10px">federated across ${summary} — every claim cited (details under Advanced)</div>`));
 
-  // Answer.
-  out.appendChild(el('<h2>Answer — joined live across both sources</h2>'));
+  out.appendChild(el('<h2>Answer</h2>'));
   const rows = d.bindings||[];
   if (!rows.length) out.appendChild(el(`<div class="card meta">no rows</div>`));
   else {
@@ -228,18 +223,42 @@ function render(d, out) {
       }</tbody></table></div>`));
   }
 
-  // Citations.
-  out.appendChild(el('<h2>Citations — provenance for every grounded leg</h2>'));
+  // ---- Advanced: the full query provenance, collapsed by default. ----
+  const adv = el(`<details class="card" style="margin-top:14px">
+    <summary style="cursor:pointer;font-weight:600">Advanced — how it was answered
+      <span class="meta" style="font-weight:400">(conceptual query, per-source decomposition, transpiled SQL/AQL, citations)</span>
+    </summary><div class="advbody"></div></details>`);
+  const body = adv.querySelector('.advbody');
+
+  if (d.conceptual_sparql) {
+    body.appendChild(el('<h2>Conceptual query — one question over the ontology</h2>'));
+    body.appendChild(el(`<div class="card"><pre>${esc(d.conceptual_sparql)}</pre></div>`));
+  }
+
+  body.appendChild(el('<h2>Partition by source — decomposed conceptual queries</h2>'));
+  legs.forEach(s => {
+    const c = el(`<div class="card"></div>`);
+    c.appendChild(el(`<div class="flow">${srcTag(s.kind, s.source_id)}
+       <span class="badge ${s.status==='ok'?'b-ok':'b-failed'}">${esc(s.status)}</span>
+       <span>· ${s.row_count} rows</span>
+       ${(s.seeded_vars||[]).length?`<span>· bind-join seeded on <b>${s.seeded_vars.map(esc).join(', ')}</b></span>`:''}
+       ${s.error?`<span class="err">${esc(s.error)}</span>`:''}</div>`));
+    if (s.sparql) c.appendChild(el(`<pre>${esc(s.sparql)}</pre>`));
+    body.appendChild(c);
+  });
+
+  body.appendChild(el('<h2>Citations — the transpiled queries that actually ran</h2>'));
   (d.citations||[]).forEach(c => {
     const card = el(`<div class="card"></div>`);
     card.appendChild(el(`<div class="flow">${srcTag(c.kind, c.source_id)}
        <span>objects: <b>${(c.source_objects||[]).map(esc).join(', ')||'—'}</b></span>
        <span>· ${c.row_count} rows</span>
        <span>· as-of ${esc(c.as_of||'—')}</span></div>`));
-    card.appendChild(el(`<details><summary>actual query executed (${esc(c.kind)})</summary>
-       <pre>${esc(c.native_query||'')}</pre></details>`));
-    out.appendChild(card);
+    card.appendChild(el(`<pre>${esc(c.native_query||'')}</pre>`));
+    body.appendChild(card);
   });
+
+  out.appendChild(adv);
 }
 document.getElementById('nlq').addEventListener('keydown', e => { if (e.key==='Enter') ask(); });
 renderExamples();

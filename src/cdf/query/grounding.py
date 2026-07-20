@@ -51,6 +51,10 @@ class AnswerEnvelope:
     bindings: tuple[Binding, ...]
     citations: tuple[Citation, ...]
     retrieval_path: tuple[RetrievalStep, ...]
+    conceptual_sparql: str | None = None
+    """The overall conceptual query (over the master ontology) the plan was
+    partitioned from — provenance for the whole answer, alongside the per-leg
+    queries in :attr:`retrieval_path`. Set by the service layer."""
     refusal_reason: str | None = None
     failed_sources: tuple[str, ...] = ()
     unavailable_vars: tuple[str, ...] = ()
