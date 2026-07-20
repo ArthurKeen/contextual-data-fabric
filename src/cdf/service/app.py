@@ -45,9 +45,14 @@ class FederationService:
     translated to conceptual SPARQL via :func:`cdf.query.nl.nl_to_sparql`."""
 
     def federate_sparql(self, sparql: str, *, allow_partial: bool = False) -> AnswerEnvelope:
+        from dataclasses import replace as _replace
+
         plan = partition_query(sparql, self.catalog)
         result = execute_plan(plan, self.executors)
-        return ground(result, allow_partial=allow_partial)
+        envelope = ground(result, allow_partial=allow_partial)
+        # Carry the overall conceptual query as answer-level provenance
+        # (the per-leg decompositions live in the retrieval path).
+        return _replace(envelope, conceptual_sparql=sparql)
 
     def federate_question(self, question: str, *, allow_partial: bool = False) -> AnswerEnvelope:
         sparql = self.prepared_questions.get(_normalize(question))
