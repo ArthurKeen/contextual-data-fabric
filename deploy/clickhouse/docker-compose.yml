@@ -1,0 +1,29 @@
+# ClickHouse for the M5 native relational leg (Ontop has no ClickHouse dialect).
+# The ClickHouseExecutor compiles an E1 sub-query + the r2g-emitted R2RML directly
+# to ClickHouse SQL and runs it here — federation, no data movement.
+#
+#   1) docker compose up
+#   2) CLICKHOUSE_DSN=clickhouse://cdf:cdf@localhost:8123/analytics \
+#        .venv/bin/python -m pytest tests/test_clickhouse_live.py -q
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_USER: cdf
+      CLICKHOUSE_PASSWORD: cdf
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${CDF_CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CDF_CLICKHOUSE_TCP_PORT:-9000}:9000"
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
