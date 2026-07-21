@@ -34,7 +34,7 @@ The customer constraint is **do not move the data** ([[ZScaler]]: "the brain has
 - **RE-3 (P1):** A **no-materialization mode** — r2g can produce mappings + queries without hydrating the graph (batch-load remains available as an option, not the default).
 - **RE-4 (P2):** **Query fragmentation** — when a request spans >1 source, emit the per-source fragments + the join keys (the engine reassembles). Support the "break the query up, run it, reassemble" flow.
 - **RE-5 (P2):** Emit mappings/queries via both a **deterministic** path and an **LLM** path (LLM as safety net), consistent with the composable-blueprint stance.
-- **RE-6 (P2):** Snowflake dialect for RE-2 (Databricks in P3), gated on the connector work in [[contextual-data-fabric/docs/architecture/module-01-connectors/specification|M1]].
+- **RE-6 (P2 — pulled forward, due 2026-07-24):** Snowflake support for RE-1 (Databricks stays P3). Re-scoped by ADR-0001's Ontop adoption: **CSI + R2RML export over a Snowflake-introspected schema** (r2g PRD P12.7 as amended) — no bespoke Snowflake SQL generation; Ontop's native Snowflake connector (≥5.0.0) does the rewriting. Consumer: fabric Sprint-2 WP-S3 (P1 close-out plan).
 
 ## 4. Interface contract (with M4 / M5)
 - **Input:** relational schema/metadata (from the schema analyzer / M1) + the master-ontology concept being queried + predicate.

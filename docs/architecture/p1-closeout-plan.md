@@ -123,3 +123,114 @@ Day 3:  P1.6 (golden content) → P1.7 (one-command demo + rehearsal) ║ P1.5 (
 3. **Free-form NL (P1.5):** PJ's caveat is explicit — the locked prompts name the account and sources, and that scaffolding is part of the proven green path. Free-form phrasing is the residual risk; it is staged as a stretch act, never the demo's spine.
 4. **Two wiring paths drift (P1.7):** until `federation.py` uses `FederationService`, demo and service can disagree about ports/seeds — exactly what burned us on 2026-07-16 (stale ports → two-leg refusal). Converge early.
 5. **Provenance of the locked docs:** `docs/questions_answers/` is a local, git-ignored reference (not committed here; canonical home remains `customer-context/docs/research/`, still absent upstream). Anything the fabric *repo* must depend on (the golden contracts) gets encoded into `cdf.eval.golden` — committed code — so the ignored directory never becomes a hidden dependency.
+
+---
+
+# Sprint 2 — Snowflake joins the federation (added 2026-07-21, **due Friday 2026-07-24**)
+
+> PRD §7.7 holds the decision record (trial account, Ontop-native, uppercase
+> folding pre-empted, CC-7 floor). This section is the work breakdown.
+> **The story:** the locked source-system inventory says usage telemetry *is*
+> Snowflake data — so `usage_metrics` moves out of Postgres into a live
+> Snowflake, and Friday's demo becomes a genuine **three-source federation**
+> (CRM → Postgres, telemetry → Snowflake, documents → ArangoDB) joined on
+> `account_id`.
+
+## Work packages
+
+### WP-S1 — Trial account + CC-7 floor *(Arthur — the only human-gated step; do Monday)*
+Sign up (30-day trial, $400 credits, no card; Standard edition, AWS, XS
+warehouse with 60s auto-suspend). Create database `TELEMETRY`, a read-only role
+for the query path, `STATEMENT_TIMEOUT_IN_SECONDS` on the warehouse, and a
+resource monitor (CC-11). Credentials land in the engine env only (CC-7);
+key-pair auth (M1 FR-8) if time permits, password acceptable for trial week.
+**Accept:** `SELECT 1` works from `snowflake-connector-python` with the
+read-only role.
+
+### WP-S2 — Load the telemetry corpus *(½ day, dep: S1)*
+`deploy/snowflake/load_corpus.py` — the Postgres loader's sibling: reads
+`data_gen/output/structured/*/snowflake/*usage_metrics*.json`, creates
+`USAGE_METRICS` (unquoted → uppercase physical names, deliberately: CC-12's
+naming layer maps `USAGE_METRICS`→`UsageMetric`, `QUERY_VOLUME_M`→
+`queryVolumeM`), `ACCOUNT_ID` preserved as the join spine, synthetic `ID`
+primary key (the R2RML subject-template lesson from P1.2).
+**Accept:** 46 rows; `ACCOUNT_ID` on every row.
+
+### WP-S3 — r2g emits the Snowflake CSI + R2RML *(½ day, dep: S2 — r2g P12.7, pulled forward)*
+Snowflake schema → `schema.json` (r2g Phase-6 connector / catalog-source path;
+fallback: RSA's Snowflake introspection) → `generate-config` →
+`export-csi --source-type snowflake --source-ref telemetry` →
+`deploy/csi/snowflake-telemetry.json`, and `export-r2rml` →
+`deploy/snowflake/input/mapping.ttl`. **Concept ownership:** drop
+`usage_metrics` from the *Postgres* mapping config and regenerate its CSI/R2RML
+so `UsageMetric` routes uniquely to Snowflake — the planner must never see one
+concept claimed by two sources (P3's multi-owner routing is out of scope).
+**Accept:** `validate_csi` green (CC-12 naming included); no concept overlap
+between the two relational CSIs.
+
+### WP-S4 — Second Ontop endpoint *(½ day, dep: S3)*
+`deploy/snowflake/docker-compose.yml`: one Ontop 5.5.0 container (no DB
+container — the database is the cloud service), `snowflake-jdbc` jar
+auto-fetched into `jdbc/` (Makefile pattern), `input/ontop.properties`
+**templated from env at container start** (CC-7: the JDBC URL carries
+warehouse/db/schema + `JDBC_QUERY_RESULT_FORMAT=JSON` for the Java-17/Arrow
+quirk; credentials never committed).
+**Accept:** `curl :8091/sparql` answers `?m a c:UsageMetric` with 46 rows.
+
+### WP-S5 — Engine: per-source endpoints *(½ day, dep: none — parallel)*
+`FederationService.from_env` currently binds every non-arango source to the
+single `ONTOP_SPARQL_ENDPOINT`. Generalize: `CDF_SPARQL_ENDPOINT_<KIND>`
+(e.g. `_POSTGRESQL`, `_SNOWFLAKE`), keeping `ONTOP_SPARQL_ENDPOINT` as the
+postgresql fallback for compatibility. Three-leg plans already work — the
+planner partitions by concept ownership and the executor's sequential
+bind-join seeds each later leg (relational legs first, then Arango).
+**Accept:** unit test with three stub sources; live: a three-source plan shows
+three legs in the retrieval path.
+
+### WP-S6 — Goldens + demo *(½ day, dep: S4+S5)*
+New golden **g5**: "how is each account trending on usage, and what do the
+documents say?" — `Account` (Postgres) ⋈ `UsageMetric` (Snowflake) ⋈
+`Document` (ArangoDB) on `accountId`; expect grounded, reconciliation across
+**three** kinds, `sources_touched` all three. Update `deploy/questions.json`
+(+ the g1 tier question stays Postgres-only as the anchor). Demo page needs no
+code change (lanes render per leg); `make seed`/`make gate` grow the Snowflake
+steps; deploy/README topology diagram + tables updated.
+**Accept:** `make gate` 5/5 green live; the browser shows a three-lane answer.
+
+### WP-S7 — CI *(2h, dep: S6)*
+Repo secrets (`SNOWFLAKE_ACCOUNT/USER/PASSWORD/...`); the live job gains an
+env-gated Snowflake step that **skips cleanly without secrets** (the
+arango-sparql-py precedent — declared, never hidden).
+**Accept:** CI green with secrets present; visibly skipped without.
+
+### WP-S8 — B7 cost note *(1h, ride-along)*
+Record the trial-credit burn for the demo week (Snowsight usage page) — the
+first real number for the cost story: an XS warehouse answering seed questions
+over 46 rows costs ~nothing, *and we can prove it*.
+
+## Day plan (Mon 07-21 → Fri 07-24)
+
+```
+Mon:  S1 (account, Arthur) ║ S5 (engine endpoints — no Snowflake needed)
+Tue:  S2 (load) → S3 (CSI/R2RML + Postgres concept split)
+Wed:  S4 (Ontop endpoint) → first live three-source join
+Thu:  S6 (goldens, demo, docs) → S7 (CI) → rehearsal (`make gate`, kill-a-leg act)
+Fri:  demo — buffer in the morning
+```
+
+**Cut lines:** S7 (CI secrets) → S8 (cost note) → key-pair auth (password is
+acceptable for a trial week). **Never cut:** concept-ownership split (S3) —
+duplicate concept routing corrupts every plan, not just Snowflake's.
+
+## Risks
+
+1. **Trial signup friction (S1)** — region/edition choices, email verification;
+   it's Monday's task precisely so slippage has room.
+2. **r2g's Snowflake introspection path** (S3) is Phase-6 code exercised less
+   than Postgres; RSA's Snowflake source is the named fallback for schema.json.
+3. **Identifier case, round 2** (S2/S3) — pre-empted by loading unquoted
+   (uppercase) and letting CC-12 map the conceptual layer; the gate catches
+   what slips.
+4. **Network egress** — the demo now depends on cloud reachability for one
+   leg; the kill-a-leg act doubles as the mitigation story (declared partial
+   failure), and the Postgres+Arango core still demos offline.

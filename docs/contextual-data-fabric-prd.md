@@ -142,7 +142,7 @@ The near-term goal (per Arthur) drives Phase 1; later phases widen source covera
 | Phase | Theme | Outcome |
 |-------|-------|---------|
 | **Phase 1 (≈1 week)** | **Federated query to one database + unstructured docs in Arango** | An English question answered by federating **one relational DB (live, not mirrored)** with the **unstructured graph already in Arango**, unified by a small use-case-driven ontology, returned **grounded + cited** with a retrieval path spanning both. Proves the "what does Arango add over A2A" story at small scale. |
-| **Phase 2** | Highest-value connector + assembled pattern | **Snowflake** connector (pending free-tier check); the **assembled/materialized** query pattern for analytics; richer ontology **alignment** across ≥2 structured sources + unstructured; cost/latency instrumentation to directly answer Rah's token objection. |
+| **Phase 2** | Highest-value connector + assembled pattern | **Snowflake** connector — **pulled forward: due 2026-07-24** (free-tier check RESOLVED: 30-day trial, $400 credits, no credit card; see §7.7); the **assembled/materialized** query pattern for analytics; richer ontology **alignment** across ≥2 structured sources + unstructured; cost/latency instrumentation to directly answer Rah's token objection. |
 | **Phase 3** | Governance + change management | **Ontology-based access control** (IAM-via-ontology / Palantir pattern) via declarative mappings; belief-management **change control**, curation workflows, and **time-travel** surfaced; **Databricks** connector. |
 | **Cross-cutting** | Packaging & standards | Composable **pip-library** packaging of both building blocks; **deterministic** query-pipeline hardening; **OSI** compliance surfaced; synthetic-data generation (deferred) once the architecture is proven. |
 
@@ -191,6 +191,20 @@ Snowflake/Databricks; assembled/materialized pattern; OBAC; belief-management ch
 - **Minimal synthetic footprint** — Phase 1 needs a small synthetic Postgres schema + the existing unstructured corpus; full synthetic-data work stays deferred. (r2g ships Chinook/Pagila sample Postgres databases under `docker/` — a candidate P1 schema at zero cost.)
 
 ---
+
+### 7.7 Snowflake sprint (added 2026-07-21 — **due Friday 2026-07-24**)
+
+**Objective:** Snowflake joins the federation as a **third live source**, making the demo a genuine three-source federation matching the locked source-system inventory: **CRM → Postgres, usage telemetry → Snowflake, documents → ArangoDB**, joined on `account_id`.
+
+**Instance decision (research, 2026-07-21):** a **Snowflake 30-day trial account** — $400 credits, **no credit card, auto-suspends at exhaustion**; our workload (46 telemetry rows, XS warehouse, 60s auto-suspend) is effectively free. A real service keeps the "live Snowflake" claim honest. Emulators were evaluated and rejected for the query leg: `fakesnow` emulates the *Python connector* (no JDBC surface, and Ontop speaks JDBC); LocalStack's Snowflake is paid. **CI:** env-gated live test via repo secrets, skipping cleanly without them (the established pattern).
+
+**Approach:** Ontop supports Snowflake natively (≥5.0.0; we run 5.5.0) — a **second Ontop endpoint** (one datasource per endpoint) over the `snowflake-jdbc` driver, driven by **r2g-generated R2RML** exactly like the Postgres leg. `usage_metrics` moves out of the Postgres mapping so **`UsageMetric` routes uniquely to Snowflake** (concept ownership must be unambiguous for the planner). Known quirks pre-empted: Java-17/Arrow (`JDBC_QUERY_RESULT_FORMAT=JSON` on the JDBC URL) and Snowflake's **uppercase identifier folding** — physical names land uppercase and CC-12's naming layer already maps them (`USAGE_METRICS` → `UsageMetric`, `QUERY_VOLUME_M` → `queryVolumeM`).
+
+**Security (CC-7):** trial account still gets the floor — a read-only role, `STATEMENT_TIMEOUT_IN_SECONDS` on the warehouse, a resource monitor (CC-11), credentials only in the engine env. Key-pair auth (M1 FR-8) if time permits; password auth acceptable for the trial week.
+
+Work breakdown + day plan: **P1 close-out plan, “Sprint 2.”** Repo-side requirements propagated to r2g (P12.7 pulled forward) and the M1 spec (FR-4).
+
+**"Should we use Snowflake Cortex instead?"** — the customer FAQ now has a standing written answer: **ADR-0002**. Short form: default no (cost, determinism, single-point semantics, derived-vs-attested provenance); supported in principle as an *agentic connector* with an explicit contract (structured rows + the SQL Cortex generated + as-of, labeled `agent-attested`) when a customer mandates it. Out of scope for this sprint.
 
 ## 8. Referenced Repositories (for Claude Code context)
 
