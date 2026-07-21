@@ -18,17 +18,36 @@ in almost every conversation; documentation-first — no code scheduled).
 
 ## Context
 
-Snowflake ships an AI surface — **Cortex Analyst** (natural language → SQL over
-a customer-authored *semantic model*), **Cortex Search** (retrieval over
-unstructured data inside Snowflake), and **Cortex Agents** (orchestration
-across both). Customers reasonably ask: *"if Snowflake can already answer
-English questions about Snowflake data, why does the fabric translate SPARQL
-to SQL itself — shouldn't the Snowflake leg just be Cortex?"* Databricks Genie
-poses the identical question for that platform. As the user framing notes,
-using Cortex as a leg means the fabric must **render a query prompt** to send
-to Cortex — the "agentic partition" leg already sketched in the README's
-query-time diagram and in M5's scope ("agent calls where a source only exposes
-an agent").
+**First, the fact that dissolves most of the question: Snowflake is a SQL
+database.** Plain SQL goes in through JDBC/ODBC, the Python connector, or the
+REST SQL API — exactly like Postgres, and that is how the fabric's Snowflake
+leg works (Ontop compiles the SPARQL partition to SQL and sends it over JDBC:
+deterministic, token-free, self-cited). **A query prompt is never required to
+query Snowflake.**
+
+The prompt only enters with **Cortex Analyst** — an optional AI service
+*layered on top of* the warehouse. Its API does not accept SQL; it accepts a
+natural-language question plus a customer-authored *semantic model*, generates
+SQL internally, executes it, and returns results along with the SQL it
+generated. (Siblings: **Cortex Search** — retrieval over unstructured data
+inside Snowflake; **Cortex Agents** — orchestration across both. And note the
+naming trap: Cortex *LLM functions* such as `SNOWFLAKE.CORTEX.SENTIMENT()` are
+themselves called **from SQL** — only Cortex **Analyst** speaks prompts.)
+
+Two doors into the same warehouse:
+
+| Path into Snowflake | You send | Deterministic | Cost per question | Citation |
+|---|---|---|---|---|
+| JDBC / connector / SQL API | **SQL** | yes | warehouse compute only | the SQL *we compiled* (derived) |
+| Cortex Analyst | **an NL prompt** | no — LLM in the loop | compute **+ LLM inference** | the SQL *Cortex says it ran* (attested) |
+
+So the customer question *"shouldn't the Snowflake leg just be Cortex?"*
+(Databricks Genie poses the identical question) is really: *"should we put an
+LLM between the fabric and the warehouse when a SQL door is standing open?"*
+Choosing Cortex would mean the fabric **renders a query prompt** from the
+partition — the "agentic partition" leg sketched in the README diagram and
+M5's scope ("agent calls where a source only exposes an agent") — a leg type
+designed for sources whose SQL door is *closed*, which Snowflake's is not.
 
 ## Decision
 
@@ -88,11 +107,13 @@ one-week package once a real customer environment exists to test against.
 
 ## What we tell customers (the two-sentence answer)
 
-> The fabric *can* treat Cortex as a source — it's designed for sources that
-> only speak natural language, and Cortex Analyst returning its generated SQL
-> makes it the best-behaved of those. We default to direct SPARQL→SQL because
-> it's deterministic, token-free, and the citation is the query we compiled —
-> and we label agent-answered legs differently because your auditors will ask.
+> Snowflake takes SQL directly, so the fabric queries it the same way it
+> queries Postgres — deterministic, no LLM tokens, and the citation is the
+> exact query we compiled from your ontology. Cortex Analyst is an *optional*
+> NL layer on top; the fabric can federate through it when you require that
+> (it's the best-behaved agentic source, since it returns the SQL it
+> generated) — but we label those legs `agent-attested` rather than derived,
+> because your auditors will ask the difference.
 
 ## Consequences
 
