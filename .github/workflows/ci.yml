@@ -40,7 +40,7 @@ jobs:
         # arango-sparql-py is public — installs like any git dependency, so the
         # Arango live test gates for real (no token, no skip).
         run: |
-          pip install -e ".[test,service]" python-arango \
+          pip install -e ".[test,service]" python-arango snowflake-connector-python \
             "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
       - name: Postgres JDBC driver for Ontop
         run: curl -sL -o deploy/ontop/jdbc/postgresql.jar https://jdbc.postgresql.org/download/postgresql-42.7.4.jar
@@ -55,6 +55,20 @@ jobs:
           ARANGO_URL=http://127.0.0.1:8529 ARANGO_DB=cmf ARANGO_PASSWORD=cdf \
           ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:8080/sparql \
             pytest tests/test_arango_live.py tests/test_ontop_live.py -q
+      - name: Snowflake live leg (env-gated — skips cleanly without secrets)
+        # Snowflake is a cloud service (no container). Set the SNOWFLAKE_* repo
+        # secrets to gate the native Snowflake leg for real; without them,
+        # test_snowflake_live.py skips (declared, not hidden) — the
+        # arango-sparql-py precedent (CC-9 / PRD §7.7).
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+        run: pytest tests/test_snowflake_live.py -q
       - name: Stack logs on failure
         if: failure()
         run: |
