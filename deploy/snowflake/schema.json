@@ -1,0 +1,111 @@
+{
+  "tables": {
+    "USAGE_METRICS": {
+      "name": "USAGE_METRICS",
+      "columns": [
+        {
+          "name": "ID",
+          "data_type": "number",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "ACCOUNT_ID",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "CLUSTER_NODES",
+          "data_type": "number",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "CONTRACTED_SEATS_MIRROR",
+          "data_type": "number",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "EDITION",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "GRAPHRAG_ENABLED",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "IS_PEAK_PERIOD",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "PERIOD",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "QUERIES_PER_NODE_M",
+          "data_type": "float",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "QUERY_VOLUME_GROWTH_PCT",
+          "data_type": "float",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "QUERY_VOLUME_M",
+          "data_type": "float",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "SEATS_ACTIVE",
+          "data_type": "number",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "SMARTGRAPHS_ENABLED",
+          "data_type": "boolean",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        },
+        {
+          "name": "VOLUME_TREND",
+          "data_type": "text",
+          "is_nullable": true,
+          "is_primary_key": false,
+          "classification": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": [],
+      "is_partitioned": false,
+      "partition_of": null
+    }
+  }
+}

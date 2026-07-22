@@ -93,6 +93,9 @@ class FederationService:
         - ClickHouse leg (kind ``clickhouse``): ``CLICKHOUSE_DSN`` + the
           r2g-emitted R2RML at ``CDF_R2RML_DIR/<source_id>.ttl`` (default
           ``deploy/r2rml``).
+        - Snowflake leg (kind ``snowflake``, Option B / ADR-0002):
+          ``SNOWFLAKE_ACCOUNT`` (+ ``_USER``/``_PASSWORD``/``_WAREHOUSE``/
+          ``_DATABASE``/``_SCHEMA``/``_ROLE``) + the same per-source R2RML file.
         - Relational leg (any other kind): ``ONTOP_SPARQL_ENDPOINT``.
         - ``CDF_PREPARED_QUESTIONS`` — JSON file of ``{question: sparql}``.
         """
@@ -132,6 +135,28 @@ class FederationService:
                     executors[ref.source_id] = ClickHouseExecutor(
                         r2rml=r2rml_path.read_text(),
                         dsn=env["CLICKHOUSE_DSN"],
+                        source_objects=(ref.ref,),
+                    )
+            elif ref.kind == "snowflake" and env.get("SNOWFLAKE_ACCOUNT"):
+                # Native Snowflake leg (Option B / ADR-0002: Snowflake takes SQL
+                # directly). Identical R2RML toolchain as the ClickHouse leg; only
+                # the dialect + the snowflake-connector-python transport differ.
+                from cdf.adapters import SnowflakeExecutor
+
+                r2rml_dir = Path(env.get("CDF_R2RML_DIR", "deploy/r2rml"))
+                r2rml_path = r2rml_dir / f"{ref.source_id.replace(':', '_')}.ttl"
+                if r2rml_path.is_file():
+                    executors[ref.source_id] = SnowflakeExecutor(
+                        r2rml=r2rml_path.read_text(),
+                        connect_args={
+                            "account": env["SNOWFLAKE_ACCOUNT"],
+                            "user": env.get("SNOWFLAKE_USER"),
+                            "password": env.get("SNOWFLAKE_PASSWORD"),
+                            "warehouse": env.get("SNOWFLAKE_WAREHOUSE"),
+                            "database": env.get("SNOWFLAKE_DATABASE"),
+                            "schema": env.get("SNOWFLAKE_SCHEMA"),
+                            "role": env.get("SNOWFLAKE_ROLE"),
+                        },
                         source_objects=(ref.ref,),
                     )
             elif ref.kind != "arango" and env.get("ONTOP_SPARQL_ENDPOINT"):

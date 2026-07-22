@@ -47,5 +47,5 @@ select = ["E", "F", "I", "W", "UP", "B"]
 # The live-source adapters lazy-import the owned engine libraries, which ship no
 # type stubs; they are optional (not core deps) and only loaded on the live path.
 [[tool.mypy.overrides]]
-module = ["arango_sparql.*", "arango.*", "clickhouse_connect.*"]
+module = ["arango_sparql.*", "arango.*", "clickhouse_connect.*", "snowflake.*"]
 ignore_missing_imports = true

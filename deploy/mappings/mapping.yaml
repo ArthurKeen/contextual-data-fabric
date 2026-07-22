@@ -9,15 +9,9 @@ collections:
     exclude_fields: []
     include_fields: null
     field_expressions: []
-  usage_metrics:
-    source_table: usage_metrics
-    target_collection: usage_metrics
-    collection_type: document
-    is_join_table: false
-    field_mappings: {}
-    exclude_fields: []
-    include_fields: null
-    field_expressions: []
+  # usage_metrics DELIBERATELY EXCLUDED (Sprint 2 / WP-S3): the UsageMetric concept
+  # is owned uniquely by the live Snowflake source (deploy/csi/snowflake-telemetry.json).
+  # The planner must never see one concept claimed by two sources.
   contacts:
     source_table: contacts
     target_collection: contacts

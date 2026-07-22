@@ -35,7 +35,7 @@ PY = .venv/bin/python
 install:
 	python3 -m venv .venv
 	$(PY) -m pip install -q --upgrade pip
-	$(PY) -m pip install -e ".[test,service,dev]" "psycopg[binary]" python-arango
+	$(PY) -m pip install -e ".[test,service,dev]" "psycopg[binary]" python-arango snowflake-connector-python
 	# Owned sibling libraries: local checkout if present, else public GitHub.
 	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-sparql-py" 2>/dev/null \
 	  || $(PY) -m pip install "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"

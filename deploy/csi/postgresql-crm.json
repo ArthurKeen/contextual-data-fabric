@@ -59,56 +59,6 @@
         ]
       },
       {
-        "name": "UsageMetric",
-        "labels": [
-          "UsageMetric"
-        ],
-        "properties": [
-          {
-            "name": "id"
-          },
-          {
-            "name": "accountId"
-          },
-          {
-            "name": "clusterNodes"
-          },
-          {
-            "name": "contractedSeatsMirror"
-          },
-          {
-            "name": "edition"
-          },
-          {
-            "name": "graphragEnabled"
-          },
-          {
-            "name": "isPeakPeriod"
-          },
-          {
-            "name": "period"
-          },
-          {
-            "name": "queriesPerNodeM"
-          },
-          {
-            "name": "queryVolumeGrowthPct"
-          },
-          {
-            "name": "queryVolumeM"
-          },
-          {
-            "name": "seatsActive"
-          },
-          {
-            "name": "smartgraphsEnabled"
-          },
-          {
-            "name": "volumeTrend"
-          }
-        ]
-      },
-      {
         "name": "Contact",
         "labels": [
           "Contact"
@@ -355,54 +305,6 @@
           }
         }
       },
-      "UsageMetric": {
-        "style": "COLLECTION",
-        "collectionName": "usage_metrics",
-        "properties": {
-          "id": {
-            "field": "id"
-          },
-          "accountId": {
-            "field": "account_id"
-          },
-          "clusterNodes": {
-            "field": "cluster_nodes"
-          },
-          "contractedSeatsMirror": {
-            "field": "contracted_seats_mirror"
-          },
-          "edition": {
-            "field": "edition"
-          },
-          "graphragEnabled": {
-            "field": "graphrag_enabled"
-          },
-          "isPeakPeriod": {
-            "field": "is_peak_period"
-          },
-          "period": {
-            "field": "period"
-          },
-          "queriesPerNodeM": {
-            "field": "queries_per_node_m"
-          },
-          "queryVolumeGrowthPct": {
-            "field": "query_volume_growth_pct"
-          },
-          "queryVolumeM": {
-            "field": "query_volume_m"
-          },
-          "seatsActive": {
-            "field": "seats_active"
-          },
-          "smartgraphsEnabled": {
-            "field": "smartgraphs_enabled"
-          },
-          "volumeTrend": {
-            "field": "volume_trend"
-          }
-        }
-      },
       "Contact": {
         "style": "COLLECTION",
         "collectionName": "contacts",
@@ -595,6 +497,6 @@
       "ref": "crm",
       "fingerprint": null
     },
-    "generatedAt": "2026-07-19T22:49:30.848888+00:00"
+    "generatedAt": "2026-07-22T22:12:21.693927+00:00"
   }
 }
