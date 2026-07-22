@@ -64,3 +64,18 @@ confirms the emitted SQL is accepted:
 set -a; . ./.env; set +a
 .venv/bin/python -m pytest tests/test_snowflake_live.py -q   # skips without SNOWFLAKE_ACCOUNT
 ```
+
+## Cost (WP-S8 — the B7 story)
+
+The whole sprint — schema introspection, the 46-row load, and every `make gate` /
+demo run — burned **~0.57 credits** on the XS warehouse (60s auto-suspend), measured
+via `INFORMATION_SCHEMA.WAREHOUSE_METERING_HISTORY`. The trial grants **$400** of
+credits; at this workload the leg is **effectively free**, and it's a real, defensible
+number for the cost story (the compiled SQL leg bills warehouse compute only — no
+per-question LLM tokens, per ADR-0002). Live check:
+
+```sql
+USE ROLE ACCOUNTADMIN; USE DATABASE TELEMETRY;
+SELECT ROUND(SUM(CREDITS_USED),4) AS credits
+FROM TABLE(INFORMATION_SCHEMA.WAREHOUSE_METERING_HISTORY(DATE_RANGE_START=>DATEADD('day',-7,CURRENT_DATE())));
+```

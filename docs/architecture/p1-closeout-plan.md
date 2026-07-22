@@ -211,13 +211,19 @@ code change (lanes render per leg); `make seed`/`make gate` grow the Snowflake
 steps; deploy/README topology diagram + tables updated.
 **Accept:** `make gate` 5/5 green live; the browser shows a three-lane answer.
 
-### WP-S7 — CI *(2h, dep: S6)*
+### WP-S7 — ✅ DONE (2026-07-22): CI *(dep: S6)*
+The `live` job installs `snowflake-connector-python` and runs `tests/test_snowflake_live.py` under the `SNOWFLAKE_*` repo secrets; without them the test skips cleanly (declared, not hidden). **Action for Arthur:** add the `SNOWFLAKE_ACCOUNT/USER/PASSWORD/WAREHOUSE/DATABASE/SCHEMA/ROLE` repo secrets to gate the leg for real.
+
+_Original spec:_
 Repo secrets (`SNOWFLAKE_ACCOUNT/USER/PASSWORD/...`); the live job gains an
 env-gated Snowflake step that **skips cleanly without secrets** (the
 arango-sparql-py precedent — declared, never hidden).
 **Accept:** CI green with secrets present; visibly skipped without.
 
-### WP-S8 — B7 cost note *(1h, ride-along)*
+### WP-S8 — ✅ DONE (2026-07-22): B7 cost note *(ride-along)*
+Measured: **~0.57 credits** for the entire sprint on the XS warehouse (60s auto-suspend) — the trial's $400 grant is untouched; effectively free. Recorded in `deploy/snowflake/README.md` with the live `WAREHOUSE_METERING_HISTORY` query.
+
+_Original spec:_
 Record the trial-credit burn for the demo week (Snowsight usage page) — the
 first real number for the cost story: an XS warehouse answering seed questions
 over 46 rows costs ~nothing, *and we can prove it*.
