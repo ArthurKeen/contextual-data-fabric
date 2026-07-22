@@ -1,0 +1,54 @@
+{
+  "name": "three-source — Account (Postgres) + UsageMetric (Snowflake) + Document (ArangoDB) join on accountId (grounded)",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name ?trend ?source ?url WHERE { ?a a c:Account ; c:accountName ?name ; c:accountId ?acct . ?u a c:UsageMetric ; c:volumeTrend ?trend ; c:accountId ?acct . ?d a c:Document ; c:source ?source ; c:citableUrl ?url ; c:accountId ?acct }",
+  "sources": [
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {"entities": [{"name": "Account", "properties": [{"name": "accountName"}, {"name": "accountId"}]}]},
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward", "source": {"kind": "postgresql", "ref": "crm"}}
+      },
+      "data": {
+        "rows": [{"name": "Helio Retail Corp.", "acct": "001Qwvb5LAnzy3yVgi"}],
+        "native_query": "SELECT account_name, account_id FROM accounts",
+        "source_objects": ["public.accounts"],
+        "as_of": "2026-07-22T12:00:00Z"
+      }
+    },
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {"entities": [{"name": "UsageMetric", "properties": [{"name": "volumeTrend"}, {"name": "accountId"}]}]},
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward", "source": {"kind": "snowflake", "ref": "telemetry"}}
+      },
+      "data": {
+        "rows": [{"trend": "growing", "acct": "001Qwvb5LAnzy3yVgi"}],
+        "native_query": "SELECT \"VOLUME_TREND\", \"ACCOUNT_ID\" FROM \"USAGE_METRICS\"",
+        "source_objects": ["USAGE_METRICS"],
+        "as_of": "2026-07-22T12:00:00Z"
+      }
+    },
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {"entities": [{"name": "Document", "properties": [{"name": "source"}, {"name": "citableUrl"}, {"name": "accountId"}]}]},
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "analyzer", "direction": "reverse", "source": {"kind": "arango", "ref": "cmf"}}
+      },
+      "data": {
+        "rows": [{"source": "slack", "url": "https://example/thread/1", "acct": "001Qwvb5LAnzy3yVgi"}],
+        "native_query": "FOR d IN documents FILTER d.account_id IN @keys RETURN d",
+        "source_objects": ["documents"],
+        "as_of": "2026-07-22T12:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "bindings": [{"name": "Helio Retail Corp.", "trend": "growing", "source": "slack", "url": "https://example/thread/1"}],
+    "sources_touched": ["arango:cmf", "postgresql:crm", "snowflake:telemetry"]
+  }
+}

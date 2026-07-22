@@ -26,7 +26,13 @@ CDF_SIBLINGS ?= $(HOME)/code
 DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
            ARANGO_USER=root ARANGO_PASSWORD=cdf \
            ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:$(CDF_ONTOP_PORT)/sparql \
-           CDF_CSI_DIR=deploy/csi CDF_PREPARED_QUESTIONS=deploy/questions.json
+           CDF_CSI_DIR=deploy/csi CDF_R2RML_DIR=deploy/r2rml \
+           CDF_PREPARED_QUESTIONS=deploy/questions.json
+
+# Snowflake creds live in the gitignored .env (CC-7). Recipes that touch the
+# Snowflake leg source it so SNOWFLAKE_* reach gate.py / load_corpus.py, which
+# read them from the environment (server.py loads .env itself).
+LOAD_ENV = set -a; . ./.env 2>/dev/null || true; set +a;
 
 PY = .venv/bin/python
 
@@ -52,6 +58,7 @@ up: jdbc
 
 seed:
 	PG_DSN=postgresql://cdf:cdf@127.0.0.1:$(CDF_POSTGRES_PORT)/crm $(PY) deploy/ontop/load_corpus.py
+	$(LOAD_ENV) $(PY) deploy/snowflake/load_corpus.py   # telemetry -> Snowflake USAGE_METRICS (46 rows)
 	docker compose -p cdf-ontop -f deploy/ontop/docker-compose.yml restart ontop
 	$(DEMO_ENV) $(PY) deploy/arango/seed.py           # tickets (kept as a small typed collection)
 	$(DEMO_ENV) $(PY) deploy/arango/load_corpus.py    # documents + chunks (account_id stamp)
@@ -59,7 +66,7 @@ seed:
 	@sleep 12  # Ontop reloads the R2RML mapping on start
 
 gate:
-	$(DEMO_ENV) $(PY) deploy/demo/gate.py
+	$(LOAD_ENV) $(DEMO_ENV) $(PY) deploy/demo/gate.py
 
 free-ui:
 	@pids=$$(lsof -ti tcp:$(CDF_UI_PORT) 2>/dev/null); \
