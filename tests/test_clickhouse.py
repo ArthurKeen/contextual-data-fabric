@@ -170,6 +170,37 @@ def test_executor_requires_transport_or_dsn():
         ClickHouseExecutor(mapping=MAPPING)
 
 
+def test_from_env_wires_a_clickhouse_leg(tmp_path):
+    """A clickhouse CSI + CLICKHOUSE_DSN + a per-source R2RML file builds a
+    ClickHouseExecutor (no connection until execute)."""
+    import json
+
+    from cdf.adapters import ClickHouseExecutor as CHExec
+    from cdf.service.app import FederationService
+
+    csi_dir = tmp_path / "csi"
+    csi_dir.mkdir()
+    (csi_dir / "ch.json").write_text(json.dumps({
+        "csiVersion": "1",
+        "conceptualModel": {"entities": [
+            {"name": "usage_metrics", "properties": [{"name": "account_id"}]}]},
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward",
+                       "source": {"kind": "clickhouse", "ref": "analytics"}},
+    }))
+    r2rml_dir = tmp_path / "r2rml"
+    r2rml_dir.mkdir()
+    (r2rml_dir / "clickhouse_analytics.ttl").write_text(R2RML)
+
+    service = FederationService.from_env({
+        "CDF_CSI_DIR": str(csi_dir),
+        "CDF_R2RML_DIR": str(r2rml_dir),
+        "CLICKHOUSE_DSN": "clickhouse://u:p@h:8123/analytics",
+        "CDF_NL_DISABLED": "1",
+    })
+    assert isinstance(service.executors["clickhouse:analytics"], CHExec)
+
+
 def test_clickhouse_leg_in_full_federation_pipeline():
     """ClickHouse (usage) joins an account-context leg through partition→
     execute→ground — the same seam as the Ontop/Arango legs."""
