@@ -9,10 +9,14 @@
 - :class:`~cdf.adapters.clickhouse.ClickHouseExecutor` — a native relational leg
   for ClickHouse (which Ontop has no dialect for): compiles the single-source BGP
   + the r2g-emitted R2RML directly to ClickHouse SQL.
+- :class:`~cdf.adapters.snowflake.SnowflakeExecutor` — the native Snowflake leg
+  (Option B / ADR-0002: Snowflake takes SQL directly). Same R2RML toolchain as
+  ClickHouse; Snowflake dialect + the ``snowflake-connector-python`` transport.
 """
 
 from .arango import ArangoExecutor
 from .clickhouse import ClickHouseExecutor
 from .ontop import OntopExecutor
+from .snowflake import SnowflakeExecutor
 
-__all__ = ["OntopExecutor", "ArangoExecutor", "ClickHouseExecutor"]
+__all__ = ["OntopExecutor", "ArangoExecutor", "ClickHouseExecutor", "SnowflakeExecutor"]

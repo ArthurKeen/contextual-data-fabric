@@ -1,0 +1,122 @@
+{
+  "csiVersion": "1",
+  "conceptualModel": {
+    "entities": [
+      {
+        "name": "UsageMetric",
+        "labels": [
+          "UsageMetric"
+        ],
+        "properties": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "accountId"
+          },
+          {
+            "name": "clusterNodes"
+          },
+          {
+            "name": "contractedSeatsMirror"
+          },
+          {
+            "name": "edition"
+          },
+          {
+            "name": "graphragEnabled"
+          },
+          {
+            "name": "isPeakPeriod"
+          },
+          {
+            "name": "period"
+          },
+          {
+            "name": "queriesPerNodeM"
+          },
+          {
+            "name": "queryVolumeGrowthPct"
+          },
+          {
+            "name": "queryVolumeM"
+          },
+          {
+            "name": "seatsActive"
+          },
+          {
+            "name": "smartgraphsEnabled"
+          },
+          {
+            "name": "volumeTrend"
+          }
+        ]
+      }
+    ],
+    "relationships": []
+  },
+  "arangoPhysicalMapping": {
+    "entities": {
+      "UsageMetric": {
+        "style": "COLLECTION",
+        "collectionName": "usage_metrics",
+        "properties": {
+          "id": {
+            "field": "ID"
+          },
+          "accountId": {
+            "field": "ACCOUNT_ID"
+          },
+          "clusterNodes": {
+            "field": "CLUSTER_NODES"
+          },
+          "contractedSeatsMirror": {
+            "field": "CONTRACTED_SEATS_MIRROR"
+          },
+          "edition": {
+            "field": "EDITION"
+          },
+          "graphragEnabled": {
+            "field": "GRAPHRAG_ENABLED"
+          },
+          "isPeakPeriod": {
+            "field": "IS_PEAK_PERIOD"
+          },
+          "period": {
+            "field": "PERIOD"
+          },
+          "queriesPerNodeM": {
+            "field": "QUERIES_PER_NODE_M"
+          },
+          "queryVolumeGrowthPct": {
+            "field": "QUERY_VOLUME_GROWTH_PCT"
+          },
+          "queryVolumeM": {
+            "field": "QUERY_VOLUME_M"
+          },
+          "seatsActive": {
+            "field": "SEATS_ACTIVE"
+          },
+          "smartgraphsEnabled": {
+            "field": "SMARTGRAPHS_ENABLED"
+          },
+          "volumeTrend": {
+            "field": "VOLUME_TREND"
+          }
+        }
+      }
+    },
+    "relationships": {}
+  },
+  "provenance": {
+    "producer": "r2g",
+    "producerVersion": "0.2.0",
+    "direction": "forward",
+    "source": {
+      "kind": "snowflake",
+      "ref": "telemetry",
+      "fingerprint": null
+    },
+    "generatedAt": "2026-07-22T22:09:16.862530+00:00"
+  }
+}

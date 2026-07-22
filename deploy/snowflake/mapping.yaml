@@ -1,0 +1,19 @@
+source_schema: public
+collections:
+  USAGE_METRICS:
+    source_table: USAGE_METRICS
+    # Lowercase so r2g's (case-sensitive) singularizer yields the singular class
+    # UsageMetric per CC-12; source_table stays uppercase for the physical name.
+    # (r2g 0.2.0 bug: singularize() only handles lowercase — USAGE_METRICS would
+    # otherwise become the plural, convention-violating "UsageMetrics".)
+    target_collection: usage_metrics
+    collection_type: document
+    is_join_table: false
+    field_mappings: {}
+    exclude_fields: []
+    include_fields: null
+    field_expressions: []
+edges: []
+type_overrides: {}
+key_separator: _
+naming_convention: null

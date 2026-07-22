@@ -136,6 +136,17 @@ Day 3:  P1.6 (golden content) → P1.7 (one-command demo + rehearsal) ║ P1.5 (
 > (CRM → Postgres, telemetry → Snowflake, documents → ArangoDB) joined on
 > `account_id`.
 
+> **Update (2026-07-22) — leg architecture is now Option B (native executor).**
+> Since this plan was written, a native `ClickHouseExecutor` landed and proved the
+> per-`kind` executor seam in `FederationService.from_env`. Given ADR-0002's core
+> fact — *Snowflake takes SQL directly* — the Snowflake leg is now a native
+> **`SnowflakeExecutor`** (src/cdf/adapters/snowflake.py): it compiles the E1 BGP +
+> the same r2g R2RML straight to Snowflake SQL over `snowflake-connector-python`.
+> This **supersedes WP-S4 (second Ontop endpoint) and WP-S5 (per-endpoint env)** and
+> sidesteps the JDBC/Arrow/Java-17 quirk. WP-S3's concept-ownership split is
+> unchanged and still the never-cut item. Executor + unit tests + `from_env` wiring
+> landed 2026-07-22 (dialect proven vs a fake transport; live test env-gated).
+
 ## Work packages
 
 ### WP-S1 — Trial account + CC-7 floor *(Arthur — the only human-gated step; do Monday)*
@@ -156,7 +167,10 @@ naming layer maps `USAGE_METRICS`→`UsageMetric`, `QUERY_VOLUME_M`→
 primary key (the R2RML subject-template lesson from P1.2).
 **Accept:** 46 rows; `ACCOUNT_ID` on every row.
 
-### WP-S3 — r2g emits the Snowflake CSI + R2RML *(½ day, dep: S2 — r2g P12.7, pulled forward)*
+### WP-S3 — ✅ DONE (2026-07-22): r2g emits the Snowflake CSI + R2RML + Postgres concept split *(dep: S2 — r2g P12.7, pulled forward)*
+Landed: live introspection (r2g `SnowflakeConnector` as `CDF_RO`) → `deploy/snowflake/schema.json`; `deploy/csi/snowflake-telemetry.json` + `deploy/r2rml/snowflake_telemetry.ttl` (auto-emitted by r2g 0.2.0). `usage_metrics` removed from `deploy/mappings/mapping.yaml`; `postgresql-crm.json` + `deploy/ontop/input/mapping.ttl` regenerated (faithful — r2g 0.2.0 reproduces the other 5 tables byte-identically). Verified: **zero concept overlap** (Postgres owns 5, Snowflake owns `UsageMetric`), `partition_query` routes the join across both legs, and the generated R2RML returns all 46 rows live. **r2g 0.2.0 gotcha:** `singularize()` is case-sensitive, so uppercase `USAGE_METRICS` → plural `UsageMetrics`; fixed by setting `target_collection: usage_metrics` (lowercase) in the mapping so the class comes out singular `UsageMetric` while `source_table` keeps the physical uppercase name (worth an upstream r2g fix).
+
+_Original spec:_
 Snowflake schema → `schema.json` (r2g Phase-6 connector / catalog-source path;
 fallback: RSA's Snowflake introspection) → `generate-config` →
 `export-csi --source-type snowflake --source-ref telemetry` →
@@ -168,7 +182,7 @@ concept claimed by two sources (P3's multi-owner routing is out of scope).
 **Accept:** `validate_csi` green (CC-12 naming included); no concept overlap
 between the two relational CSIs.
 
-### WP-S4 — Second Ontop endpoint *(½ day, dep: S3)*
+### WP-S4 — ~~Second Ontop endpoint~~ → SUPERSEDED by the native `SnowflakeExecutor` (Option B, landed 2026-07-22) *(½ day, dep: S3)*
 `deploy/snowflake/docker-compose.yml`: one Ontop 5.5.0 container (no DB
 container — the database is the cloud service), `snowflake-jdbc` jar
 auto-fetched into `jdbc/` (Makefile pattern), `input/ontop.properties`
@@ -177,7 +191,7 @@ warehouse/db/schema + `JDBC_QUERY_RESULT_FORMAT=JSON` for the Java-17/Arrow
 quirk; credentials never committed).
 **Accept:** `curl :8091/sparql` answers `?m a c:UsageMetric` with 46 rows.
 
-### WP-S5 — Engine: per-source endpoints *(½ day, dep: none — parallel)*
+### WP-S5 — ~~Engine: per-source endpoints~~ → SUPERSEDED (Option B): `from_env` already dispatches per `ref.kind`; the native leg needs no extra endpoint env *(dep: none)*
 `FederationService.from_env` currently binds every non-arango source to the
 single `ONTOP_SPARQL_ENDPOINT`. Generalize: `CDF_SPARQL_ENDPOINT_<KIND>`
 (e.g. `_POSTGRESQL`, `_SNOWFLAKE`), keeping `ONTOP_SPARQL_ENDPOINT` as the
