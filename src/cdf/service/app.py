@@ -90,6 +90,9 @@ class FederationService:
           ``deploy/csi``). Every document becomes a catalog entry.
         - Arango leg (kind ``arango``): ``ARANGO_URL`` (+ ``ARANGO_DB``,
           ``ARANGO_USER``, ``ARANGO_PASSWORD``).
+        - ClickHouse leg (kind ``clickhouse``): ``CLICKHOUSE_DSN`` + the
+          r2g-emitted R2RML at ``CDF_R2RML_DIR/<source_id>.ttl`` (default
+          ``deploy/r2rml``).
         - Relational leg (any other kind): ``ONTOP_SPARQL_ENDPOINT``.
         - ``CDF_PREPARED_QUESTIONS`` — JSON file of ``{question: sparql}``.
         """
@@ -117,6 +120,20 @@ class FederationService:
                 executors[ref.source_id] = ArangoExecutor(
                     csi=doc, db=db, source_objects=(ref.ref,)
                 )
+            elif ref.kind == "clickhouse" and env.get("CLICKHOUSE_DSN"):
+                # Native ClickHouse leg (Ontop has no dialect): the executor
+                # compiles the sub-query + the r2g-emitted R2RML for this source
+                # (CDF_R2RML_DIR/<source_id>.ttl) straight to ClickHouse SQL.
+                from cdf.adapters import ClickHouseExecutor
+
+                r2rml_dir = Path(env.get("CDF_R2RML_DIR", "deploy/r2rml"))
+                r2rml_path = r2rml_dir / f"{ref.source_id.replace(':', '_')}.ttl"
+                if r2rml_path.is_file():
+                    executors[ref.source_id] = ClickHouseExecutor(
+                        r2rml=r2rml_path.read_text(),
+                        dsn=env["CLICKHOUSE_DSN"],
+                        source_objects=(ref.ref,),
+                    )
             elif ref.kind != "arango" and env.get("ONTOP_SPARQL_ENDPOINT"):
                 from cdf.adapters import OntopExecutor
 
