@@ -1,0 +1,74 @@
+{
+  "csiVersion": "1",
+  "conceptualModel": {
+    "entities": [
+      {
+        "name": "QueryEvent",
+        "labels": [
+          "QueryEvent"
+        ],
+        "properties": [
+          {
+            "name": "eventId"
+          },
+          {
+            "name": "accountId"
+          },
+          {
+            "name": "eventDate"
+          },
+          {
+            "name": "feature"
+          },
+          {
+            "name": "queryCount"
+          },
+          {
+            "name": "avgLatencyMs"
+          }
+        ]
+      }
+    ],
+    "relationships": []
+  },
+  "arangoPhysicalMapping": {
+    "entities": {
+      "QueryEvent": {
+        "style": "COLLECTION",
+        "collectionName": "query_events",
+        "properties": {
+          "eventId": {
+            "field": "event_id"
+          },
+          "accountId": {
+            "field": "account_id"
+          },
+          "eventDate": {
+            "field": "event_date"
+          },
+          "feature": {
+            "field": "feature"
+          },
+          "queryCount": {
+            "field": "query_count"
+          },
+          "avgLatencyMs": {
+            "field": "avg_latency_ms"
+          }
+        }
+      }
+    },
+    "relationships": {}
+  },
+  "provenance": {
+    "producer": "r2g",
+    "producerVersion": "0.2.0",
+    "direction": "forward",
+    "source": {
+      "kind": "clickhouse",
+      "ref": "analytics",
+      "fingerprint": null
+    },
+    "generatedAt": null
+  }
+}
