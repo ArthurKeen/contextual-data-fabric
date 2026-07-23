@@ -1,6 +1,6 @@
 {
   "name": "g5 three-source — Account (Postgres) ⋈ UsageMetric (Snowflake) ⋈ Document (ArangoDB) on accountId",
-  "question": "at each account's peak usage quarter, how is volume trending and what do the documents say?",
+  "question": "at each account's peak usage quarter, how is volume trending, and what do the signal documents say?",
   "expect": {
     "status": "grounded",
     "reconciliation": true,
