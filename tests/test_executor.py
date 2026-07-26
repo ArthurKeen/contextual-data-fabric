@@ -186,3 +186,116 @@ def test_single_source_passthrough():
     )
     assert result.partial is False
     assert result.bindings == ({"o": "o1", "t": 100}, {"o": "o2", "t": 50})
+
+
+# -- stage concurrency (parallel legs within a stage) -------------------------
+
+
+def test_relational_legs_run_concurrently():
+    """Two relational legs must overlap in time: each waits on a shared barrier
+    that only releases when BOTH legs are inside execute() simultaneously. If
+    the stage ran sequentially, the barrier would time out, the legs would be
+    declared failed, and the assertions below would fail."""
+    import threading
+
+    barrier = threading.Barrier(2)
+
+    class BarrierExecutor:
+        def __init__(self, rows):
+            self._rows = tuple(rows)
+
+        def execute(self, subquery):
+            barrier.wait(timeout=3.0)  # raises BrokenBarrierError if sequential
+            return SourceResult(rows=self._rows)
+
+    cat = SourceCatalog.from_csi_documents(
+        [
+            _csi("postgresql", "crm", [("Account", ["accountId", "accountName"])]),
+            _csi("clickhouse", "analytics", [("UsageMetric", ["accountId", "queryVolumeM"])]),
+        ]
+    )
+    plan = partition_query(
+        PREFIX + "SELECT ?name ?qv WHERE { "
+        "?a a c:Account ; c:accountId ?k ; c:accountName ?name . "
+        "?u a c:UsageMetric ; c:accountId ?k ; c:queryVolumeM ?qv }",
+        cat,
+    )
+    result = execute_plan(
+        plan,
+        {
+            "postgresql:crm": BarrierExecutor([{"k": "A1", "name": "Acme"}]),
+            "clickhouse:analytics": BarrierExecutor([{"k": "A1", "qv": 12.5}]),
+        },
+    )
+    assert result.partial is False
+    assert result.bindings == ({"name": "Acme", "qv": 12.5},)
+    # Retrieval path stays in deterministic plan order despite concurrency.
+    assert [s.status for s in result.retrieval_path] == ["ok", "ok"]
+
+
+def test_graph_stage_is_seeded_with_the_joined_relational_keys():
+    """The arango leg's VALUES seed must come from the JOIN of the relational
+    stage — a key present in only one relational leg must not be pushed down."""
+
+    class Recorder:
+        def __init__(self, rows):
+            self._rows = tuple(rows)
+            self.seen_sparql = None
+
+        def execute(self, subquery):
+            self.seen_sparql = subquery.sparql
+            return SourceResult(rows=self._rows)
+
+    cat = SourceCatalog.from_csi_documents(
+        [
+            _csi("postgresql", "crm", [("Account", ["accountId", "accountName"])]),
+            _csi("clickhouse", "analytics", [("UsageMetric", ["accountId", "queryVolumeM"])]),
+            _csi("arango", "cmf", [("Document", ["accountId", "source"])]),
+        ]
+    )
+    plan = partition_query(
+        PREFIX + "SELECT ?name ?qv ?src WHERE { "
+        "?a a c:Account ; c:accountId ?k ; c:accountName ?name . "
+        "?u a c:UsageMetric ; c:accountId ?k ; c:queryVolumeM ?qv . "
+        "?d a c:Document ; c:accountId ?k ; c:source ?src }",
+        cat,
+    )
+    ar = Recorder([{"k": "A1", "src": "slack"}])
+    result = execute_plan(
+        plan,
+        {
+            # pg has A1+A2; clickhouse has only A1 -> the joined key set is {A1}.
+            "postgresql:crm": FakeExecutor(
+                [{"k": "A1", "name": "Acme"}, {"k": "A2", "name": "Globex"}]
+            ),
+            "clickhouse:analytics": FakeExecutor([{"k": "A1", "qv": 12.5}]),
+            "arango:cmf": ar,
+        },
+    )
+    assert result.partial is False
+    assert 'VALUES (?k) { ("A1") }' in ar.seen_sparql  # A2 must NOT be seeded
+    assert result.bindings == ({"name": "Acme", "qv": 12.5, "src": "slack"},)
+
+
+def test_failed_leg_in_parallel_stage_is_declared_not_raised():
+    cat = SourceCatalog.from_csi_documents(
+        [
+            _csi("postgresql", "crm", [("Account", ["accountId", "accountName"])]),
+            _csi("clickhouse", "analytics", [("UsageMetric", ["accountId", "queryVolumeM"])]),
+        ]
+    )
+    plan = partition_query(
+        PREFIX + "SELECT ?name ?qv WHERE { "
+        "?a a c:Account ; c:accountId ?k ; c:accountName ?name . "
+        "?u a c:UsageMetric ; c:accountId ?k ; c:queryVolumeM ?qv }",
+        cat,
+    )
+    result = execute_plan(
+        plan,
+        {
+            "postgresql:crm": FakeExecutor([{"k": "A1", "name": "Acme"}]),
+            "clickhouse:analytics": FakeExecutor([], fail=True),
+        },
+    )
+    assert result.partial is True
+    assert result.failed_sources == ("clickhouse:analytics",)
