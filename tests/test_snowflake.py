@@ -260,3 +260,102 @@ def test_snowflake_leg_in_full_federation_pipeline():
     env = ground(execute_plan(plan, {"snowflake:telemetry": sf, "postgresql:crm": _Pg()}))
     assert env.status == "grounded"
     assert env.bindings == ({"accountName": "Acme", "queryVolumeM": 12.5},)
+
+
+# -- connection pool (the default transport) ----------------------------------
+# The fakes mirror snowflake-connector-python's real surface: connect(**kw) ->
+# connection with is_closed()/close()/cursor(cursor_class); cursor has
+# execute/fetchall/close; errors are the REAL classes from
+# snowflake.connector.errors (mock-fidelity: wrong-shape mocks prove nothing).
+
+
+class _FakeCursor:
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, sql):
+        self._conn.executed.append(sql)
+        if self._conn.fail_with is not None:
+            exc = self._conn.fail_with
+            self._conn.fail_with = None  # fail once, then heal
+            raise exc
+
+    def fetchall(self):
+        return [{"aid": "ACME"}]
+
+    def close(self):
+        pass
+
+
+class _FakeConnection:
+    def __init__(self, fail_with=None):
+        self.executed = []
+        self.closed = False
+        self.fail_with = fail_with
+
+    def is_closed(self):
+        return self.closed
+
+    def close(self):
+        self.closed = True
+
+    def cursor(self, _cursor_class):
+        return _FakeCursor(self)
+
+
+def _pooled_transport(monkeypatch, connections):
+    """Build the real pooled transport with connect() monkeypatched to hand out
+    *connections* in order (mirroring snowflake.connector.connect's signature)."""
+    import snowflake.connector
+
+    from cdf.adapters.snowflake import _snowflake_transport
+
+    it = iter(connections)
+    calls = {"n": 0}
+
+    def fake_connect(**_kwargs):
+        calls["n"] += 1
+        return next(it)
+
+    monkeypatch.setattr(snowflake.connector, "connect", fake_connect)
+    transport = _snowflake_transport({"account": "a", "user": "u", "password": "p"})
+    return transport, calls
+
+
+def test_pool_reuses_one_connection_across_queries(monkeypatch):
+    conn = _FakeConnection()
+    transport, calls = _pooled_transport(monkeypatch, [conn])
+    assert transport("SELECT 1") == [{"aid": "ACME"}]
+    assert transport("SELECT 2") == [{"aid": "ACME"}]
+    assert transport("SELECT 3") == [{"aid": "ACME"}]
+    assert calls["n"] == 1  # one TLS+auth session for three queries
+    assert conn.executed == ["SELECT 1", "SELECT 2", "SELECT 3"]
+
+
+def test_stale_session_is_retried_once_on_a_fresh_connection(monkeypatch):
+    import snowflake.connector
+
+    stale = _FakeConnection(
+        fail_with=snowflake.connector.errors.OperationalError(msg="session gone")
+    )
+    fresh = _FakeConnection()
+    transport, calls = _pooled_transport(monkeypatch, [stale, fresh])
+    assert transport("SELECT 1") == [{"aid": "ACME"}]  # retried transparently
+    assert calls["n"] == 2
+    assert stale.closed  # broken session discarded, not pooled
+    assert fresh.executed == ["SELECT 1"]
+
+
+def test_programming_error_propagates_without_retry(monkeypatch):
+    import snowflake.connector
+
+    conn = _FakeConnection(
+        fail_with=snowflake.connector.errors.ProgrammingError(msg="bad sql")
+    )
+    transport, calls = _pooled_transport(monkeypatch, [conn])
+    with pytest.raises(snowflake.connector.errors.ProgrammingError):
+        transport("SELECT nope")
+    assert calls["n"] == 1  # a bad query is never re-executed
+    # The session is healthy — it goes back to the pool and serves the next query.
+    assert transport("SELECT 1") == [{"aid": "ACME"}]
+    assert calls["n"] == 1

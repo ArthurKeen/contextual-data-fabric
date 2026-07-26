@@ -34,6 +34,7 @@ into a dialect-parameterised module so ``compile_sql`` isn't reimplemented per l
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from collections.abc import Mapping as _Mapping
 from datetime import datetime, timezone
@@ -174,27 +175,77 @@ def compile_sql(sparql: str, mapping: Mapping) -> str:
 # ---------------------------------------------------------------------------
 
 
+#: Upper bound on idle pooled sessions per executor. Concurrency above the cap
+#: still works (extra connections are opened, used, then closed on return);
+#: the cap only bounds what idles between queries.
+_POOL_MAX = 4
+
+
 def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
     """Default transport: run SQL over ``snowflake-connector-python``.
 
-    A fresh connection per sub-query (matching the ClickHouse leg) — fine for the
-    demo's small legs; a pooled connection is a P2 optimisation.
+    Connections are **pooled** (bounded LIFO). The ~1–3s TLS+auth session setup
+    was ~95% of the demo's federated-query latency when paid per query; now a
+    connection is borrowed per call, reused across calls, and returned. A
+    borrowed session that went stale (idle timeout, network drop) is discarded
+    and the query retried **once** on a fresh session. SQL errors
+    (``ProgrammingError``) propagate immediately — the session is healthy, the
+    query is at fault — so a bad query is never re-executed.
     """
     args = {k: v for k, v in connect_args.items() if v}
+    pool: list[Any] = []
+    lock = threading.Lock()
+
+    def _borrow() -> Any:
+        with lock:
+            while pool:
+                conn = pool.pop()
+                if not conn.is_closed():
+                    return conn
+        import snowflake.connector  # lazy: engine driver, not a core dep
+
+        return snowflake.connector.connect(**args)
+
+    def _give_back(conn: Any) -> None:
+        with lock:
+            if len(pool) < _POOL_MAX and not conn.is_closed():
+                pool.append(conn)
+                return
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001 — best-effort close of a surplus session
+            pass
+
+    def _discard(conn: Any) -> None:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001 — best-effort close of a broken session
+            pass
 
     def transport(sql: str) -> Any:
         import snowflake.connector  # lazy: engine driver, not a core dep
 
-        conn = snowflake.connector.connect(**args)
-        try:
-            cur = conn.cursor(snowflake.connector.DictCursor)
+        last: Exception | None = None
+        for _attempt in range(2):
+            conn = _borrow()
             try:
-                cur.execute(sql)
-                return cur.fetchall()  # DictCursor: rows keyed by the quoted alias
-            finally:
-                cur.close()
-        finally:
-            conn.close()
+                cur = conn.cursor(snowflake.connector.DictCursor)
+                try:
+                    cur.execute(sql)
+                    rows = cur.fetchall()  # DictCursor: rows keyed by the quoted alias
+                finally:
+                    cur.close()
+            except snowflake.connector.errors.ProgrammingError:
+                _give_back(conn)  # session healthy — the SQL is at fault
+                raise
+            except snowflake.connector.errors.Error as exc:
+                _discard(conn)  # stale/broken session — retry once on a fresh one
+                last = exc
+                continue
+            _give_back(conn)
+            return rows
+        assert last is not None  # both attempts hit transport-level errors
+        raise last
 
     return transport
 

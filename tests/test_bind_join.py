@@ -1,8 +1,10 @@
 """Bind-join tests (WP-P1.4 / FR-13 / CC-11).
 
-Legs run sequentially; a leg sharing a join variable with already-executed legs
-receives the accumulated distinct key rows as a trailing ``VALUES`` clause —
-visible in the retrieval path (the seeded SPARQL is the cited SPARQL).
+Legs run in stages (relational, then graph); a stage-two leg sharing a join
+variable with the stage-one join receives the accumulated distinct key rows as
+a trailing ``VALUES`` clause — visible in the retrieval path (the seeded SPARQL
+is the cited SPARQL). Concurrency within a stage is covered in
+``test_executor.py``.
 """
 
 from __future__ import annotations

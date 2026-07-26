@@ -24,6 +24,7 @@ Design choices tied to the M5 spec:
 from __future__ import annotations
 
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
@@ -164,20 +165,33 @@ def execute_plan(
     executors: Mapping[str, SourceExecutor],
     *,
     seed_cap: int = SEED_CAP,
+    max_workers: int = 8,
 ) -> FederatedResult:
     """Execute a partition plan and reassemble one federated result.
 
-    Legs run **sequentially in plan order**, and each leg that shares a join
-    variable with the already-executed legs is **bind-joined**: the accumulated
-    distinct join-key rows are pushed down as a trailing ``VALUES`` clause
-    (FR-13 — the locked document-level ``account_id`` join rides this), capped
-    at ``seed_cap`` keys (CC-11).
+    Legs run in **two stages** (the locked join design, FR-13): first the
+    relational legs — they carry the selective filters and the small key set —
+    then the graph (arango) leg(s), **bind-joined**: the distinct join-key rows
+    accumulated from the first stage's join are pushed down as a trailing
+    ``VALUES`` clause, capped at ``seed_cap`` keys (CC-11).
+
+    Within a stage, independent legs run **concurrently** on a thread pool —
+    legs are I/O-bound network calls, so the GIL is released and threads
+    genuinely overlap; wall clock per stage ≈ the slowest leg, not the sum.
+    Retrieval-path order, join semantics, and failure semantics are identical
+    to the historical sequential loop: steps are recorded in plan order, a
+    failed leg is declared (never raised), and the graph stage sees exactly the
+    joined relational keys. One deliberate change: a relational leg no longer
+    receives seeds from an *earlier relational leg* (an incidental coupling of
+    the sequential loop); the in-engine join guarantees the same bindings.
+    Statistics-driven staging (M4 FR-8) replaces this heuristic in M12.
 
     Args:
         plan: the :class:`PartitionPlan` from :func:`cdf.query.partition_query`.
         executors: source_id → :class:`SourceExecutor`. A source with no
             executor is treated as a failed (declared) leg.
         seed_cap: maximum distinct key rows to push down per leg.
+        max_workers: upper bound on concurrent legs within a stage.
 
     Returns:
         A :class:`FederatedResult`. When every leg succeeds and the plan is
@@ -190,68 +204,90 @@ def execute_plan(
     join_vars = {_bare(v) for v in plan.join_keys}
     accumulated: list[Binding] = []
 
-    # Leg order (P1 heuristic, per the locked join design): relational legs
-    # first — they carry the selective filters and the small key set — so the
-    # graph leg runs *seeded*. Statistics-driven ordering (row counts /
-    # selectivity from the CSI bundle, M4 FR-8) replaces this in P2.
+    # Stage split (P1 heuristic, per the locked join design): relational legs
+    # first, graph legs seeded second.
     ordered = sorted(plan.sub_queries, key=lambda s: s.source.kind == "arango")
+    stages: list[list[SubQuery]] = [
+        [sq for sq in ordered if sq.source.kind != "arango"],
+        [sq for sq in ordered if sq.source.kind == "arango"],
+    ]
 
-    for sq in ordered:
-        # Bind-join: seed this leg with the join-key rows already in hand.
-        shared = sorted(join_vars & {_bare(v) for v in sq.variables})
-        seeded_vars: tuple[str, ...] = ()
-        if shared and accumulated:
-            seed_rows = _distinct_rows(accumulated, shared)
-            if seed_rows and len(seed_rows) <= seed_cap:
-                sq = replace(sq, sparql=_with_values(sq.sparql, shared, seed_rows))
-                seeded_vars = tuple(shared)
-
+    def _run_leg(
+        prepared: tuple[SubQuery, tuple[str, ...]],
+    ) -> tuple[SubQuery, RetrievalStep, SourceResult | None]:
+        sq, seeded_vars = prepared
         executor = executors.get(sq.source.source_id)
         if executor is None:
-            steps.append(
-                RetrievalStep(
-                    source_id=sq.source.source_id,
-                    kind=sq.source.kind,
-                    sparql=sq.sparql,
-                    status="failed",
-                    error="no executor registered for source",
-                )
-            )
-            failed.append(sq.source.source_id)
-            continue
-        try:
-            result = executor.execute(sq)
-        except Exception as exc:  # noqa: BLE001 — a failed leg must be declared, not raised
-            steps.append(
-                RetrievalStep(
-                    source_id=sq.source.source_id,
-                    kind=sq.source.kind,
-                    sparql=sq.sparql,
-                    status="failed",
-                    error=f"{type(exc).__name__}: {exc}",
-                )
-            )
-            failed.append(sq.source.source_id)
-            continue
-        steps.append(
-            RetrievalStep(
+            step = RetrievalStep(
                 source_id=sq.source.source_id,
                 kind=sq.source.kind,
                 sparql=sq.sparql,
-                status="ok",
-                row_count=len(result.rows),
-                native_query=result.native_query,
-                as_of=result.as_of,
-                source_objects=result.source_objects,
-                seeded_vars=seeded_vars,
+                status="failed",
+                error="no executor registered for source",
             )
+            return sq, step, None
+        try:
+            result = executor.execute(sq)
+        except Exception as exc:  # noqa: BLE001 — a failed leg must be declared, not raised
+            step = RetrievalStep(
+                source_id=sq.source.source_id,
+                kind=sq.source.kind,
+                sparql=sq.sparql,
+                status="failed",
+                error=f"{type(exc).__name__}: {exc}",
+            )
+            return sq, step, None
+        step = RetrievalStep(
+            source_id=sq.source.source_id,
+            kind=sq.source.kind,
+            sparql=sq.sparql,
+            status="ok",
+            row_count=len(result.rows),
+            native_query=result.native_query,
+            as_of=result.as_of,
+            source_objects=result.source_objects,
+            seeded_vars=seeded_vars,
         )
-        successful.append((sq, result))
-        accumulated = (
-            [dict(r) for r in result.rows]
-            if not accumulated
-            else _inner_join(accumulated, [dict(r) for r in result.rows])
-        )
+        return sq, step, result
+
+    for stage in stages:
+        if not stage:
+            continue
+        # Bind-join: seed every leg in this stage with the join-key rows
+        # already in hand from prior stages.
+        prepared_legs: list[tuple[SubQuery, tuple[str, ...]]] = []
+        for sq in stage:
+            shared = sorted(join_vars & {_bare(v) for v in sq.variables})
+            seeded_vars: tuple[str, ...] = ()
+            if shared and accumulated:
+                seed_rows = _distinct_rows(accumulated, shared)
+                if seed_rows and len(seed_rows) <= seed_cap:
+                    sq = replace(sq, sparql=_with_values(sq.sparql, shared, seed_rows))
+                    seeded_vars = tuple(shared)
+            prepared_legs.append((sq, seeded_vars))
+
+        if len(prepared_legs) == 1:
+            outcomes = [_run_leg(prepared_legs[0])]
+        else:
+            with ThreadPoolExecutor(
+                max_workers=min(len(prepared_legs), max_workers)
+            ) as pool:
+                # pool.map preserves input order, so the retrieval path and the
+                # running join below stay deterministic regardless of which leg
+                # finishes first.
+                outcomes = list(pool.map(_run_leg, prepared_legs))
+
+        for sq, step, result in outcomes:
+            steps.append(step)
+            if result is None:
+                failed.append(sq.source.source_id)
+                continue
+            successful.append((sq, result))
+            accumulated = (
+                [dict(r) for r in result.rows]
+                if not accumulated
+                else _inner_join(accumulated, [dict(r) for r in result.rows])
+            )
 
     # The accumulated running join *is* the joined result.
     joined: list[Binding] = accumulated
