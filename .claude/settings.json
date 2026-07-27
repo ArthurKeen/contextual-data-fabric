@@ -25,7 +25,36 @@
       "Bash(curl -s http://127.0.0.1:8600/federate -H 'Content-Type: application/json' -d '{\"question\": \"which accounts have open support tickets, and what are they about?\"}')",
       "Bash(git -C /Users/arthurkeen/code/arango-query-core log --oneline -15)",
       "Bash(git -C /Users/arthurkeen/code/arango-query-core branch -a)",
-      "Bash(git -C /Users/arthurkeen/code/arango-query-core status -s)"
+      "Bash(git -C /Users/arthurkeen/code/arango-query-core status -s)",
+      "Bash(.venv/bin/python /private/tmp/claude-501/-Users-arthurkeen-code-contextual-data-fabric/7a5bc4bc-b045-4dac-8712-4da32577473c/scratchpad/trace_accountid.py)",
+      "Bash(chmod +x /Users/arthurkeen/code/bin/arango-mirror)",
+      "Bash(/Users/arthurkeen/code/bin/arango-mirror status *)",
+      "Bash(/Users/arthurkeen/code/bin/arango-mirror setup *)",
+      "Bash(printf '\\\\n# arango-mirror dual-push tooling\\\\nexport PATH=\"$HOME/code/bin:$PATH\"\\\\n')",
+      "Bash(PATH=/Users/arthurkeen/code/bin:__TRACKED_VAR__ arango-mirror status)",
+      "Bash(grep -nE \"^#{2,4} 7\\\\.|Snowflake|Cortex\" docs/contextual-data-fabric-prd.md)",
+      "Bash(git -C /Users/arthurkeen/code/contextual-data-fabric log --oneline -15 --since=\"2026-07-18\")",
+      "Bash(.venv/bin/python -m pytest tests/test_snowflake.py tests/test_clickhouse.py -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_snowflake.py -q)",
+      "Bash(.venv/bin/python -c \"import snowflake.connector; print\\('connector present:', snowflake.connector.__version__\\)\")",
+      "Bash(.venv/bin/python -m pip install -q snowflake-connector-python)",
+      "Bash(.venv/bin/python -c \"import snowflake.connector; print\\('installed:', snowflake.connector.__version__\\)\")",
+      "Bash(.venv/bin/python /private/tmp/claude-501/-Users-arthurkeen-code-contextual-data-fabric/7a5bc4bc-b045-4dac-8712-4da32577473c/scratchpad/sf_check.py)",
+      "Bash(grep -viE \"SnowflakeConnection|snowflake.connector.cursor|^$\")",
+      "Bash(.venv/bin/python /private/tmp/claude-501/-Users-arthurkeen-code-contextual-data-fabric/7a5bc4bc-b045-4dac-8712-4da32577473c/scratchpad/sf_setup.py)",
+      "Bash(grep -viE \"SnowflakeConnection|snowflake.connector|^\\\\s*$\")",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -c \"import r2g; print\\('r2g importable in CDF venv:', r2g.__file__\\)\")",
+      "Bash(.venv/bin/python -c \"import json;d=json.load\\(open\\('deploy/mappings/schema.json'\\)\\);print\\('type:',type\\(d\\).__name__\\);print\\('tables:', list\\(d.get\\('tables',{}\\).keys\\(\\)\\) if isinstance\\(d,dict\\) else 'n/a'\\)\")",
+      "Bash(curl -sf http://127.0.0.1:8099/health)",
+      "Edit(/.claude/skills/add-source-instance/**)",
+      "Edit(/.claude/skills/add-source-kind/**)",
+      "Edit(/.claude/skills/pre-demo-gate/**)",
+      "Edit(/.claude/skills/integrate-owned-lib/**)",
+      "Bash(set -e)"
+    ],
+    "additionalDirectories": [
+      "/Users/arthurkeen/code/bin"
     ]
   }
 }
