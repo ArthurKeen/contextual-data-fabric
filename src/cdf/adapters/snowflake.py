@@ -180,6 +180,23 @@ def compile_sql(sparql: str, mapping: Mapping) -> str:
 #: the cap only bounds what idles between queries.
 _POOL_MAX = 4
 
+#: Snowflake error numbers that mean the *session/auth* is dead — not the SQL.
+#: 390114 ("Authentication token has expired. The user must authenticate again.")
+#: is the one pooling exposes: a session idling in the pool past the master-token
+#: TTL (~4h default) can no longer renew, so its next use fails. A freshly
+#: authenticated connection (the default transport reconnects with the stored
+#: password) recovers cleanly, so these are retriable, not query faults.
+_SESSION_AUTH_ERRNOS = frozenset({390114})
+
+
+def _is_session_auth_error(exc: Any) -> bool:
+    """True if a Snowflake ``ProgrammingError`` reports a dead session (expired or
+    invalid auth token) rather than a bad query. Snowflake tags these with a
+    connection-class SQLSTATE (``08xxx``, e.g. ``08001``), distinct from query
+    faults, which carry a ``42xxx`` (syntax/access) SQLSTATE."""
+    sqlstate = getattr(exc, "sqlstate", None) or ""
+    return sqlstate.startswith("08") or getattr(exc, "errno", None) in _SESSION_AUTH_ERRNOS
+
 
 def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
     """Default transport: run SQL over ``snowflake-connector-python``.
@@ -188,9 +205,16 @@ def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
     was ~95% of the demo's federated-query latency when paid per query; now a
     connection is borrowed per call, reused across calls, and returned. A
     borrowed session that went stale (idle timeout, network drop) is discarded
-    and the query retried **once** on a fresh session. SQL errors
-    (``ProgrammingError``) propagate immediately — the session is healthy, the
-    query is at fault — so a bad query is never re-executed.
+    and the query retried **once** on a fresh session.
+
+    An expired/invalid auth token surfaces as a ``ProgrammingError`` (SQLSTATE
+    ``08xxx``, e.g. 390114) but is a dead *session*, not a bad query — pooling is
+    exactly what exposes it, a session idling past the master-token TTL. Such a
+    connection is discarded, the whole idle pool drained (sibling sessions share
+    the expiry), and the query retried once on a freshly authenticated session.
+    Genuine SQL errors (``42xxx`` — syntax/access) still propagate immediately:
+    the session is healthy, the query is at fault, so a bad query is never
+    re-executed.
     """
     args = {k: v for k, v in connect_args.items() if v}
     pool: list[Any] = []
@@ -222,6 +246,16 @@ def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
         except Exception:  # noqa: BLE001 — best-effort close of a broken session
             pass
 
+    def _drain() -> None:
+        """Close every idle pooled session. An auth-token expiry hits all sessions
+        opened in the same window, so one expiry poisons the whole idle pool — a
+        single re-auth would otherwise just borrow the next dead session."""
+        with lock:
+            idle = pool[:]
+            pool.clear()
+        for conn in idle:
+            _discard(conn)
+
     def transport(sql: str) -> Any:
         import snowflake.connector  # lazy: engine driver, not a core dep
 
@@ -235,7 +269,14 @@ def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
                     rows = cur.fetchall()  # DictCursor: rows keyed by the quoted alias
                 finally:
                     cur.close()
-            except snowflake.connector.errors.ProgrammingError:
+            except snowflake.connector.errors.ProgrammingError as exc:
+                if _is_session_auth_error(exc):
+                    # Dead session (e.g. expired token) — not the SQL. Drop it,
+                    # flush the idle pool, and retry once on a fresh auth session.
+                    _discard(conn)
+                    _drain()
+                    last = exc
+                    continue
                 _give_back(conn)  # session healthy — the SQL is at fault
                 raise
             except snowflake.connector.errors.Error as exc:
@@ -244,7 +285,7 @@ def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
                 continue
             _give_back(conn)
             return rows
-        assert last is not None  # both attempts hit transport-level errors
+        assert last is not None  # both attempts hit session-level errors
         raise last
 
     return transport

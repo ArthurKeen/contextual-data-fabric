@@ -359,3 +359,87 @@ def test_programming_error_propagates_without_retry(monkeypatch):
     # The session is healthy — it goes back to the pool and serves the next query.
     assert transport("SELECT 1") == [{"aid": "ACME"}]
     assert calls["n"] == 1
+
+
+def test_expired_auth_token_is_retried_on_a_fresh_session(monkeypatch):
+    """A pooled session whose auth token expired (390114 / SQLSTATE 08001) is a
+    dead *session*, not a bad query: discard it and retry once on a freshly
+    authenticated connection. Regression — this surfaced as ``snowflake:telemetry
+    (failed) — Authentication token has expired`` refusing the 3-way demo query,
+    because the poisoned session was classed as a SQL fault and re-pooled."""
+    import snowflake.connector
+
+    expired = snowflake.connector.errors.ProgrammingError(
+        msg="Authentication token has expired.  The user must authenticate again.",
+        errno=390114,
+        sqlstate="08001",
+    )
+    stale = _FakeConnection(fail_with=expired)
+    fresh = _FakeConnection()
+    transport, calls = _pooled_transport(monkeypatch, [stale, fresh])
+
+    assert transport("SELECT 1") == [{"aid": "ACME"}]  # recovered, not refused
+    assert calls["n"] == 2  # reconnected once on a fresh, re-authenticated session
+    assert stale.closed  # poisoned session discarded, never returned to the pool
+    assert fresh.executed == ["SELECT 1"]
+
+
+def test_sql_fault_with_sqlstate_still_propagates_without_retry(monkeypatch):
+    """A genuine SQL fault (42-class SQLSTATE) still propagates immediately, the
+    session kept — the auth-retry path must key on the 08 connection-class only
+    and never swallow real query errors."""
+    import snowflake.connector
+
+    bad_sql = snowflake.connector.errors.ProgrammingError(
+        msg="SQL compilation error", errno=1003, sqlstate="42000"
+    )
+    conn = _FakeConnection(fail_with=bad_sql)
+    transport, calls = _pooled_transport(monkeypatch, [conn])
+
+    with pytest.raises(snowflake.connector.errors.ProgrammingError):
+        transport("SELECT nope")
+    assert calls["n"] == 1  # not retried
+    assert not conn.closed  # healthy session kept
+    assert transport("SELECT 1") == [{"aid": "ACME"}]  # and it serves the next query
+    assert calls["n"] == 1
+
+
+def test_expired_token_drains_all_idle_pooled_sessions(monkeypatch):
+    """An expired token poisons every session opened in the same window, so the
+    whole idle pool is drained before the retry — otherwise the retry would just
+    borrow the next dead session and the query would still fail."""
+    import threading
+
+    import snowflake.connector
+
+    barrier = threading.Barrier(2)
+    warming = {"on": True}
+
+    class _SlowConn(_FakeConnection):
+        def cursor(self, cursor_class):
+            if warming["on"]:
+                barrier.wait()  # hold both borrows open so both land in the pool
+            return _FakeCursor(self)
+
+    a, b = _SlowConn(), _SlowConn()
+    fresh = _FakeConnection()
+    transport, calls = _pooled_transport(monkeypatch, [a, b, fresh])
+
+    # Warm two idle sessions into the pool via two concurrent queries.
+    threads = [threading.Thread(target=transport, args=("SELECT 1",)) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert calls["n"] == 2  # two sessions opened and returned to the pool
+    warming["on"] = False
+
+    # Both pooled tokens expire together; the next query discovers it on one.
+    expired = snowflake.connector.errors.ProgrammingError(
+        msg="Authentication token has expired.", errno=390114, sqlstate="08001"
+    )
+    a.fail_with = b.fail_with = expired
+
+    assert transport("SELECT 2") == [{"aid": "ACME"}]  # recovers on a fresh session
+    assert a.closed and b.closed  # entire idle pool flushed, no dead session re-served
+    assert calls["n"] == 3  # exactly one fresh reconnect
