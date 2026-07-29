@@ -27,7 +27,8 @@ This skill provides a repeatable, idempotent workflow for customizing the Arango
    - For the Graph Visualizer "Queries" panel: upsert into `_queries` with `queryText` and link via `_viewpointQueries`.
 5. **Install canvas actions** (target DB for managed/cloud; `_system` for self-hosted):
    - Upsert into `_canvasActions` with `queryText` (never `content`).
-   - Use a stable `_key` derived from `graph_name + action_name`.
+   - **Name each action `[<applicable types>] <base name>`** (the Visualizer shows every action on every node; the prefix tells the analyst what it applies to). Store the list in `applicableTypes` too. See "Naming convention" below.
+   - Use a stable `_key` derived from `graph_name + action_name` (includes the prefix), and **reconcile** on re-run so renamed actions don't orphan.
 6. **Link actions to viewpoint** (target DB):
    - `_viewpointActions` edges: `_viewpoints/{id}` → `_canvasActions/{key}`
    - `_viewpointQueries` edges: `_viewpoints/{id}` → `_queries/{key}`
@@ -288,10 +289,70 @@ action_key = _slugify(f"{graph_name}_{action_name}")
 
 Key fields:
 - **`_key`**: stable, derived from `graph_name + action_name` (never auto-generated)
-- **`name`**: display name in right-click menu
+- **`name`**: display name in right-click menu — **must follow the type-prefix naming convention below**
 - **`queryText`**: the AQL (NOT `content` / `value` — those are for saved queries)
 - **`graphId`**: must match the graph name exactly
 - **`bindVariables`**: `{"nodes": []}` for node-based actions; `{}` for canvas-level actions
+- **`applicableTypes`** (recommended): the list of vertex types the action applies to, stored explicitly so the name can be regenerated and tooling can reason about it (mirrors the name prefix — see below)
+
+### Naming convention — prepend the applicable vertex type(s) ★
+
+**The Visualizer shows every registered canvas action on every node's right-click
+menu — it does NOT filter by node type.** So the action's *name* is the only cue
+an analyst has for which node types the action is meaningful on. The house
+convention is therefore: **prepend a bracketed list of applicable vertex types to
+the action name.**
+
+```
+[<Type1, Type2, …>] <Action base name>
+```
+
+Examples:
+- `[Organization, GoldenEntity] UBO breakdown (owners)`   ← applies to owned entities
+- `[Organization, GoldenEntity, Person] Trace to sanctioned source`
+- `[Person, Organization] Show duplicate candidates`
+
+Build it from an explicit type list so the `_key`, the display `name`, and the
+stored `applicableTypes` field never drift:
+
+```python
+def action_name(types: list[str], base: str) -> str:
+    return f"[{', '.join(types)}] {base}"
+
+name = action_name(types, base)                 # "[Organization, GoldenEntity] UBO breakdown"
+key  = _slugify(f"{graph_name}_{name}")          # stable _key includes the prefix
+doc  = {"_key": key, "graphId": graph_name, "name": name,
+        "applicableTypes": types, "queryText": aql, "bindVariables": {"nodes": []}}
+```
+
+Rules of thumb for the type list:
+- List the vertex type(s) the action's traversal is **rooted on / designed for**
+  (e.g. a `1..5 INBOUND node owns_resolved` UBO action → the *owned* types).
+- Order from most-specific/primary to least; keep it short.
+- **Applies to every node?** Don't enumerate — use the wildcard **`[*]`**
+  (e.g. `[*] Expand relationships`). Every action still carries a bracket prefix,
+  so a *missing* prefix always reads as an omission, never as "applies to all".
+  In code, pass `types=["*"]`; `action_name` renders it as `[*]`.
+- **Renaming implication:** because the prefix is part of `name`, it's part of the
+  `_key`. Changing an action's types/name changes its `_key`, so the old document
+  becomes an orphan. Re-runs must **reconcile** — after upserting the current set,
+  delete `_canvasActions` for the graph whose `_key` isn't in the new set (and
+  their `_viewpointActions` edges). See the reconcile helper below.
+
+```python
+def reconcile_actions(db, graph_name, keep_keys: set[str]) -> None:
+    """Idempotency across renames: drop canvas actions (and their viewpoint
+    edges) for this graph that weren't (re)installed this run."""
+    actions, links = db.collection("_canvasActions"), db.collection("_viewpointActions")
+    for a in list(actions.find({"graphId": graph_name})):
+        if a["_key"] not in keep_keys:
+            for e in links.find({"_to": a["_id"]}):
+                links.delete(e["_key"])
+            actions.delete(a["_key"])
+```
+
+Reference implementation: `project-sentinel/scripts/install_visualizer_assets.py`
+(`action_name`, `upsert_action` returning its key, `reconcile_actions`).
 
 ### Action query patterns
 
