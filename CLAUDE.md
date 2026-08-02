@@ -1,16 +1,1 @@
-# PROJECT: contextual-data-fabric
-
-## Identity
-- PROJECT_ID: contextual-data-fabric
-- PROJECT_TYPE: service
-- PRD_FILE: docs/contextual-data-fabric-prd.md
-- TECH_STACK: Python, FastAPI (POST /federate seam), SPARQL federation over ArangoDB (arango-sparql-py), Postgres (Ontop), and native Snowflake + ClickHouse executors; r2g-emitted CSI/R2RML mappings
-
-## PRD location
-The PRD is at `docs/contextual-data-fabric-prd.md`. It is the source of truth for
-what this system must do; all implementation should be traceable to a requirement
-in it (the code already cites `FR-*` / `NFR` / `M*` markers from this file).
-
-`docs/contextual-data-fabric-product-prd.md` is a later product-framing draft
-(`status: draft`) layered on top and referencing this PRD — it is **not** the
-requirements spec, so do not point `/prd-sync` at it.
+AGENTS.md
