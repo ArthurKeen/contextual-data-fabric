@@ -78,7 +78,7 @@ PAGE = """<!doctype html>
 <style>
   :root {
     --bg:#f6f7f9; --panel:#fff; --ink:#1c2024; --muted:#6b7280; --line:#e5e7eb;
-    --pg:#2563eb; --ar:#059669; --accent:#7c3aed; --code:#f3f4f6; --codeink:#111827;
+    --pg:#2563eb; --ar:#059669; --sf:#0891b2; --ch:#ca8a04; --accent:#7c3aed; --code:#f3f4f6; --codeink:#111827;
     --ok:#059669; --refuse:#dc2626; --partial:#d97706;
   }
   @media (prefers-color-scheme: dark) {
@@ -113,6 +113,8 @@ PAGE = """<!doctype html>
   .src { display:inline-block; padding:1px 8px; border-radius:6px; font-size:11.5px;
     font-weight:700; }
   .src-postgresql { background:color-mix(in srgb,var(--pg) 16%,transparent); color:var(--pg); }
+  .src-snowflake { background:color-mix(in srgb,var(--sf) 16%,transparent); color:var(--sf); }
+  .src-clickhouse { background:color-mix(in srgb,var(--ch) 16%,transparent); color:var(--ch); }
   .src-arango { background:color-mix(in srgb,var(--ar) 16%,transparent); color:var(--ar); }
   h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
     margin:22px 2px 6px; }
@@ -130,8 +132,9 @@ PAGE = """<!doctype html>
 <body><div class="wrap">
   <h1>Contextual Data Fabric — Federated Query</h1>
   <p class="sub">Ask a question in English (or run conceptual SPARQL). It's partitioned by source,
-     run live across <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL) and <b>ArangoDB</b>
-     (via arango-sparql-py, SPARQL&rarr;AQL), joined on a business key, cited — no data moved.
+     run live across <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL), <b>Snowflake</b>
+     (native executor, SPARQL&rarr;SQL) and <b>ArangoDB</b> (via arango-sparql-py, SPARQL&rarr;AQL),
+     joined on the <code>account_id</code> business key, cited — no data moved.
      Served by the engine's <code>POST /federate</code> seam.</p>
 
   <div class="card">

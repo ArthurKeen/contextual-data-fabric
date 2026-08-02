@@ -1,8 +1,10 @@
 # Running the demo
 
 The Contextual Data Fabric demo answers one conceptual question by **federating
-two live databases** — a relational one and a graph one — joining their results
-on a shared business key and citing every fact, **without moving any data**.
+three live sources** — Postgres (CRM), Snowflake (usage telemetry), and ArangoDB
+(documents) — joining their results on a shared business key and citing every
+fact, **without moving any data**. A fourth catalog source, ClickHouse, joins the
+federation when `CLICKHOUSE_DSN` is set.
 
 > **What this proves:** the fabric's architecture, end to end — auto-derived
 > mappings, cross-source query decomposition, a deterministic join, grounded
@@ -31,44 +33,53 @@ running (`make down` stops them, preserving data).
 |---------|--------------|
 | `make install` | Create `.venv`, install the engine + live-leg libraries. Run once. |
 | `make demo` | `up` → `seed` → `gate` → clear port 8099 → serve the browser UI. |
-| `make gate` | Run the four golden contract checks against the live stacks (the mandatory pre-demo check). |
-| `make up` / `make down` | Start / stop the two database stacks (data preserved on `down`). |
-| `make seed` | (Re)load both databases + emit the mappings. |
+| `make gate` | Run the five golden contract checks (g1–g5, incl. the three-source join) against the live stacks (the mandatory pre-demo check). |
+| `make up` / `make down` | Start / stop the local Docker stacks — Postgres+Ontop and ArangoDB (data preserved on `down`). Snowflake is a live cloud source loaded by `make seed`; ClickHouse is an optional stack, wired when `CLICKHOUSE_DSN` is set. |
+| `make seed` | (Re)load the source databases (Postgres, Snowflake, ArangoDB) + emit the mappings. |
 | `make test` | Lint + types + unit suite (what CI runs). |
 
 ## Topology — what runs where
 
-Everything runs on one machine. **Four processes**, plus one build-time step.
-The databases are the systems of record; the fabric holds only the mappings and
-the join — it never copies their data.
+The local stacks run on one machine; Snowflake is a live cloud source.
+**Four local processes** — the demo app (engine **and** UI in one, on :8099),
+Postgres, Ontop, and ArangoDB — plus **one live cloud leg** (Snowflake) and one
+build-time step. A fifth local stack, ClickHouse, joins when `CLICKHOUSE_DSN` is
+set. The databases are the systems of record; the fabric holds only the mappings
+and the join — it never copies their data.
 
 ```mermaid
 flowchart TB
-    subgraph browser["Browser — localhost:8099"]
+    subgraph app["Demo app — localhost:8099 (one process: cdf.service + UI)"]
         UI["Demo UI<br/>question box + example chips"]
-    end
-
-    subgraph engine["Federated query engine (FastAPI :8600) — cdf.service"]
         E["POST /federate<br/>partition → execute → join → ground<br/>(credentials live here — CC-7)"]
+        UI -->|"NL question / SPARQL"| E
     end
 
-    subgraph pg["PostgreSQL :5433 — the RELATIONAL source"]
-        PGT["6 tables (CRM · DocuSign · Snowflake)<br/>accounts, contacts, contracts,<br/>opportunities, nps_surveys, usage_metrics"]
+    subgraph pg["PostgreSQL :5433 — the RELATIONAL source (CRM)"]
+        PGT["5 tables (CRM · DocuSign)<br/>accounts, contacts, contracts,<br/>opportunities, nps_surveys"]
     end
     subgraph ontop["Ontop :8090 — Virtual Knowledge Graph"]
         ONT["SPARQL → SQL over R2RML<br/>(no data copied)"]
+    end
+    subgraph snow["Snowflake — live cloud source (TELEMETRY)"]
+        SNT["USAGE_METRICS (46 rows)<br/>native SnowflakeExecutor, SPARQL→SQL<br/>(ADR-0002 Option B)"]
+    end
+    subgraph ch["ClickHouse — optional stack (when CLICKHOUSE_DSN set)"]
+        CHT["analytics tables<br/>native ClickHouseExecutor, SPARQL→SQL"]
     end
     subgraph adb["ArangoDB :8530 — the GRAPH source"]
         ADBC["documents (80) · chunks (80) · tickets (2)<br/>each stamped with account_id"]
     end
 
-    UI -->|"NL question / SPARQL"| E
     E -->|"relational partition (SPARQL)"| ONT
     ONT -->|"generated SQL"| PGT
+    E -->|"telemetry partition (SPARQL→SQL,<br/>seeded with account_id keys)"| SNT
+    E -.->|"analytics partition (when wired)"| CHT
     E -->|"graph partition (SPARQL→AQL,<br/>seeded with account_id keys)"| ADBC
     E -->|"grounded, cited answer"| UI
 
     RSA["r2g → CSI + R2RML"] -.->|build time| ONT
+    RSA -.->|build time| SNT
     ANA["arango-schema-analyzer → reverse CSI"] -.->|build time| E
 ```
 
@@ -81,9 +92,11 @@ time.
 ## What's in each database
 
 ### PostgreSQL (`crm`) — the structured / relational source
-The synthetic CRM+contracts+telemetry corpus for three accounts (Northwind =
+The synthetic CRM + contracts corpus for three accounts (Northwind =
 healthy expansion, Meridian = hidden risk, Helio = churn). Loaded by
 `deploy/ontop/load_corpus.py` from `customer-context/data_gen/output/structured/`.
+The usage telemetry now lives in the live Snowflake source (below), so it is no
+longer a Postgres table.
 
 | Table | Rows | Source system | Holds |
 |-------|-----:|---------------|-------|
@@ -92,11 +105,26 @@ healthy expansion, Meridian = hidden risk, Helio = churn). Loaded by
 | `opportunities` | 16 | CRM | pipeline stage, amount, renewal date |
 | `nps_surveys` | 35 | CRM | NPS **scores** (the numbers; the verbatims live on the graph side) |
 | `contracts` | 15 | DocuSign | value, term, auto-renew, product scope, days-to-renewal |
-| `usage_metrics` | 46 | Snowflake | query volume, cluster size, edition, feature adoption |
 
 Ontop exposes these as a Virtual Knowledge Graph: it answers SPARQL by
 rewriting to SQL against the live tables through the **r2g-generated R2RML**
 mapping (`deploy/ontop/input/mapping.ttl`) — nothing is copied out of Postgres.
+
+### Snowflake (`TELEMETRY`) — the live cloud telemetry source
+The usage-telemetry half of the corpus, loaded into a live Snowflake trial
+account by `deploy/snowflake/load_corpus.py`. Physical names land uppercase
+(Snowflake's identifier folding); CC-12's naming layer maps them to the
+conceptual vocabulary (`USAGE_METRICS` → `UsageMetric`).
+
+| Table | Rows | Source system | Holds |
+|-------|-----:|---------------|-------|
+| `USAGE_METRICS` | 46 | Snowflake | query volume, cluster size, edition, feature adoption |
+
+The `UsageMetric` concept routes **uniquely** to Snowflake — `usage_metrics` was
+dropped from the Postgres mapping so the planner sees exactly one owner per
+concept. The leg is a **native `SnowflakeExecutor`** (ADR-0002 "Option B"): it
+compiles the SPARQL partition straight to Snowflake SQL over
+`snowflake-connector-python` (no Ontop/JDBC), driven by the r2g-generated R2RML.
 
 ### ArangoDB (`cmf`) — the unstructured / graph source
 The document corpus (Slack, email, docs, Gong transcripts) for the same three
@@ -124,6 +152,12 @@ Shown as clickable chips in the UI (resolved from `deploy/questions.json`):
   — a **cross-graph** question: joins the 3 Postgres accounts to their 80
   ArangoDB documents on `account_id`. This is the federation story — two
   databases, one answer, every row cited with its source URL.
+- **"at each account's peak usage quarter, how is volume trending, and what do
+  the signal documents say?"** — the **three-source flagship** (golden g5):
+  joins `Account` (Postgres) ⋈ `UsageMetric` (Snowflake) ⋈ `Document` (ArangoDB)
+  on `account_id`. One answer reconciled across a relational CRM, a live cloud
+  warehouse, and a document graph — every leg cited with the exact SQL/AQL that
+  ran.
 
 The answer panel shows the status badge (`grounded` / `refused` / `partial`),
 the per-source partition (the actual SQL and AQL that ran, source objects,
@@ -131,10 +165,14 @@ as-of timestamps, row counts), and the joined result.
 
 ## Limitations (what this demo does *not* yet show)
 
-- **Free-form English.** The question box resolves against a fixed registry of
-  questions (the M9 "pre-run" mode). An unlisted question **refuses honestly**
-  rather than guessing. Arbitrary NL → query needs the LLM front-end (WP-P1.5),
-  which is deferred pending an API-key decision.
+- **Free-form English.** The LLM NL front-end **is implemented and wired**
+  (`src/cdf/query/nl.py` + `POST /nl-preview`): `from_env` enables it whenever an
+  API key is present (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `NL2SPARQL_API_KEY`
+  — one is set in `.env`), so `make demo` runs with free-form NL **active**. It is
+  pinned **off** only in the deterministic `make gate` (`CDF_NL_DISABLED`), where
+  every leg must be reproducible. Without a key it falls back to the fixed
+  registry of questions (the M9 "pre-run" mode), where an unlisted question
+  **refuses honestly** rather than guessing.
 - **The Q12 centerpiece** ("every metric green, but the sentiment is red").
   The documents are loaded as citable text, but their *sentiment/entities* are
   not yet extracted — that is `customer-context`'s LLM extraction pipeline
