@@ -2,7 +2,7 @@
 title: "ADR-0002 — Snowflake Cortex (and agentic sources generally) as federation legs"
 adr: 0002
 module: 05-federated-query-engine
-status: proposed
+status: accepted
 date: 2026-07-21
 deciders: ["Arthur Keen", "PJ (Paul Losiewicz)"]
 related:
@@ -12,8 +12,10 @@ related:
 
 # ADR-0002 — Should the fabric use Snowflake Cortex when federating?
 
-**Status:** Proposed (the standing written answer to a question customers ask
-in almost every conversation; documentation-first — no code scheduled).
+**Status:** Accepted (the standing written answer to a question customers ask
+in almost every conversation). The core decision — no Cortex; Snowflake takes
+SQL directly — is implemented as the native `SnowflakeExecutor` (Option B,
+landed 2026-07-22; see Consequences).
 **Trigger:** the Snowflake sprint (PRD §7.7) made the question concrete.
 
 ## Context
@@ -21,8 +23,9 @@ in almost every conversation; documentation-first — no code scheduled).
 **First, the fact that dissolves most of the question: Snowflake is a SQL
 database.** Plain SQL goes in through JDBC/ODBC, the Python connector, or the
 REST SQL API — exactly like Postgres, and that is how the fabric's Snowflake
-leg works (Ontop compiles the SPARQL partition to SQL and sends it over JDBC:
-deterministic, token-free, self-cited). **A query prompt is never required to
+leg works: the native `SnowflakeExecutor` compiles the SPARQL partition to
+Snowflake SQL and sends it over `snowflake-connector-python` —
+deterministic, token-free, self-cited. **A query prompt is never required to
 query Snowflake.**
 
 The prompt only enters with **Cortex Analyst** — an optional AI service
@@ -51,10 +54,11 @@ designed for sources whose SQL door is *closed*, which Snowflake's is not.
 
 ## Decision
 
-**Default: no — the Snowflake leg is Ontop/R2RML (SPARQL→SQL), same as every
-relational source. Cortex is supported *in principle* as an agentic connector
-type with explicitly degraded trust semantics, built only when a customer
-mandates it.**
+**Default: no — the Snowflake leg is the native `SnowflakeExecutor` (SPARQL→SQL,
+compiled from the same r2g R2RML), the same class of deterministic SQL leg as
+every relational source. Cortex is supported *in principle* as an agentic
+connector type with explicitly degraded trust semantics, built only when a
+customer mandates it.**
 
 Four reasons, in the order customers feel them:
 
@@ -117,8 +121,15 @@ one-week package once a real customer environment exists to test against.
 
 ## Consequences
 
-- Sprint 2 (PRD §7.7) is **unaffected**: the Friday Snowflake leg is
-  Ontop/R2RML; Cortex is out of scope.
+- Sprint 2 (PRD §7.7) shipped the Snowflake leg as the native
+  `SnowflakeExecutor` (Option B, landed 2026-07-22); Cortex stayed out of scope.
+- **Mechanism note — Option B superseded Option A.** The leg was first planned as
+  a *second Ontop endpoint* over the `snowflake-jdbc` driver (Option A). A native
+  `SnowflakeExecutor` (`src/cdf/adapters/snowflake.py`) superseded it: it compiles
+  the E1 BGP + the same r2g R2RML straight to Snowflake SQL over
+  `snowflake-connector-python`, wired per `kind` in `FederationService.from_env`,
+  sidestepping the JDBC/Arrow/Java-17 quirk. The core decision here — no Cortex;
+  Snowflake takes SQL directly — is unchanged; only the SQL transport differs.
 - The README's agentic-partition lane and M5's "agent calls" scope line now
   have a governing ADR instead of an implicit design.
 - Revisit trigger: a customer engagement that mandates Cortex/Genie, or the

@@ -4,7 +4,7 @@ ArangoDB as an **ontology-based metadata / agent-brain hub**: auto-derive a use-
 
 Part of **Project Vantage**. Built for and pressure-tested against the Zscaler customer-context engagement.
 
-> **Status:** planning docs, draft v0.3, for team review. This repo currently holds the PRD, North Star, use cases, and per-module / per-repo architecture specs. Code modules land per the phased plan.
+> **Status:** a working **P1 system** alongside the planning docs (draft v0.3, team review). Beyond the PRD, North Star, use cases, and per-module / per-repo architecture specs, the repo now ships a **working federated-query engine** (`cdf.service` · `POST /federate`), **four source adapters** (Ontop/Postgres, native Snowflake, native ClickHouse, arango-sparql-py/ArangoDB), a **live browser demo** (`make demo` — three live sources joined and cited), a **golden gate** (`make gate`), and CI. Later modules still land per the phased plan.
 > **v0.2** reconciled all specs against the actual repos — the structured→ontology gate is resolved (exists); PRD §10 added cross-cutting requirements (evaluation, agent interface/MCP, consistency, partial failure, caching, security/credentials, deployment, pinning, packaging, resource guardrails).
 > **v0.3** absorbs the deep-analysis passes: **ADR-0001** decides the conceptual-query IR (typed graph-pattern → SPARQL; CSI v1 as the mapping hub; Ontop buy-vs-build open as PRD §9.10) — M5 is now mostly **integration of owned components** (`arango-sparql-py`, `arango-cypher-py`, RSA/`arangodb-schema-analyzer`); AOE PRD §6.17–§6.19 definitizes alignment / A-box / competency questions; use cases are formalized from PJ's 12 locked questions; `customer-context` is cloned + verified.
 
@@ -16,7 +16,7 @@ Part of **Project Vantage**. Built for and pressure-tested against the Zscaler c
 - **[Architecture Index](docs/architecture/README.md)** — the "super-module": module map, module→repo dependencies, phase mapping, and the **building-block version pins**.
 - **[ADR-0001 — Conceptual-query language](docs/architecture/module-05-federated-query-engine/adr/ADR-0001-conceptual-query-language.md)** + **[M5 implementation plan](docs/architecture/module-05-federated-query-engine/implementation-plan.md)** — the decided query architecture and the sequenced work packages (incl. the honest 1-week P1 slice).
 - **[Phase-1 deployment topology](docs/architecture/deployment-p1.md)** — what physically runs where for the demo (build-time vs demo-time split).
-- **[Running the demo](deploy/README.md)** — `make install && make demo`, a topology diagram of the two live databases and what each contains, the example questions, and troubleshooting.
+- **[Running the demo](deploy/README.md)** — `make install && make demo`, a topology diagram of the three live sources (Postgres, Snowflake, ArangoDB; ClickHouse is a fourth catalog source) and what each contains, the example questions, and troubleshooting.
 
 ## How it works
 
@@ -58,6 +58,8 @@ flowchart TB
     ASM --> ENV["Grounded envelope (M7):<br/>answer + per-claim citations +<br/>retrieval path (SQL / AQL / NL) + as-of"]
     ENV -->|"cited — or refused if uncitable"| U
 ```
+
+> **Shipped vs. north-star (the `agentic partition` lane).** Today's Snowflake leg takes **SQL directly** — a native `SnowflakeExecutor` (SPARQL→SQL, compiled from the same R2RML), *not* the render-to-NL cortex path — per [ADR-0002](docs/architecture/module-05-federated-query-engine/adr/ADR-0002-snowflake-cortex-agentic-legs.md). The `render → natural language` / `Snowflake / Databricks agentic cortex` lane above is the **general design** for sources that expose *only* an agent (Cortex Analyst, Databricks Genie); it's supported in principle and built on customer demand, and never sits on the deterministic gate path.
 
 ### Build time — derive the source ontologies, align them into one
 

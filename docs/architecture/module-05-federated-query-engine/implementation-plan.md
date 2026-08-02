@@ -159,7 +159,7 @@ WPs → **PJ**; NL-engine reuse → **shared**. **Dep** = hard prerequisite.
 | **G1** | Deterministic planner (mapping-driven; LLM as safety net) | P2 | FR-7 |
 | **G2** | Cost/latency instrumentation per plan | P2 | FR-9 |
 | **G3** | Assembled execution pattern (bounded materialized subgraph) | P2 | FR-8 |
-| **G4** | Snowflake leg (Ontop dialect / r2g P12.7) — **pulled forward: Sprint 2, due 2026-07-24** (P1 close-out plan) | ~~P2~~ Sprint 2 | r2g P12.7 |
+| **G4** | Snowflake leg (~~Ontop dialect~~ → **native `SnowflakeExecutor`, ADR-0002 "Option B"** / r2g P12.7) — **pulled forward: Sprint 2, landed 2026-07-22** (P1 close-out plan). NB: the relational legs are now per-`kind` **native executors** (Snowflake, ClickHouse) alongside Ontop for Postgres, wired in `FederationService.from_env` | ~~P2~~ Sprint 2 | r2g P12.7 |
 | **G5** | Multi-source (≥3) planner + cost-based join optimization (Calcite-style) | P3 | FR-10 |
 | **G6** | RSA → CSI adapter (if RSA output must reach the hub without r2g) | P3 | ADR #3.5 |
 
