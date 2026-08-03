@@ -48,11 +48,19 @@ install:
 	# degrades to prepared-questions-only.
 	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-sparql-py[nl]" 2>/dev/null \
 	  || $(PY) -m pip install "arango-sparql-py[nl] @ git+https://github.com/ArthurKeen/arango-sparql-py"
-	# arango-query-core: install the authoritative sibling AFTER the nl extra to
-	# override arango-sparql-py's stale git pin (acb60ae predates LabelIndex; both
-	# org mirrors' main is ccfe56c). Remove once arango-sparql-py bumps its pin.
-	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-query-core" 2>/dev/null \
-	  || $(PY) -m pip install "arango-query-core @ git+https://github.com/ArthurKeen/arango-query-core@ccfe56cb662bb0069e92290a41e8e0b78de5261a"
+	# query-core pin is checkout-dependent, so key the override off the local
+	# sibling's presence (do NOT force a version on the git-main fallback):
+	#  - Local siblings present (dev): the local arango-sparql-py checkout is the
+	#    grounding-seam branch (fix/unroutable-subject-error) whose nl2sparql
+	#    adapter imports LabelIndex/grounding_index and REQUIRES query-core
+	#    ccfe56c, so install the local arango-query-core AFTER [nl] to override
+	#    the acb60ae the extra pulled.
+	#  - Fresh clone (arango-sparql-py from git main above): main correctly pins
+	#    acb60ae — query-core main (ccfe56c) adds a *required* grounding_index
+	#    seam main doesn't implement, so overriding would BREAK [nl]. Skip it.
+	# Retire this line once the grounding branch merges to main (it carries the
+	# acb60ae -> ccfe56c bump and the seam impl together).
+	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-query-core" 2>/dev/null || true
 	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-schema-analyzer"
 	@echo "OK — now: make demo   (Docker must be running)"
 
