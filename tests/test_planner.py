@@ -150,8 +150,6 @@ def test_projection_is_preserved():
 @pytest.mark.parametrize(
     "pattern",
     [
-        "?u a c:User ; c:name ?n . FILTER(?n = 'x')",
-        "?u a c:User . OPTIONAL { ?u c:name ?n }",
         "{ ?u a c:User } UNION { ?u a c:Order }",
         "?u a c:User BIND('x' AS ?n)",
     ],
@@ -183,3 +181,129 @@ def test_deterministic_sub_query_order():
     ids1 = [sq.source.source_id for sq in partition_query(q, cat).sub_queries]
     ids2 = [sq.source.source_id for sq in partition_query(q, cat).sub_queries]
     assert ids1 == ids2 == sorted(ids1)
+
+
+# -- E1 single-leg FILTER / OPTIONAL pushdown --------------------------------
+
+
+def _account_document_catalog() -> SourceCatalog:
+    return SourceCatalog.from_csi_documents(
+        [
+            _csi("postgresql", "crm", [("Account", ["accountId", "accountName", "region"])]),
+            _csi("arango", "docs", [("Document", ["accountId", "role", "filename", "tag"])]),
+        ]
+    )
+
+
+def test_filter_pushed_to_single_source_leg():
+    cat = SourceCatalog.from_csi_documents(
+        [_csi("postgresql", "shop", [("Order", ["total"])])]
+    )
+    plan = partition_query(
+        PREFIX + "SELECT ?o ?t WHERE { ?o a c:Order ; c:total ?t . FILTER(?t <= 1000) }",
+        cat,
+    )
+    sq = plan.sub_queries[0]
+    assert sq.filters == ("?t <= 1000",)  # numeric literal rendered bare
+    assert "FILTER(?t <= 1000)" in sq.sparql
+
+
+def test_filter_on_join_key_replicated_to_both_legs():
+    cat = SourceCatalog.from_csi_documents(
+        [
+            _csi("postgresql", "a", [("Left", ["k", "lname"])]),
+            _csi("arango", "b", [("Right", ["k", "rname"])]),
+        ]
+    )
+    plan = partition_query(
+        PREFIX
+        + """SELECT ?lname ?rname WHERE {
+             ?l a c:Left ; c:k ?k ; c:lname ?lname .
+             ?r a c:Right ; c:k ?k ; c:rname ?rname .
+             FILTER(?k >= 100)
+           }""",
+        cat,
+    )
+    assert plan.join_keys == ("?k",)
+    subs = _sub_by_kind(plan)
+    # The filter on the join key is replicated into *every* leg that binds it.
+    assert subs["postgresql"].filters == ("?k >= 100",)
+    assert subs["arango"].filters == ("?k >= 100",)
+    assert "FILTER(?k >= 100)" in subs["postgresql"].sparql
+    assert "FILTER(?k >= 100)" in subs["arango"].sparql
+
+
+def test_filter_on_unbound_variable_refuses():
+    cat = SourceCatalog.from_csi_documents(
+        [_csi("postgresql", "shop", [("Order", ["total"])])]
+    )
+    with pytest.raises(UnsupportedQueryError, match="unbound"):
+        partition_query(
+            PREFIX + "SELECT ?o WHERE { ?o a c:Order ; c:total ?t . FILTER(?z > 5) }",
+            cat,
+        )
+
+
+def test_single_source_optional_attached_and_projected():
+    plan = partition_query(
+        PREFIX
+        + """SELECT ?accountName ?filename WHERE {
+             ?a a c:Account ; c:accountName ?accountName ; c:accountId ?k .
+             ?d a c:Document ; c:accountId ?k ; c:role ?r .
+             OPTIONAL { ?d c:filename ?filename }
+           }""",
+        _account_document_catalog(),
+    )
+    subs = _sub_by_kind(plan)
+    arango = subs["arango"]
+    assert len(arango.optional_groups) == 1
+    assert "OPTIONAL {" in arango.sparql
+    # The optional projection var rides the envelope: in variables AND the SELECT.
+    assert "?filename" in arango.variables
+    assert "?filename" in arango.sparql.split("WHERE")[0]
+    # The other leg carries no optional.
+    assert subs["postgresql"].optional_groups == ()
+
+
+def test_cross_source_optional_refuses():
+    with pytest.raises(UnsupportedQueryError, match="cross-source OPTIONAL"):
+        partition_query(
+            PREFIX
+            + """SELECT ?accountName ?role WHERE {
+                 ?a a c:Account ; c:accountId ?k .
+                 ?d a c:Document ; c:accountId ?k .
+                 OPTIONAL { ?a c:accountName ?accountName . ?d c:role ?role }
+               }""",
+            _account_document_catalog(),
+        )
+
+
+def test_optional_variable_bound_in_another_leg_refuses():
+    # ?region is required on the Postgres leg but re-bound inside an OPTIONAL on
+    # the Arango leg — the single-leg pushdown would make a value another leg
+    # needs optional, so it's refused (not well-designed).
+    with pytest.raises(UnsupportedQueryError, match="well-designed"):
+        partition_query(
+            PREFIX
+            + """SELECT ?region WHERE {
+                 ?a a c:Account ; c:accountId ?k ; c:region ?region .
+                 ?d a c:Document ; c:accountId ?k .
+                 OPTIONAL { ?d c:tag ?region }
+               }""",
+            _account_document_catalog(),
+        )
+
+
+def test_plain_bgp_serialization_is_unchanged():
+    # The pushdown is strictly additive: a BGP-only query still serializes with
+    # no FILTER/OPTIONAL and empty pushdown fields (the regression contract).
+    plan = partition_query(
+        PREFIX
+        + "SELECT ?u ?name WHERE { ?o a c:Order ; c:placed_by ?u . ?u a c:User ; c:name ?name }",
+        _two_source_catalog(),
+    )
+    for sq in plan.sub_queries:
+        assert sq.filters == ()
+        assert sq.optional_groups == ()
+        assert "FILTER" not in sq.sparql
+        assert "OPTIONAL" not in sq.sparql

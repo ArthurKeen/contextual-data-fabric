@@ -101,16 +101,22 @@ def _bare(var: str) -> str:
 
 def _inner_join(left: list[Binding], right: list[Binding]) -> list[Binding]:
     """Inner-join two binding lists on their shared variables (SPARQL BGP
-    conjunction semantics). No shared variables → cartesian product."""
+    conjunction semantics). No shared variables → cartesian product.
+
+    Shared variables are read with ``dict.get``: an OPTIONAL leg returns
+    heterogeneous rows (some rows lack the optional column), and while the
+    planner's well-designedness guard keeps optional columns *out* of the shared
+    join keys, the defensive ``.get`` means a missing key degrades to ``None``
+    instead of raising."""
     if not left or not right:
         return []
     shared = [k for k in left[0] if k in right[0]]
     index: dict[tuple, list[Binding]] = {}
     for rb in right:
-        index.setdefault(tuple(rb[k] for k in shared), []).append(rb)
+        index.setdefault(tuple(rb.get(k) for k in shared), []).append(rb)
     out: list[Binding] = []
     for ra in left:
-        for rb in index.get(tuple(ra[k] for k in shared), []):
+        for rb in index.get(tuple(ra.get(k) for k in shared), []):
             out.append({**rb, **ra})
     return out
 

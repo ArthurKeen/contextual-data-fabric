@@ -20,7 +20,9 @@ GOOD = PREFIX + """SELECT ?name ?subject WHERE {
 BAD = PREFIX + "SELECT ?x WHERE { ?x a c:Nonexistent ; c:ghostprop ?y }"
 
 # Uses FILTER -> E1 refuses unsupported constructs.
-FILTERED = PREFIX + "SELECT ?n WHERE { ?a a c:Account ; c:name ?n . FILTER(?n = 'x') }"
+# A still-unsupported construct (UNION) — E1 now pushes down FILTER/OPTIONAL, so
+# those validate; UNION/MINUS/BIND/GRAPH/aggregation still refuse by name.
+UNSUPPORTED = PREFIX + "SELECT ?n WHERE { { ?a a c:Account } UNION { ?a a c:Order } }"
 
 
 class _Resp:
@@ -158,8 +160,8 @@ def test_refuses_when_never_grounded():
 
 
 def test_unsupported_construct_is_rejected():
-    result = nl_to_sparql("q", _catalog(), client=_FakeClient([FILTERED]), max_repairs=1)
-    assert not result.ok  # FILTER never validates -> refused
+    result = nl_to_sparql("q", _catalog(), client=_FakeClient([UNSUPPORTED]), max_repairs=1)
+    assert not result.ok  # UNION never validates -> refused
 
 
 # -- service integration -----------------------------------------------------

@@ -45,9 +45,19 @@ class SubQuery:
     source: SourceRef
     triples: tuple[TriplePattern, ...]
     variables: tuple[str, ...]
-    """All variables appearing in this sub-query (SPARQL ``?name`` spelling)."""
+    """All variables appearing in this sub-query (SPARQL ``?name`` spelling),
+    including OPTIONAL-group variables (they ride the result envelope like any
+    column)."""
     sparql: str
-    """A self-contained SPARQL SELECT for this source (full IRIs, no prefixes)."""
+    """A self-contained SPARQL SELECT for this source (full IRIs, no prefixes) —
+    the authoritative citation, including any pushed-down FILTER/OPTIONAL."""
+    filters: tuple[str, ...] = ()
+    """Single-leg FILTER conjuncts pushed into this leg, each a serialized
+    expression (e.g. ``?score > 50``). Empty for a plain-BGP leg."""
+    optional_groups: tuple[tuple[TriplePattern, ...], ...] = ()
+    """OPTIONAL groups attached to this leg — each a tuple of triples that binds
+    additional (well-designed, single-source) projection variables. Empty for a
+    plain-BGP leg."""
 
 
 @dataclass(frozen=True)
