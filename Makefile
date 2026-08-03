@@ -43,8 +43,16 @@ install:
 	$(PY) -m pip install -q --upgrade pip
 	$(PY) -m pip install -e ".[test,service,dev]" "psycopg[binary]" python-arango snowflake-connector-python
 	# Owned sibling libraries: local checkout if present, else public GitHub.
-	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-sparql-py" 2>/dev/null \
-	  || $(PY) -m pip install "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
+	# The [nl] extra pulls the NL engine (arango-query-core + openai/anthropic) so
+	# the free-form NL front-end is actually wired — without it default_client()
+	# degrades to prepared-questions-only.
+	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-sparql-py[nl]" 2>/dev/null \
+	  || $(PY) -m pip install "arango-sparql-py[nl] @ git+https://github.com/ArthurKeen/arango-sparql-py"
+	# arango-query-core: install the authoritative sibling AFTER the nl extra to
+	# override arango-sparql-py's stale git pin (acb60ae predates LabelIndex; both
+	# org mirrors' main is ccfe56c). Remove once arango-sparql-py bumps its pin.
+	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-query-core" 2>/dev/null \
+	  || $(PY) -m pip install "arango-query-core @ git+https://github.com/ArthurKeen/arango-query-core@ccfe56cb662bb0069e92290a41e8e0b78de5261a"
 	$(PY) -m pip install -e "$(CDF_SIBLINGS)/arango-schema-analyzer"
 	@echo "OK — now: make demo   (Docker must be running)"
 

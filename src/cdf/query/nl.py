@@ -10,8 +10,9 @@ query (e.g. an Account in Postgres joined to a Ticket in Arango) is accepted.
 
 Contract, tuned to the fabric's "refuse over guess" principle:
 
-- The LLM is constrained to the catalog's concept IRIs and to basic graph
-  patterns (E1 refuses FILTER/OPTIONAL/UNION/…).
+- The LLM is constrained to the catalog's concept IRIs and to the graph
+  patterns E1 can partition — basic graph patterns plus single-leg
+  FILTER/OPTIONAL (E1 still refuses UNION/MINUS/BIND/aggregation/…).
 - The output is validated by partitioning it: a query that references unknown
   concepts (``plan.unresolved``) or won't route triggers a **repair round**;
   after ``max_repairs`` it is **refused**, never passed through as a guess.
@@ -22,12 +23,15 @@ validation and repair logic is fully testable without a provider or network.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
 
 from .catalog import SourceCatalog
 from .planner import UnsupportedQueryError, partition_query
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,10 +52,22 @@ def default_client() -> Any | None:
     Returns ``None`` when the engine isn't installed or no API key is configured
     (``NL2SPARQL_API_KEY`` / ``OPENAI_API_KEY`` / ``ANTHROPIC_API_KEY``) — the
     caller then treats NL as unavailable and answers only prepared questions.
+
+    A missing or mismatched NL dependency is **logged**, not silently swallowed.
+    The import is guarded against any ``ImportError`` — a missing module *or* a
+    symbol a stale ``arango-query-core`` pin can't supply (e.g. ``LabelIndex``) —
+    so the service degrades to prepared-questions-only with a visible reason
+    instead of a silent, hard-to-diagnose refusal.
     """
     try:
         from arango_sparql.nl2sparql.client import get_default_client
-    except ModuleNotFoundError:  # pragma: no cover — optional engine dep
+    except ImportError as exc:  # missing engine, or a stale/mismatched pin
+        logger.warning(
+            "NL front-end unavailable (%s); answering prepared questions only. "
+            "Install the NL engine with the nl extra: "
+            "pip install -e 'arango-sparql-py[nl]' (+ a compatible arango-query-core).",
+            exc,
+        )
         return None
     return get_default_client()
 
