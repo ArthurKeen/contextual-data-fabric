@@ -299,3 +299,44 @@ def test_failed_leg_in_parallel_stage_is_declared_not_raised():
     )
     assert result.partial is True
     assert result.failed_sources == ("clickhouse:analytics",)
+
+
+def test_optional_leg_heterogeneous_rows_join_without_keyerror():
+    # A leg with an OPTIONAL returns heterogeneous rows: some carry the optional
+    # column, some don't. The M6 merge must tolerate the missing key (dict.get),
+    # not KeyError, and the join key is never optional (well-designedness guard).
+    cat = SourceCatalog.from_csi_documents(
+        [
+            _csi("postgresql", "crm", [("Account", ["accountId", "accountName"])]),
+            _csi("arango", "docs", [("Document", ["accountId", "source", "filename"])]),
+        ]
+    )
+    q = PREFIX + """SELECT ?accountName ?source ?filename WHERE {
+        ?a a c:Account ; c:accountName ?accountName ; c:accountId ?k .
+        ?d a c:Document ; c:source ?source ; c:accountId ?k .
+        OPTIONAL { ?d c:filename ?filename }
+    }"""
+    plan = partition_query(q, cat)
+    result = execute_plan(
+        plan,
+        {
+            "postgresql:crm": FakeExecutor(
+                [{"accountName": "Acme", "k": "001"}, {"accountName": "Globex", "k": "002"}]
+            ),
+            "arango:docs": FakeExecutor(
+                [
+                    {"source": "email", "k": "001", "filename": "a.pdf"},  # has optional col
+                    {"source": "slack", "k": "002"},                       # lacks it
+                ]
+            ),
+        },
+    )
+    assert result.partial is False  # optional var is "available", so not unavailable
+    got = sorted(tuple(sorted(b.items())) for b in result.bindings)
+    want = sorted(
+        [
+            tuple(sorted({"accountName": "Acme", "source": "email", "filename": "a.pdf"}.items())),
+            tuple(sorted({"accountName": "Globex", "source": "slack"}.items())),  # filename absent
+        ]
+    )
+    assert got == want

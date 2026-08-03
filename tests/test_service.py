@@ -102,10 +102,12 @@ def test_exactly_one_input_required(client: TestClient) -> None:
 
 
 def test_unsupported_construct_is_a_declared_422(client: TestClient) -> None:
-    filtered = (
+    # E1 now pushes down single-leg FILTER/OPTIONAL; a genuinely unsupported
+    # construct (UNION) is still a declared 422, named in the detail.
+    unioned = (
         "PREFIX c: <urn:arango-sparql:concept#> SELECT ?name WHERE "
-        "{ ?a a c:Account ; c:name ?name . FILTER(?name != 'x') }"
+        "{ { ?a a c:Account ; c:name ?name } UNION { ?a a c:Order ; c:name ?name } }"
     )
-    resp = client.post("/federate", json={"sparql": filtered})
+    resp = client.post("/federate", json={"sparql": unioned})
     assert resp.status_code == 422
-    assert "FILTER" in resp.json()["detail"]
+    assert "UNION" in resp.json()["detail"]

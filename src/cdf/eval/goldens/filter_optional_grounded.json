@@ -1,0 +1,62 @@
+{
+  "name": "filter+optional — Account (Postgres, FILTER healthScore) ⋈ Document (ArangoDB, OPTIONAL filename) on accountId (grounded)",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?accountName ?source ?filename WHERE { ?a a c:Account ; c:accountName ?accountName ; c:healthScore ?h ; c:accountId ?acct . ?d a c:Document ; c:source ?source ; c:accountId ?acct . FILTER(?h > 50) OPTIONAL { ?d c:filename ?filename } }",
+  "sources": [
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {
+          "entities": [
+            {"name": "Account", "properties": [
+              {"name": "accountId"}, {"name": "accountName"}, {"name": "healthScore"}]}
+          ]
+        },
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward",
+                       "source": {"kind": "postgresql", "ref": "crm"}}
+      },
+      "data": {
+        "rows": [
+          {"accountName": "Northwind", "acct": "001"},
+          {"accountName": "Meridian", "acct": "002"}
+        ],
+        "native_query": "SELECT account_name, account_id FROM accounts WHERE health_score > 50",
+        "source_objects": ["public.accounts"],
+        "as_of": "2026-07-22T12:00:00Z"
+      }
+    },
+    {
+      "csi": {
+        "csiVersion": "1",
+        "conceptualModel": {
+          "entities": [
+            {"name": "Document", "properties": [
+              {"name": "accountId"}, {"name": "source"}, {"name": "filename"}]}
+          ]
+        },
+        "arangoPhysicalMapping": {"entities": {"Document": {
+          "style": "COLLECTION", "collectionName": "documents"}}, "relationships": {}},
+        "provenance": {"producer": "analyzer", "direction": "reverse",
+                       "source": {"kind": "arango", "ref": "cmf"}}
+      },
+      "data": {
+        "rows": [
+          {"source": "email", "acct": "001", "filename": "he_email_2024q1"},
+          {"source": "slack", "acct": "002"}
+        ],
+        "native_query": "FOR d IN documents FILTER d.account_id IN @keys RETURN d",
+        "source_objects": ["cmf/documents"],
+        "as_of": "2026-07-22T12:00:00Z"
+      }
+    }
+  ],
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "sources_touched": ["arango:cmf", "postgresql:crm"],
+    "bindings": [
+      {"accountName": "Northwind", "source": "email", "filename": "he_email_2024q1"},
+      {"accountName": "Meridian", "source": "slack"}
+    ]
+  }
+}
