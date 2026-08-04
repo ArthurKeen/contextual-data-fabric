@@ -50,6 +50,7 @@ from cdf.adapters.clickhouse import (
     Mapping,
     Transport,
     _collect_bgp,
+    _collect_filters,
     _literal_value,
     _parse_values,
     parse_r2rml,
@@ -158,6 +159,15 @@ def compile_sql(sparql: str, mapping: Mapping) -> str:
                     "(" + ", ".join(_sql_literal(v) for v in r) + ")" for r in val_rows
                 )
                 where.append(f"({', '.join(cols)}) IN ({tuples})")
+
+    # Pushed-down E1 FILTER conjuncts: ?var op literal -> col op literal.
+    filters: list[tuple[Variable, str, Literal]] = []
+    _collect_filters(algebra, filters)
+    for fvar, fop, flit in filters:
+        bound = var_exprs.get(fvar)
+        if not bound:
+            raise SnowflakeError(f"FILTER references variable {fvar!r} not bound in this leg")
+        where.append(f"{bound[0]} {fop} {_sql_literal(_literal_value(flit))}")
 
     select: list[str] = []
     for pv in projection:

@@ -132,10 +132,10 @@ PAGE = """<!doctype html>
 <body><div class="wrap">
   <h1>Contextual Data Fabric — Federated Query</h1>
   <p class="sub">Ask a question in English (or run conceptual SPARQL). It's partitioned by source,
-     run live across <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL), <b>Snowflake</b>
-     (native executor, SPARQL&rarr;SQL) and <b>ArangoDB</b> (via arango-sparql-py, SPARQL&rarr;AQL),
-     joined on the <code>account_id</code> business key, cited — no data moved.
-     Served by the engine's <code>POST /federate</code> seam.</p>
+     run live across <b>Postgres</b> (via Ontop, SPARQL&rarr;SQL), <b>Snowflake</b> and
+     <b>ClickHouse</b> (native executors, SPARQL&rarr;SQL) and <b>ArangoDB</b>
+     (via arango-sparql-py, SPARQL&rarr;AQL), joined on the <code>account_id</code>
+     business key, cited — no data moved. Served by the engine's <code>POST /federate</code> seam.</p>
 
   <div class="card">
     <label for="nlq" style="font-weight:600">Ask a question</label>
