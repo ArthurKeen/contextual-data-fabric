@@ -1,0 +1,13 @@
+{
+  "name": "g09 arc Q2 — renewal risk + WHY (the lead cross-source question)",
+  "question": "Is Meridian Logistics at risk at their upcoming renewal, and WHY? Use their contract renewal date and usage trend together with the CSM Slack notes, renewal emails, and QBR documents that explain any risk.",
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "sources_touched": [
+      "arango:cmf",
+      "postgresql:crm",
+      "snowflake:telemetry"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "g13 adversarial — non-existent account: grounded-EMPTY, zero fabricated rows",
+  "sparql": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?tier WHERE { ?a a c:Account ; c:accountName \"Quantum Horizons Inc.\" ; c:currentProductTier ?tier }",
+  "expect": {
+    "status": "grounded",
+    "bindings": [],
+    "sources_touched": [
+      "postgresql:crm"
+    ]
+  }
+}

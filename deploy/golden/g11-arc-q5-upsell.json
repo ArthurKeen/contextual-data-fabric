@@ -1,0 +1,13 @@
+{
+  "name": "g11 arc Q5 — upsell readiness (telemetry threshold + documented trigger)",
+  "question": "Is Northwind Analytics ready for an ArangoGraph or GenAI upsell? Use their edition, product whitespace, and usage thresholds from the structured graph together with any documented trigger (scale pain, ops burden, or RAG intent) in their Slack notes, success plan, and exec emails.",
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "sources_touched": [
+      "arango:cmf",
+      "postgresql:crm",
+      "snowflake:telemetry"
+    ]
+  }
+}
