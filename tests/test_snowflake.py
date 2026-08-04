@@ -306,6 +306,9 @@ class _FakeConnection:
 def _pooled_transport(monkeypatch, connections):
     """Build the real pooled transport with connect() monkeypatched to hand out
     *connections* in order (mirroring snowflake.connector.connect's signature)."""
+    pytest.importorskip(
+        "snowflake.connector", reason="pool/retry tests need the real connector's error classes"
+    )
     import snowflake.connector
 
     from cdf.adapters.snowflake import _snowflake_transport
@@ -333,6 +336,9 @@ def test_pool_reuses_one_connection_across_queries(monkeypatch):
 
 
 def test_stale_session_is_retried_once_on_a_fresh_connection(monkeypatch):
+    pytest.importorskip(
+        "snowflake.connector", reason="pool/retry tests need the real connector's error classes"
+    )
     import snowflake.connector
 
     stale = _FakeConnection(
@@ -347,6 +353,9 @@ def test_stale_session_is_retried_once_on_a_fresh_connection(monkeypatch):
 
 
 def test_programming_error_propagates_without_retry(monkeypatch):
+    pytest.importorskip(
+        "snowflake.connector", reason="pool/retry tests need the real connector's error classes"
+    )
     import snowflake.connector
 
     conn = _FakeConnection(
@@ -367,6 +376,9 @@ def test_expired_auth_token_is_retried_on_a_fresh_session(monkeypatch):
     authenticated connection. Regression — this surfaced as ``snowflake:telemetry
     (failed) — Authentication token has expired`` refusing the 3-way demo query,
     because the poisoned session was classed as a SQL fault and re-pooled."""
+    pytest.importorskip(
+        "snowflake.connector", reason="pool/retry tests need the real connector's error classes"
+    )
     import snowflake.connector
 
     expired = snowflake.connector.errors.ProgrammingError(
@@ -388,6 +400,9 @@ def test_sql_fault_with_sqlstate_still_propagates_without_retry(monkeypatch):
     """A genuine SQL fault (42-class SQLSTATE) still propagates immediately, the
     session kept — the auth-retry path must key on the 08 connection-class only
     and never swallow real query errors."""
+    pytest.importorskip(
+        "snowflake.connector", reason="pool/retry tests need the real connector's error classes"
+    )
     import snowflake.connector
 
     bad_sql = snowflake.connector.errors.ProgrammingError(
@@ -410,6 +425,9 @@ def test_expired_token_drains_all_idle_pooled_sessions(monkeypatch):
     borrow the next dead session and the query would still fail."""
     import threading
 
+    pytest.importorskip(
+        "snowflake.connector", reason="pool/retry tests need the real connector's error classes"
+    )
     import snowflake.connector
 
     barrier = threading.Barrier(2)
