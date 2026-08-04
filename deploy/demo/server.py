@@ -99,9 +99,17 @@ PAGE = """<!doctype html>
   button { background:var(--accent); color:#fff; border:0; border-radius:8px;
     padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; }
   button:disabled { opacity:.6; cursor:default; }
-  .chip { background:#eef0f6; color:#333; border:1px solid var(--line); border-radius:16px;
-    padding:6px 12px; font-size:12.5px; font-weight:500; cursor:pointer; }
-  .chip:hover { background:#e2e6f0; }
+  .askbox { position:relative; }
+  .sugg { display:none; position:absolute; left:0; right:0; top:100%; z-index:20;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-top:4px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); max-height:280px; overflow-y:auto; }
+  .sugg.open { display:block; }
+  .sugg button { display:block; width:100%; text-align:left; background:none; color:var(--ink);
+    border:0; border-radius:0; padding:9px 12px; font-size:13px; font-weight:400; line-height:1.4;
+    cursor:pointer; border-bottom:1px solid var(--line); }
+  .sugg button:last-child { border-bottom:0; }
+  .sugg button:hover, .sugg button.active { background:var(--code); }
+  .sugg .none { color:var(--muted); font-size:12.5px; padding:9px 12px; }
   .row { display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
   label.chk { color:var(--muted); font-size:13px; display:flex; gap:6px; align-items:center; }
   .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px;
@@ -139,9 +147,12 @@ PAGE = """<!doctype html>
 
   <div class="card">
     <label for="nlq" style="font-weight:600">Ask a question</label>
-    <input id="nlq" type="text" placeholder="Type a question, or click an example below…"
-           style="width:100%;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px">
-    <div id="examples" class="row" style="flex-wrap:wrap;gap:6px"></div>
+    <div class="askbox">
+      <input id="nlq" type="text" placeholder="Type a question, or click here for the prepared ones…"
+             autocomplete="off" role="combobox" aria-expanded="false" aria-controls="suggest"
+             style="width:100%;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px">
+      <div id="suggest" class="sugg" role="listbox" aria-label="Prepared questions"></div>
+    </div>
     <div class="row" style="margin-top:10px">
       <button id="ask" onclick="ask()">Ask</button>
       <label class="chk"><input type="checkbox" id="ap"> allow partial (concierge mode)</label>
@@ -170,13 +181,50 @@ const srcTag = (kind, id) => `<span class="src src-${esc(kind)}">${esc(id)}</spa
 
 const EXAMPLES = __QUESTIONS__;
 
-function renderExamples() {
-  const box = document.getElementById('examples');
-  EXAMPLES.forEach(q => {
-    const chip = el(`<button class="chip" type="button">${esc(q)}</button>`);
-    chip.onclick = () => { document.getElementById('nlq').value = q; ask(); };
-    box.appendChild(chip);
+// Prepared questions pop up under the field on focus (filtered as you type)
+// instead of permanently occupying the page as chips.
+function renderSuggestions(filter) {
+  const box = document.getElementById('suggest');
+  const f = (filter || '').trim().toLowerCase();
+  const hits = f ? EXAMPLES.filter(q => q.toLowerCase().includes(f)) : EXAMPLES;
+  box.innerHTML = '';
+  if (!hits.length) {
+    box.appendChild(el(`<div class="none">No prepared question matches — Ask sends it to the NL front-end.</div>`));
+    return;
+  }
+  hits.forEach(q => {
+    const item = el(`<button type="button" role="option">${esc(q)}</button>`);
+    // mousedown (not click): select before the input's blur closes the list.
+    item.onmousedown = (e) => { e.preventDefault(); pickSuggestion(q); };
+    box.appendChild(item);
   });
+}
+
+function pickSuggestion(q) {
+  document.getElementById('nlq').value = q;
+  closeSuggestions();
+  ask();
+}
+
+function openSuggestions() {
+  renderSuggestions(document.getElementById('nlq').value);
+  document.getElementById('suggest').classList.add('open');
+  document.getElementById('nlq').setAttribute('aria-expanded', 'true');
+}
+
+function closeSuggestions() {
+  document.getElementById('suggest').classList.remove('open');
+  document.getElementById('nlq').setAttribute('aria-expanded', 'false');
+}
+
+function moveActive(delta) {
+  const items = [...document.querySelectorAll('#suggest button')];
+  if (!items.length) return;
+  const cur = items.findIndex(b => b.classList.contains('active'));
+  items.forEach(b => b.classList.remove('active'));
+  const next = items[(cur + delta + items.length) % items.length];
+  next.classList.add('active');
+  next.scrollIntoView({block: 'nearest'});
 }
 
 async function post(payload, out, stat) {
@@ -263,8 +311,21 @@ function render(d, out) {
     body.appendChild(card);
   });
 }
-document.getElementById('nlq').addEventListener('keydown', e => { if (e.key==='Enter') ask(); });
-renderExamples();
+const nlq = document.getElementById('nlq');
+nlq.addEventListener('focus', openSuggestions);
+nlq.addEventListener('input', openSuggestions);
+nlq.addEventListener('blur', closeSuggestions);
+nlq.addEventListener('keydown', e => {
+  const open = document.getElementById('suggest').classList.contains('open');
+  if (e.key === 'ArrowDown' && open) { e.preventDefault(); moveActive(1); return; }
+  if (e.key === 'ArrowUp'   && open) { e.preventDefault(); moveActive(-1); return; }
+  if (e.key === 'Escape'    && open) { closeSuggestions(); return; }
+  if (e.key === 'Enter') {
+    const active = document.querySelector('#suggest button.active');
+    if (open && active) { pickSuggestion(active.textContent); return; }
+    closeSuggestions(); ask();
+  }
+});
 </script>
 </div></body></html>
 """
