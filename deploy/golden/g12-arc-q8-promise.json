@@ -1,0 +1,13 @@
+{
+  "name": "g12 arc Q8 — promise vs delivery (contract + telemetry + email evidence)",
+  "question": "What did we promise Meridian Logistics, and did we deliver? Reconcile the contract SLA and product scope and the usage telemetry that shows delivery against any promise made in emails, Slack, or meeting notes — including a commitment that was never logged in the CRM.",
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "sources_touched": [
+      "arango:cmf",
+      "postgresql:crm",
+      "snowflake:telemetry"
+    ]
+  }
+}

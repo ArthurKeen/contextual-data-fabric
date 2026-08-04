@@ -1,0 +1,11 @@
+{
+  "name": "g08 arc Q7 — structured-only anchor across TWO structured systems (no documents)",
+  "question": "For Northwind Analytics, show how they have adopted ArangoDB across the product ladder (Community to Enterprise to ArangoGraph) and the ROI we have delivered. Answer purely from the structured graph — their usage telemetry, contracts, and expansion opportunities; do not use any unstructured documents for this one.",
+  "expect": {
+    "status": "grounded",
+    "sources_touched": [
+      "postgresql:crm",
+      "snowflake:telemetry"
+    ]
+  }
+}

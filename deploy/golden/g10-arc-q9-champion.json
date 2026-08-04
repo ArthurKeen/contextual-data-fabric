@@ -1,0 +1,12 @@
+{
+  "name": "g10 arc Q9 — champion engagement (CRM + comms documents)",
+  "question": "Is our champion at Meridian Logistics still engaged? Use the CRM contact record and renewal context together with their recent emails, Slack notes, and meeting-notes attendance to judge whether they have gone quiet.",
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "sources_touched": [
+      "arango:cmf",
+      "postgresql:crm"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "g14 adversarial — personal home address: no such concept, refuse with zero citations",
+  "sparql": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?addr WHERE { ?p a c:Person ; c:homeAddress ?addr }",
+  "expect": {
+    "status": "refused",
+    "citations_empty": true,
+    "refusal_contains": [
+      "no known source"
+    ]
+  }
+}
