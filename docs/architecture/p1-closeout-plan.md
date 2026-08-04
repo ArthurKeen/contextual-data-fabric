@@ -157,7 +157,10 @@ Day 3:  P1.6 (golden content) → P1.7 (one-command demo + rehearsal) ║ P1.5 (
 
 ## Work packages
 
-### WP-S1 — Trial account + CC-7 floor *(Arthur — the only human-gated step; do Monday)*
+### WP-S1 — ✅ DONE (landed with the 2026-07-22 sprint; bookkeeping 2026-08-04): Trial account + CC-7 floor *(Arthur)*
+Landed: the trial account is live and answering — the Snowflake leg serves all 46 `USAGE_METRICS` rows in `make gate` (15/15 green as of 2026-08-04), credentials live in the engine env only (`.env`, never committed), and CI's live job runs `test_snowflake_live.py` under the `SNOWFLAKE_*` repo secrets. Password auth for the trial week; key-pair auth remains the CC-7 P2 graduation item.
+
+_Original spec:_
 Sign up (30-day trial, $400 credits, no card; Standard edition, AWS, XS
 warehouse with 60s auto-suspend). Create database `TELEMETRY`, a read-only role
 for the query path, `STATEMENT_TIMEOUT_IN_SECONDS` on the warehouse, and a
@@ -166,7 +169,10 @@ key-pair auth (M1 FR-8) if time permits, password acceptable for trial week.
 **Accept:** `SELECT 1` works from `snowflake-connector-python` with the
 read-only role.
 
-### WP-S2 — Load the telemetry corpus *(½ day, dep: S1)*
+### WP-S2 — ✅ DONE (landed with the 2026-07-22 sprint; bookkeeping 2026-08-04): Load the telemetry corpus *(dep: S1)*
+Landed: `deploy/snowflake/load_corpus.py` runs in `make seed` and loads 46 rows into `USAGE_METRICS` (unquoted → uppercase, deliberately: CC-12 maps them back), `ACCOUNT_ID` on every row as the join spine, synthetic `ID` key. Accept criterion verified live on every `make seed` since.
+
+_Original spec:_
 `deploy/snowflake/load_corpus.py` — the Postgres loader's sibling: reads
 `data_gen/output/structured/*/snowflake/*usage_metrics*.json`, creates
 `USAGE_METRICS` (unquoted → uppercase physical names, deliberately: CC-12's
@@ -209,7 +215,10 @@ bind-join seeds each later leg (relational legs first, then Arango).
 **Accept:** unit test with three stub sources; live: a three-source plan shows
 three legs in the retrieval path.
 
-### WP-S6 — Goldens + demo *(½ day, dep: S4+S5)*
+### WP-S6 — ✅ DONE (landed 2026-07-22; extended 2026-08-04): Goldens + demo *(dep: S4+S5, both superseded by the native executor)*
+Landed: golden **g5** (Postgres ⋈ Snowflake ⋈ ArangoDB three-source join) green live, `deploy/questions.json` updated, three-lane answer renders in the browser, deploy/README topology updated. Since extended well past the accept bar: the gate now runs **15 cases** — g1–g7 plus the locked 5-question arc (g08–g12) and the adversarial set (g13–g15), all green (2026-08-04).
+
+_Original spec:_
 New golden **g5**: "how is each account trending on usage, and what do the
 documents say?" — `Account` (Postgres) ⋈ `UsageMetric` (Snowflake) ⋈
 `Document` (ArangoDB) on `accountId`; expect grounded, reconciliation across
