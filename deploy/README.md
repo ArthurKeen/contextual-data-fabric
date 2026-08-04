@@ -1,10 +1,9 @@
 # Running the demo
 
 The Contextual Data Fabric demo answers one conceptual question by **federating
-three live sources** — Postgres (CRM), Snowflake (usage telemetry), and ArangoDB
-(documents) — joining their results on a shared business key and citing every
-fact, **without moving any data**. A fourth catalog source, ClickHouse, joins the
-federation when `CLICKHOUSE_DSN` is set.
+four live sources** — Postgres (CRM), Snowflake (usage telemetry), ClickHouse
+(query analytics), and ArangoDB (documents) — joining their results on a shared
+business key and citing every fact, **without moving any data**.
 
 > **What this proves:** the fabric's architecture, end to end — auto-derived
 > mappings, cross-source query decomposition, a deterministic join, grounded
@@ -33,19 +32,18 @@ running (`make down` stops them, preserving data).
 |---------|--------------|
 | `make install` | Create `.venv`, install the engine + live-leg libraries. Run once. |
 | `make demo` | `up` → `seed` → `gate` → clear port 8099 → serve the browser UI. |
-| `make gate` | Run the five golden contract checks (g1–g5, incl. the three-source join) against the live stacks (the mandatory pre-demo check). |
-| `make up` / `make down` | Start / stop the local Docker stacks — Postgres+Ontop and ArangoDB (data preserved on `down`). Snowflake is a live cloud source loaded by `make seed`; ClickHouse is an optional stack, wired when `CLICKHOUSE_DSN` is set. |
+| `make gate` | Run the seven golden contract checks (g1–g7, incl. the three-source join and the native-ClickHouse FILTER/OPTIONAL leg) against the live stacks (the mandatory pre-demo check). |
+| `make up` / `make down` | Start / stop the local Docker stacks — Postgres+Ontop, ArangoDB, and ClickHouse (data preserved on `down`; ClickHouse self-seeds on first create). Snowflake is a live cloud source loaded by `make seed`. |
 | `make seed` | (Re)load the source databases (Postgres, Snowflake, ArangoDB) + emit the mappings. |
 | `make test` | Lint + types + unit suite (what CI runs). |
 
 ## Topology — what runs where
 
 The local stacks run on one machine; Snowflake is a live cloud source.
-**Four local processes** — the demo app (engine **and** UI in one, on :8099),
-Postgres, Ontop, and ArangoDB — plus **one live cloud leg** (Snowflake) and one
-build-time step. A fifth local stack, ClickHouse, joins when `CLICKHOUSE_DSN` is
-set. The databases are the systems of record; the fabric holds only the mappings
-and the join — it never copies their data.
+**Five local processes** — the demo app (engine **and** UI in one, on :8099),
+Postgres, Ontop, ArangoDB, and ClickHouse — plus **one live cloud leg**
+(Snowflake) and one build-time step. The databases are the systems of record; the
+fabric holds only the mappings and the join — it never copies their data.
 
 ```mermaid
 flowchart TB
@@ -64,8 +62,8 @@ flowchart TB
     subgraph snow["Snowflake — live cloud source (TELEMETRY)"]
         SNT["USAGE_METRICS (46 rows)<br/>native SnowflakeExecutor, SPARQL→SQL<br/>(ADR-0002 Option B)"]
     end
-    subgraph ch["ClickHouse — optional stack (when CLICKHOUSE_DSN set)"]
-        CHT["analytics tables<br/>native ClickHouseExecutor, SPARQL→SQL"]
+    subgraph ch["ClickHouse :8123 — query-analytics source"]
+        CHT["query_events (5 rows)<br/>native ClickHouseExecutor, SPARQL→SQL<br/>(FILTER pushed down)"]
     end
     subgraph adb["ArangoDB :8530 — the GRAPH source"]
         ADBC["documents (80) · chunks (80) · tickets (2)<br/>each stamped with account_id"]
@@ -74,12 +72,13 @@ flowchart TB
     E -->|"relational partition (SPARQL)"| ONT
     ONT -->|"generated SQL"| PGT
     E -->|"telemetry partition (SPARQL→SQL,<br/>seeded with account_id keys)"| SNT
-    E -.->|"analytics partition (when wired)"| CHT
+    E -->|"analytics partition (SPARQL→SQL,<br/>FILTER pushed down, seeded keys)"| CHT
     E -->|"graph partition (SPARQL→AQL,<br/>seeded with account_id keys)"| ADBC
     E -->|"grounded, cited answer"| UI
 
     RSA["r2g → CSI + R2RML"] -.->|build time| ONT
     RSA -.->|build time| SNT
+    RSA -.->|build time| CHT
     ANA["arango-schema-analyzer → reverse CSI"] -.->|build time| E
 ```
 
@@ -126,6 +125,21 @@ concept. The leg is a **native `SnowflakeExecutor`** (ADR-0002 "Option B"): it
 compiles the SPARQL partition straight to Snowflake SQL over
 `snowflake-connector-python` (no Ontop/JDBC), driven by the r2g-generated R2RML.
 
+### ClickHouse (`analytics`) — the query-analytics source
+Per-account query telemetry — the high-volume analytics workload ClickHouse is
+built for. Self-seeded by the container's `docker-entrypoint-initdb.d` on first
+create (`deploy/clickhouse/seed.sql`); no `make seed` step needed.
+
+| Table | Rows | Holds |
+|-------|-----:|-------|
+| `query_events` | 5 | per-account query events: `feature`, `query_count`, `avg_latency_ms`, `event_date` |
+
+The `QueryEvent` concept routes uniquely to ClickHouse. Ontop has no ClickHouse
+dialect, so the leg is a **native `ClickHouseExecutor`**: it compiles the SPARQL
+partition — **including a pushed-down E1 `FILTER`** (e.g. `avgLatencyMs < 25`
+compiles to `WHERE avg_latency_ms < 25`) — straight to ClickHouse SQL, driven by
+the r2g-generated R2RML.
+
 ### ArangoDB (`cmf`) — the unstructured / graph source
 The document corpus (Slack, email, docs, Gong transcripts) for the same three
 accounts. Loaded by `deploy/arango/load_corpus.py` from
@@ -158,6 +172,12 @@ Shown as clickable chips in the UI (resolved from `deploy/questions.json`):
   on `account_id`. One answer reconciled across a relational CRM, a live cloud
   warehouse, and a document graph — every leg cited with the exact SQL/AQL that
   ran.
+- **"which query events stayed under 25 ms, and the document filenames if any?"**
+  — the **pushdown showcase** (golden g7): joins `QueryEvent` (ClickHouse) ⋈
+  `Document` (ArangoDB) on `account_id`, with the latency `FILTER` compiled into
+  ClickHouse SQL (`WHERE avg_latency_ms < 25`) and the filename as an `OPTIONAL`.
+  The E1 single-leg FILTER/OPTIONAL pushdown, live on a fourth engine. (Ask it in
+  English via the NL front-end, or run the SPARQL in the Advanced box.)
 
 The answer panel shows the status badge (`grounded` / `refused` / `partial`),
 the per-source partition (the actual SQL and AQL that ran, source objects,

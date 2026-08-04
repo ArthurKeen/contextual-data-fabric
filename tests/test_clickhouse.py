@@ -254,3 +254,34 @@ def test_clickhouse_leg_in_full_federation_pipeline():
     env = ground(execute_plan(plan, {"clickhouse:analytics": ch, "postgresql:crm": _Pg()}))
     assert env.status == "grounded"
     assert env.bindings == ({"account_name": "Acme", "query_volume_m": 12.5},)
+
+
+def test_pushed_down_filter_compiles_to_where():
+    # E1 now pushes single-leg FILTER conjuncts into the leg SPARQL; the native
+    # compiler must emit them as WHERE, not silently drop them.
+    sql = compile_sql(
+        PREFIX + "SELECT ?v WHERE { ?u a c:usage_metrics ; c:query_volume_m ?v . "
+        "FILTER(?v < 25) }",
+        MAPPING,
+    )
+    assert "`query_volume_m` < 25" in sql
+
+
+def test_filter_literal_op_var_is_flipped():
+    sql = compile_sql(
+        PREFIX + "SELECT ?v WHERE { ?u a c:usage_metrics ; c:query_volume_m ?v . "
+        "FILTER(25 >= ?v) }",
+        MAPPING,
+    )
+    assert "`query_volume_m` <= 25" in sql  # 25 >= ?v  ==>  ?v <= 25
+
+
+def test_unsupported_filter_raises_not_dropped():
+    # A var-op-var comparison isn't compilable to a single-leg predicate — it must
+    # raise (a dropped FILTER would broaden the answer), never be silently ignored.
+    with pytest.raises(ClickHouseError):
+        compile_sql(
+            PREFIX + "SELECT ?v WHERE { ?u a c:usage_metrics ; c:query_volume_m ?v ; "
+            "c:edition ?e . FILTER(?v < ?e) }",
+            MAPPING,
+        )

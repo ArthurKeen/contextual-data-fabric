@@ -3,8 +3,9 @@
 Ontop has no ClickHouse dialect, so the relational leg for a ClickHouse source is
 generated natively here. This is r2g's retired P12.2 pushdown-SQL path, resurrected
 for exactly the engine the "adopt Ontop" decision doesn't reach — and it earns its
-keep because E1 hands each leg a **single-source Basic Graph Pattern** (no
-FILTER/OPTIONAL/UNION — E1 refuses those), so compiling it to SQL is a bounded
+keep because E1 hands each leg a **single-source pattern** — a Basic Graph Pattern
+plus any single-leg ``FILTER`` conjuncts / ``OPTIONAL`` columns E1 pushes down
+(``UNION``/aggregation are still refused) — so compiling it to SQL is a bounded
 problem, not general SPARQL→SQL.
 
 It consumes the **same R2RML** r2g's ``export-r2rml`` emits (concept→table via
@@ -17,6 +18,7 @@ Compilation (single-source BGP → ClickHouse SQL):
 - ``?s a c:Class``            → a table in FROM (one alias per subject variable),
 - ``?s c:prop ?v``           → ``alias.col`` exposed as ``?v``,
 - ``?s c:prop "lit"``        → ``WHERE alias.col = 'lit'``,
+- ``FILTER(?v op lit)``      → ``WHERE col op lit`` (E1's pushed-down filter),
 - a variable shared by two subjects → an equi-join between their columns,
 - the E2 bind-join ``VALUES (?k) {…}`` → ``WHERE col IN (…)`` (FR-13),
 - the SELECT → ``col AS <bare-var>`` so result rows are already bindings.
@@ -155,6 +157,51 @@ def _parse_values(sparql: str) -> tuple[list[str], list[list[Any]]]:
     return variables, rows
 
 
+#: Comparison operators a pushed-down E1 FILTER conjunct may use (SQL-identical).
+_FILTER_OPS = {">", "<", ">=", "<=", "=", "!="}
+_FLIP_OP = {">": "<", "<": ">", ">=": "<=", "<=": ">=", "=": "=", "!=": "!="}
+
+
+def _collect_filters(node: Any, out: list[tuple[Variable, str, Literal]]) -> None:
+    """Collect the ``?var op literal`` conjuncts E1 pushes into a single leg.
+
+    Walks the algebra for ``Filter`` nodes and extracts conjunctions of simple
+    comparisons — the exact shape the planner guarantees before pushdown. A
+    ``FILTER`` this cannot map is **raised, never dropped**: a silently-dropped
+    filter would broaden the answer (the fabric's "never silent omission" rule).
+    Shared with the Snowflake compiler (same dialect-neutral parse)."""
+    if isinstance(node, CompValue):
+        if node.name == "Filter":
+            _collect_filter_expr(node["expr"], out)
+        for value in node.values():
+            _collect_filters(value, out)
+    elif isinstance(node, (list, tuple)):
+        for item in node:
+            _collect_filters(item, out)
+
+
+def _collect_filter_expr(expr: Any, out: list[tuple[Variable, str, Literal]]) -> None:
+    name = getattr(expr, "name", None)
+    if name == "ConditionalAndExpression":
+        _collect_filter_expr(expr["expr"], out)
+        for sub in expr["other"]:
+            _collect_filter_expr(sub, out)
+        return
+    if name == "RelationalExpression":
+        left, op, right = expr["expr"], expr["op"], expr["other"]
+        if op in _FILTER_OPS:
+            if isinstance(left, Variable) and isinstance(right, Literal):
+                out.append((left, op, right))
+                return
+            if isinstance(left, Literal) and isinstance(right, Variable):
+                out.append((right, _FLIP_OP[op], left))
+                return
+    raise ClickHouseError(
+        "FILTER cannot be compiled to SQL (expected a conjunction of "
+        f"`?var {{{','.join(sorted(_FILTER_OPS))}}} literal`): {name or expr!r}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # BGP → ClickHouse SQL
 # ---------------------------------------------------------------------------
@@ -226,6 +273,15 @@ def compile_sql(sparql: str, mapping: Mapping) -> str:
                     "(" + ", ".join(_sql_literal(v) for v in r) + ")" for r in val_rows
                 )
                 where.append(f"({', '.join(cols)}) IN ({tuples})")
+
+    # Pushed-down E1 FILTER conjuncts: ?var op literal -> col op literal.
+    filters: list[tuple[Variable, str, Literal]] = []
+    _collect_filters(algebra, filters)
+    for fvar, fop, flit in filters:
+        bound = var_exprs.get(fvar)
+        if not bound:
+            raise ClickHouseError(f"FILTER references variable {fvar!r} not bound in this leg")
+        where.append(f"{bound[0]} {fop} {_sql_literal(_literal_value(flit))}")
 
     select: list[str] = []
     for pv in projection:

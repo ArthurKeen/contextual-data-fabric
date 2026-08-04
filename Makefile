@@ -16,6 +16,7 @@ export CDF_ARANGO_PORT   ?= 8530
 export CDF_POSTGRES_PORT ?= 5433
 export CDF_ONTOP_PORT    ?= 8090
 export CDF_UI_PORT       ?= 8099
+export CDF_CLICKHOUSE_HTTP_PORT ?= 8123
 
 # The two owned sibling libraries (SPARQL->AQL transpiler, ArangoDB analyzer)
 # are installed from local checkouts by default — override if they live
@@ -26,6 +27,7 @@ CDF_SIBLINGS ?= $(HOME)/code
 DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
            ARANGO_USER=root ARANGO_PASSWORD=cdf \
            ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:$(CDF_ONTOP_PORT)/sparql \
+           CLICKHOUSE_DSN=clickhouse://cdf:cdf@127.0.0.1:$(CDF_CLICKHOUSE_HTTP_PORT)/analytics \
            CDF_CSI_DIR=deploy/csi CDF_R2RML_DIR=deploy/r2rml \
            CDF_PREPARED_QUESTIONS=deploy/questions.json
 
@@ -71,6 +73,9 @@ deploy/ontop/jdbc/postgresql.jar:
 up: jdbc
 	docker compose -p cdf-arango -f deploy/arango/docker-compose.yml up -d --wait
 	docker compose -p cdf-ontop  -f deploy/ontop/docker-compose.yml  up -d --wait
+	# ClickHouse self-seeds via docker-entrypoint-initdb.d/seed.sql on first
+	# create (fresh container each up-after-down), so no `seed` step is needed.
+	docker compose -p cdf-clickhouse -f deploy/clickhouse/docker-compose.yml up -d --wait
 
 seed:
 	PG_DSN=postgresql://cdf:cdf@127.0.0.1:$(CDF_POSTGRES_PORT)/crm $(PY) deploy/ontop/load_corpus.py
@@ -99,3 +104,4 @@ test:
 down:
 	docker compose -p cdf-arango -f deploy/arango/docker-compose.yml down
 	docker compose -p cdf-ontop  -f deploy/ontop/docker-compose.yml  down
+	docker compose -p cdf-clickhouse -f deploy/clickhouse/docker-compose.yml down

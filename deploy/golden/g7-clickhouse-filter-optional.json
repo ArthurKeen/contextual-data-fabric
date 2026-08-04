@@ -1,0 +1,9 @@
+{
+  "name": "g7 clickhouse — QueryEvent (ClickHouse, FILTER avgLatencyMs) ⋈ Document (ArangoDB, OPTIONAL filename) on accountId",
+  "sparql": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?feature ?avgLatencyMs ?source ?filename WHERE { ?e a c:QueryEvent ; c:feature ?feature ; c:avgLatencyMs ?avgLatencyMs ; c:accountId ?acct . ?d a c:Document ; c:source ?source ; c:accountId ?acct . FILTER(?avgLatencyMs < 25) OPTIONAL { ?d c:filename ?filename } }",
+  "expect": {
+    "status": "grounded",
+    "reconciliation": true,
+    "sources_touched": ["arango:cmf", "clickhouse:analytics"]
+  }
+}

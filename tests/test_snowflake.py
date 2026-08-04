@@ -443,3 +443,12 @@ def test_expired_token_drains_all_idle_pooled_sessions(monkeypatch):
     assert transport("SELECT 2") == [{"aid": "ACME"}]  # recovers on a fresh session
     assert a.closed and b.closed  # entire idle pool flushed, no dead session re-served
     assert calls["n"] == 3  # exactly one fresh reconnect
+
+
+def test_pushed_down_filter_compiles_to_where():
+    sql = compile_sql(
+        PREFIX + "SELECT ?qv WHERE { ?u a c:UsageMetric ; c:queryVolumeM ?qv . "
+        "FILTER(?qv <= 1000) }",
+        MAPPING,
+    )
+    assert '"QUERY_VOLUME_M" <= 1000' in sql  # pushed E1 filter, not dropped
