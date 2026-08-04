@@ -51,10 +51,24 @@
       "Edit(/.claude/skills/add-source-kind/**)",
       "Edit(/.claude/skills/pre-demo-gate/**)",
       "Edit(/.claude/skills/integrate-owned-lib/**)",
-      "Bash(set -e)"
+      "Bash(set -e)",
+      "Bash(curl -sf -m 3 http://127.0.0.1:8600/health)",
+      "Bash(curl -sf -m 3 http://127.0.0.1:8099/health)",
+      "Bash(.venv/bin/python -m mypy src/cdf/adapters/snowflake.py)",
+      "Bash(.venv/bin/python -c \"import cdf, pathlib; print\\('cdf loaded from:', pathlib.Path\\(cdf.__file__\\).resolve\\(\\)\\)\")",
+      "Bash(.venv/bin/pip show *)",
+      "Bash(lsof -nP -iTCP:8099 -sTCP:LISTEN)",
+      "Bash(curl -s -m 90 http://127.0.0.1:8099/federate -H 'Content-Type: application/json' -d '{\"question\": \"at each account'\\\\''s peak usage quarter, how is volume trending, and what do the signal documents say?\"}')",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('/tmp/cdf_3way.json'\\)\\);print\\(d['status']\\)\")",
+      "Bash(echo \"status: $\\(python3 -c \"import json;d=json.load\\(open\\('/tmp/cdf_3way.json'\\)\\);print\\(d['status']\\)\"\\)\")",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('/tmp/cdf_3way.json'\\)\\);print\\(d.get\\('refusal_reason'\\)\\)\")",
+      "Bash(echo \"refusal: $\\(python3 -c \"import json;d=json.load\\(open\\('/tmp/cdf_3way.json'\\)\\);print\\(d.get\\('refusal_reason'\\)\\)\"\\)\")",
+      "Bash(SM=/Users/arthurkeen/code/arango-shared-memory/templates/.claude *)",
+      "Read(//Users/arthurkeen/code/arango-shared-memory/templates/.cursor/**)"
     ],
     "additionalDirectories": [
-      "/Users/arthurkeen/code/bin"
+      "/Users/arthurkeen/code/bin",
+      "/Users/arthurkeen/code/arango-shared-memory/templates/.claude/skills/prd-sync"
     ]
   }
 }
