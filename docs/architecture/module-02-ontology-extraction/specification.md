@@ -39,6 +39,7 @@ The extraction half of the Onto Extract building block. For each source, emit a 
 - **FR-3 (P1):** **Use-case-scoped** extraction driven by the seed CSM use cases ([[contextual-data-fabric-prd]] §4) — mechanism: **competency questions** per AOE PRD §6.19 (FR-19.4 scope injection): the CQ term set is injected into extraction as required/priority concepts, uniformly across relational, graph, and unstructured adapters.
 - **FR-4 (P1):** Capture **provenance** per ontology element (source schema/column or document) — required by M3's belief management.
 - **FR-5 (P2):** Multi-structured-source extraction (Snowflake) + catalog/semantic-layer (dbt) inputs.
+- **FR-5a (P2, new 2026-07-22):** **Purpose-scoped extraction at enterprise scale** — an integration carries a declared **purpose** (ORSD purpose statement + CQs, AOE FR-19.1); at thousands-of-tables scale the extractor **ranks tables by relevance** (CQ-term/COMMENT embedding similarity, FK-neighborhood expansion, `ACCESS_HISTORY` usage signals, governance tags) and introspects only the curator-confirmed set — the ~2% human-confirm pattern applied to table selection before extraction, not just to concepts after it. Mechanism: schema-analyzers RE-6.
 - **FR-6 (P2):** LLM-as-judge scoring of extracted elements (importance/weights), as demoed in the ontology extractor.
 
 ## 5. Non-functional requirements

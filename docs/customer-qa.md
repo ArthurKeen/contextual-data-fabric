@@ -176,3 +176,62 @@ At two levels, both governed:
 
 The one-line version: **names are reconciled once, in the ontology, with
 provenance — not re-guessed by an LLM on every query.**
+
+---
+
+## Rah Raman — follow-ups (2026-07-22)
+
+### 5. "We have thousands of tables in Snowflake — can we put policies/information on the CDF to focus the ontology extraction on the relevant ones? Maybe express the purpose of the integration, e.g. Customer 360?"
+
+**Yes — and "express the purpose" is exactly the fabric's existing scoping
+contract.** An integration carries a declared **purpose**: an ORSD-style
+requirements spec (purpose statement + the competency questions the ontology
+must answer — for you, the Customer-360 questions). That purpose then focuses
+extraction two ways:
+
+- **Today (concept-level):** the CQ term set is injected into extraction as
+  required/priority concepts — extract what the use cases need, never
+  boil-the-ocean.
+- **Planned (table-level, the thousands-of-tables case — schema-analyzers
+  RE-6):** rank tables by relevance *before* introspecting them, using four
+  signals: semantic similarity between the purpose/CQ terms and table/column
+  names **and their Snowflake `COMMENT`s**; FK-neighborhood expansion from
+  seed tables; **your own query history** (`ACCOUNT_USAGE.ACCESS_HISTORY` —
+  the tables your org actually queries and joins are the relevant ones); and
+  governance **tags** as include/exclude policy. A curator confirms the ranked
+  candidate set — the same "automation proposes, human confirms ~2%" pattern,
+  applied to table selection.
+
+The one-liner: *you don't tell us the 40 relevant tables — you tell us the
+questions, and the fabric proposes the 40 tables, with your query history as
+evidence.*
+
+### 6. "Snowflake doesn't define primary keys and foreign keys — does your extractor infer them?"
+
+**Yes — declared keys are read, undeclared keys are inferred.** Precision
+matters here: Snowflake *supports declaring* PK/FK/UNIQUE constraints but
+doesn't *enforce* them — and many teams declare them anyway as documentation.
+Our connectors read those declarations from the catalog (`SHOW PRIMARY KEYS`,
+declared FKs/uniques), so anything you've declared is used directly. Where
+nothing is declared, the extractor **infers**: name-convention heuristics
+(`account_id` ↔ `accounts`) propose candidate keys, and a **value-overlap
+sampler** confirms them statistically (what fraction of the child column's
+distinct values exist in the candidate parent — bounded sampling, no bulk
+reads). Inferred keys carry confidence and go through the same human-confirm
+step as everything else. *(Roadmap honesty: the value-overlap confirmation
+stage is live for Postgres/MySQL/SQL Server/CSV and lands for Snowflake as
+RE-7 — today's Snowflake inference is name-heuristic + declared keys.)*
+
+### 7. "Does Snowflake have its own catalog? Are you using it?"
+
+**Yes, and yes — the catalog is precisely what we read.** Snowflake's catalog
+surfaces are `INFORMATION_SCHEMA` (tables, columns, types, declared
+constraints — our introspection source today, via the same connector that
+runs the federated leg), plus the richer account-level views we plan to
+exploit for relevance scoping (RE-6): `ACCOUNT_USAGE` (**`ACCESS_HISTORY`**,
+`QUERY_HISTORY`, `OBJECT_DEPENDENCIES` lineage), object **`COMMENT`s**, and
+governance **`TAG`s**. For customers running an external enterprise catalog
+(OpenMetadata, Atlan, Glue), r2g already has a catalog-provider integration
+layer — the same discover-then-connect flow works there. The principle: **we
+never ask you to re-describe what your catalog already knows** — declared
+keys, comments, tags, and usage history are all extraction inputs.
