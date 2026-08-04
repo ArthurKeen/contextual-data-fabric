@@ -1,5 +1,5 @@
 {
-  "name": "g2 dual — cross-graph account_id join (the Q2/Q12 contract shape)",
+  "name": "g2 dual — cross-graph account_id join (the Q2 contract shape)",
   "question": "for each account, what documents do we hold and where did they come from?",
   "expect": {
     "status": "grounded",

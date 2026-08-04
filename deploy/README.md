@@ -6,11 +6,9 @@ four live sources** — Postgres (CRM), Snowflake (usage telemetry), ClickHouse
 business key and citing every fact, **without moving any data**.
 
 > **What this proves:** the fabric's architecture, end to end — auto-derived
-> mappings, cross-source query decomposition, a deterministic join, grounded
-> citations, and honest refusals. It is an **internal / team** demo of the
-> machinery. The customer-facing "green metrics, red sentiment" story (Q12)
-> additionally needs the LLM extraction pass on the documents — see
-> [Limitations](#limitations).
+> mappings, cross-source query decomposition (incl. single-leg FILTER/OPTIONAL
+> pushdown), a deterministic join, grounded citations, and honest refusals. It is
+> an **internal / team** demo of the machinery across four live engines.
 
 ## Quick start
 
@@ -193,11 +191,11 @@ as-of timestamps, row counts), and the joined result.
   every leg must be reproducible. Without a key it falls back to the fixed
   registry of questions (the M9 "pre-run" mode), where an unlisted question
   **refuses honestly** rather than guessing.
-- **The Q12 centerpiece** ("every metric green, but the sentiment is red").
-  The documents are loaded as citable text, but their *sentiment/entities* are
-  not yet extracted — that is `customer-context`'s LLM extraction pipeline
-  (WP-P1.3-full). The join contract is identical, so it drops in without engine
-  changes.
+- **Document sentiment / entity extraction.** Documents are loaded as citable
+  text, but their *sentiment/entities* are not extracted. The former "green
+  metrics, red sentiment" centerpiece question (Q12), which needed that
+  extraction, was **dropped 2026-08-04**; the demo's cross-source risk story is
+  now carried by Q2 (renewal risk + WHY) over the loaded documents.
 
 ## Troubleshooting
 
