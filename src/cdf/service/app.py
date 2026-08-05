@@ -55,17 +55,26 @@ class FederationService:
         return _replace(envelope, conceptual_sparql=sparql)
 
     def federate_question(self, question: str, *, allow_partial: bool = False) -> AnswerEnvelope:
+        from dataclasses import replace as _replace
+
+        from cdf.service.metering import REGISTRY_METRICS, MeteredLLMClient
+
         sparql = self.prepared_questions.get(_normalize(question))
+        metrics = REGISTRY_METRICS if sparql is not None else None
         if sparql is None and self.nl_client is not None:
             # WP-D1: translate NL → conceptual SPARQL, grounded in the catalog
-            # and validated by the partitioner (refuse, never guess).
+            # and validated by the partitioner (refuse, never guess). The meter
+            # wraps the client so the envelope can report LLM time/tokens/cost.
             from cdf.query.nl import nl_to_sparql
 
-            result = nl_to_sparql(question, self.catalog, client=self.nl_client)
+            meter = MeteredLLMClient(self.nl_client)
+            result = nl_to_sparql(question, self.catalog, client=meter)
+            metrics = meter.metrics()
             if not result.ok:
                 return AnswerEnvelope(
                     status="refused", bindings=(), citations=(), retrieval_path=(),
                     refusal_reason=(result.error or "could not translate the question"),
+                    nl_metrics=metrics,
                 )
             sparql = result.sparql
         if sparql is None:
@@ -80,7 +89,8 @@ class FederationService:
                     "front-end is configured (set NL2SPARQL_API_KEY, or send 'sparql')"
                 ),
             )
-        return self.federate_sparql(sparql, allow_partial=allow_partial)
+        envelope = self.federate_sparql(sparql, allow_partial=allow_partial)
+        return _replace(envelope, nl_metrics=metrics)
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> FederationService:
@@ -260,14 +270,17 @@ def create_app(service: FederationService) -> Any:
         if service.nl_client is None:
             raise HTTPException(503, "no NL front-end configured (set NL2SPARQL_API_KEY)")
         from cdf.query.nl import nl_to_sparql
+        from cdf.service.metering import MeteredLLMClient
 
-        result = nl_to_sparql(req.question, service.catalog, client=service.nl_client)
+        meter = MeteredLLMClient(service.nl_client)
+        result = nl_to_sparql(req.question, service.catalog, client=meter)
         return {
             "question": result.question,
             "sparql": result.sparql,
             "ok": result.ok,
             "warnings": list(result.warnings),
             "error": result.error,
+            "nl_metrics": asdict(meter.metrics()),
         }
 
     return app
