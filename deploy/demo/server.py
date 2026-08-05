@@ -100,6 +100,9 @@ PAGE = """<!doctype html>
     padding:10px 18px; font-size:14px; font-weight:600; cursor:pointer; }
   button:disabled { opacity:.6; cursor:default; }
   .askbox { position:relative; }
+  button.clear-query { position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:transparent; color:var(--muted); padding:4px 8px; font-size:20px; line-height:1; }
+  button.clear-query:hover { color:var(--ink); }
   .sugg { display:none; position:absolute; left:0; right:0; top:100%; z-index:20;
     background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-top:4px;
     box-shadow:0 8px 24px rgba(0,0,0,.12); max-height:280px; overflow-y:auto; }
@@ -140,6 +143,15 @@ PAGE = """<!doctype html>
   .metrics span { font:11.5px/1.4 ui-monospace,Menlo,monospace; color:var(--muted);
     background:var(--code); border:1px solid var(--line); border-radius:6px; padding:4px 9px; }
   .metrics span b { color:var(--ink, #282828); font-weight:600; }
+  .workflow { display:flex; align-items:center; gap:8px; overflow-x:auto; padding:10px 2px 4px; }
+  .wf-step, .wf-source { border:1px solid var(--line); border-radius:8px; background:var(--code);
+    padding:8px 10px; min-width:112px; text-align:center; }
+  .wf-step b { display:block; font-size:12.5px; white-space:nowrap; }
+  .wf-step small, .wf-source small { display:block; color:var(--muted); font-size:10.5px;
+    white-space:nowrap; margin-top:2px; }
+  .wf-arrow { color:var(--muted); font-size:18px; flex:0 0 auto; }
+  .wf-sources { display:grid; gap:5px; flex:0 0 auto; }
+  .wf-source { min-width:160px; padding:6px 8px; }
 </style></head>
 <body><div class="wrap">
   <h1>Contextual Data Fabric — Federated Query</h1>
@@ -154,7 +166,9 @@ PAGE = """<!doctype html>
     <div class="askbox">
       <input id="nlq" type="text" placeholder="Type a question, or click here for the prepared ones…"
              autocomplete="off" role="combobox" aria-expanded="false" aria-controls="suggest"
-             style="width:100%;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px">
+             style="width:100%;margin:8px 0;padding:10px 40px 10px 10px;border:1px solid var(--line);border-radius:8px;font-size:15px">
+      <button id="clear-query" class="clear-query" type="button" onclick="clearQuestion()"
+              aria-label="Clear question" title="Clear question">×</button>
       <div id="suggest" class="sugg" role="listbox" aria-label="Prepared questions"></div>
     </div>
     <div class="row" style="margin-top:10px">
@@ -166,8 +180,8 @@ PAGE = """<!doctype html>
   </div>
 
   <details id="advanced" class="card">
-    <summary style="font-weight:600;color:inherit;font-size:14px">Advanced
-      <span class="meta" style="font-weight:400">— conceptual query (editable), per-source decomposition, transpiled SQL/AQL</span>
+    <summary style="font-weight:600;color:inherit;font-size:14px">Provenance &amp; Execution
+      <span class="meta" style="font-weight:400">— workflow, conceptual query, source decomposition, transpiled SQL/AQL</span>
     </summary>
     <h2 style="margin-top:14px">Conceptual query — one question over the ontology</h2>
     <p class="meta" style="margin:2px 0 0">Asking a question fills this in with the conceptual
@@ -235,6 +249,13 @@ function openSuggestions() {
   document.getElementById('nlq').setAttribute('aria-expanded', 'true');
 }
 
+function clearQuestion() {
+  const input = document.getElementById('nlq');
+  input.value = '';
+  input.focus();
+  openSuggestions();
+}
+
 function closeSuggestions() {
   document.getElementById('suggest').classList.remove('open');
   document.getElementById('nlq').setAttribute('aria-expanded', 'false');
@@ -292,7 +313,7 @@ function render(d, out) {
   const summary = legs.map(s =>
     `${esc(s.source_id)} (${s.status==='ok' ? s.row_count+' rows' : esc(s.status)})`).join(' + ');
   if (legs.length) out.appendChild(el(
-    `<div class="meta" style="margin:4px 2px 10px">federated across ${summary} — every claim cited (see Advanced, above)</div>`));
+    `<div class="meta" style="margin:4px 2px 10px">federated across ${summary} — every claim cited (see Provenance &amp; Execution, above)</div>`));
 
   out.appendChild(el('<h2>Answer</h2>'));
   const rows = d.bindings||[];
@@ -305,12 +326,39 @@ function render(d, out) {
       }</tbody></table></div>`));
   }
 
-  // ---- Advanced panel (the single expander between question and answer):
+  // ---- Provenance panel (the single expander between question and answer):
   //      the editable conceptual-query box reflects what actually ran, and
   //      the decomposition + transpiled queries render beneath it. ----
   if (d.conceptual_sparql) document.getElementById('q').value = d.conceptual_sparql;
   const body = document.getElementById('advbody');
   body.innerHTML = '';
+
+  const sourceNodes = legs.length ? legs.map(s =>
+    `<div class="wf-source">${srcTag(s.kind, s.source_id)}
+       <small>${esc(s.status)} · ${Number(s.row_count || 0).toLocaleString()} rows</small></div>`
+  ).join('') : '<div class="wf-source"><small>no routed sources</small></div>';
+  const inputKind = d.nl_metrics ? 'Ask' : 'SPARQL input';
+  const inputDetail = d.nl_metrics
+    ? (d.nl_metrics.path === 'registry' ? 'prepared translation' : 'LLM translation')
+    : 'direct query';
+  const answerLabel = d.status === 'refused' ? 'Refused' :
+    (d.status === 'partial' ? 'Partial answer' : 'Grounded answer');
+  body.appendChild(el(`<section aria-label="Query provenance workflow">
+    <h2>Execution workflow — what happened</h2>
+    <div class="workflow">
+      <div class="wf-step"><b>${inputKind}</b><small>${inputDetail}</small></div>
+      <span class="wf-arrow" aria-hidden="true">→</span>
+      <div class="wf-step"><b>Conceptual query</b><small>ontology SPARQL</small></div>
+      <span class="wf-arrow" aria-hidden="true">→</span>
+      <div class="wf-step"><b>Federate</b><small>partition by owner</small></div>
+      <span class="wf-arrow" aria-hidden="true">→</span>
+      <div class="wf-sources">${sourceNodes}</div>
+      <span class="wf-arrow" aria-hidden="true">→</span>
+      <div class="wf-step"><b>Join</b><small>reassemble bindings</small></div>
+      <span class="wf-arrow" aria-hidden="true">→</span>
+      <div class="wf-step"><b>${answerLabel}</b><small>answer + citations</small></div>
+    </div>
+  </section>`));
 
   body.appendChild(el('<h2>Partition by source — decomposed conceptual queries</h2>'));
   legs.forEach(s => {
