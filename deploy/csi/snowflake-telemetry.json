@@ -30,7 +30,12 @@
             "name": "isPeakPeriod"
           },
           {
-            "name": "period"
+            "name": "period",
+            "sampleValues": [
+              "2024-Q4",
+              "2025-Q1",
+              "2025-Q2"
+            ]
           },
           {
             "name": "queriesPerNodeM"
@@ -48,7 +53,12 @@
             "name": "smartgraphsEnabled"
           },
           {
-            "name": "volumeTrend"
+            "name": "volumeTrend",
+            "sampleValues": [
+              "baseline",
+              "falling",
+              "rising"
+            ]
           }
         ]
       }

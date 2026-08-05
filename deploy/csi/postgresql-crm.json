@@ -212,13 +212,21 @@
             "name": "currentAcvUsd"
           },
           {
-            "name": "currentProductTier"
+            "name": "currentProductTier",
+            "sampleValues": [
+              "ArangoGraph",
+              "Enterprise"
+            ]
           },
           {
             "name": "deploymentDate"
           },
           {
-            "name": "healthBand"
+            "name": "healthBand",
+            "sampleValues": [
+              "healthy",
+              "watch"
+            ]
           },
           {
             "name": "healthScore"
@@ -242,7 +250,10 @@
             "name": "seatsSold"
           },
           {
-            "name": "segment"
+            "name": "segment",
+            "sampleValues": [
+              "Enterprise"
+            ]
           }
         ]
       }

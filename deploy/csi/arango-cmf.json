@@ -30,8 +30,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-19T22:50:07Z",
-        "firstSeenAt": "2026-07-19T22:50:07Z"
+        "lastValidatedAt": "2026-07-30T20:04:29Z",
+        "firstSeenAt": "2026-07-30T20:04:29Z"
       },
       {
         "name": "Document",
@@ -65,16 +65,26 @@
           },
           {
             "name": "role",
-            "type": "string"
+            "type": "string",
+            "sampleValues": [
+              "signal",
+              "noise",
+              "near-miss"
+            ]
           },
           {
             "name": "source",
-            "type": "string"
+            "type": "string",
+            "sampleValues": [
+              "email",
+              "gong",
+              "slack"
+            ]
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-19T22:50:07Z",
-        "firstSeenAt": "2026-07-19T22:50:07Z"
+        "lastValidatedAt": "2026-07-30T20:04:29Z",
+        "firstSeenAt": "2026-07-30T20:04:29Z"
       },
       {
         "name": "Ticket",
@@ -92,7 +102,11 @@
           },
           {
             "name": "severity",
-            "type": "string"
+            "type": "string",
+            "sampleValues": [
+              "high",
+              "low"
+            ]
           },
           {
             "name": "subject",
@@ -100,8 +114,8 @@
           }
         ],
         "source": "baseline",
-        "lastValidatedAt": "2026-07-19T22:50:07Z",
-        "firstSeenAt": "2026-07-19T22:50:07Z"
+        "lastValidatedAt": "2026-07-30T20:04:29Z",
+        "firstSeenAt": "2026-07-30T20:04:29Z"
       }
     ],
     "relationships": [],
@@ -130,8 +144,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-19T22:50:07Z",
-        "firstSeenAt": "2026-07-19T22:50:07Z"
+        "lastValidatedAt": "2026-07-30T20:04:29Z",
+        "firstSeenAt": "2026-07-30T20:04:29Z"
       },
       "Document": {
         "style": "COLLECTION",
@@ -163,8 +177,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-19T22:50:07Z",
-        "firstSeenAt": "2026-07-19T22:50:07Z"
+        "lastValidatedAt": "2026-07-30T20:04:29Z",
+        "firstSeenAt": "2026-07-30T20:04:29Z"
       },
       "Ticket": {
         "style": "COLLECTION",
@@ -184,8 +198,8 @@
           }
         },
         "source": "baseline",
-        "lastValidatedAt": "2026-07-19T22:50:07Z",
-        "firstSeenAt": "2026-07-19T22:50:07Z"
+        "lastValidatedAt": "2026-07-30T20:04:29Z",
+        "firstSeenAt": "2026-07-30T20:04:29Z"
       }
     },
     "relationships": {},
@@ -236,7 +250,7 @@
       "kind": "arango",
       "ref": "cmf"
     },
-    "generatedAt": "2026-07-19T22:50:07Z",
+    "generatedAt": "2026-07-30T20:04:29Z",
     "confidence": 0.1
   }
 }

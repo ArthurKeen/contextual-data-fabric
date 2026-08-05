@@ -1,8 +1,8 @@
 {
   "catalogManifestVersion": "1",
   "conceptBase": "urn:arango-sparql:concept#",
-  "contentHash": "f3c420ec3e6910ca541f53543e633c577a43b3cbc27c38db0ab1420adc42511d",
-  "generation": "sha256:424ea0a4885e084c2f9d1119b83a84e58093de6c6db8f191ce477fc1ee1e8423",
+  "contentHash": "66c674eb68388a2e0315ba61d2237a227fb8701667cf181738dd29c26b0429bf",
+  "generation": "sha256:946b6976e71ba2663a59561483e074981ed9023739afe94cecfd82fa131f435e",
   "sources": [
     {
       "auth": {
@@ -16,10 +16,10 @@
       ],
       "csi": {
         "direction": "reverse",
-        "generation": "2026-07-19T22:50:07Z",
+        "generation": "2026-08-05T19:00:59Z",
         "path": "deploy/csi/arango-cmf.json",
         "producer": "arango-schema-analyzer",
-        "sha256": "c061d0be151a7a79c6859b69010d3c299a25dda53367d9448f5c7c9c85b5e8f8"
+        "sha256": "2933f4fec7609e0b279490071f75ee32a7a89debbf669d43979c1946f035d924"
       },
       "entitlements": {
         "allowedRoles": [],
@@ -153,7 +153,7 @@
         "generation": "2026-07-22T22:12:21.693927+00:00",
         "path": "deploy/csi/postgresql-crm.json",
         "producer": "r2g",
-        "sha256": "e51d0213a5432b7c89f3e815a05cca685f2129dd2d56ecc24d9a68edaedaf48c"
+        "sha256": "b513a09912e32f07938c0e3ec21ac531f49ec2aae0259f72310f5b2aaa14478f"
       },
       "entitlements": {
         "allowedRoles": [],
@@ -228,7 +228,7 @@
         "generation": "2026-07-22T22:09:16.862530+00:00",
         "path": "deploy/csi/snowflake-telemetry.json",
         "producer": "r2g",
-        "sha256": "ba9f732696e3f500a092e5363c4903c732d42281c57c611ed9323771a2bbb976"
+        "sha256": "cd99bc4ae04b7ccf4802191051725b8294b46d0662b01390bc23b4b4e2d6e205"
       },
       "entitlements": {
         "allowedRoles": [],
