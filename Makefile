@@ -45,7 +45,10 @@ CK25_EVIDENCE ?= docs/evidence/ck25-gpt-4o-mini-3x.json
 install:
 	python3 -m venv .venv
 	$(PY) -m pip install -q --upgrade pip
-	$(PY) -m pip install -e ".[test,service,mcp,auth,dev]" "psycopg[binary]" python-arango snowflake-connector-python
+	# clickhouse-connect is lazy-imported by the ClickHouse adapter, but g7 is a
+	# gate case — without it that leg silently contributes nothing and the live
+	# test skips rather than fails, so `make gate` cannot pass from a fresh clone.
+	$(PY) -m pip install -e ".[test,service,mcp,auth,dev]" "psycopg[binary]" python-arango snowflake-connector-python clickhouse-connect
 	# Owned sibling libraries: local checkout if present, else public GitHub.
 	# The [nl] extra pulls the NL engine (arango-query-core + openai/anthropic) so
 	# the free-form NL front-end is wired — without it default_client() degrades to
