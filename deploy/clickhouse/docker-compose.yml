@@ -18,6 +18,9 @@ services:
       - "${CDF_CLICKHOUSE_TCP_PORT:-9000}:9000"
     volumes:
       - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+      # Named, so the seeded analytics DB survives a recreate — see the arango
+      # compose note.
+      - cdf-clickhouse-data:/var/lib/clickhouse
     ulimits:
       nofile:
         soft: 262144
@@ -27,3 +30,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+volumes:
+  cdf-clickhouse-data:
