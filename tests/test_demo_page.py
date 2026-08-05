@@ -23,6 +23,8 @@ def test_suggestions_are_a_dropdown_not_inline_chips() -> None:
     assert 'id="suggest"' in PAGE_SOURCE
     assert 'role="combobox"' in PAGE_SOURCE
     assert 'role="listbox"' in PAGE_SOURCE
+    assert 'id="clear-query"' in PAGE_SOURCE
+    assert 'onclick="clearQuestion()"' in PAGE_SOURCE
     # The old always-visible chip row must not come back.
     assert 'id="examples"' not in PAGE_SOURCE
     assert '"chip"' not in PAGE_SOURCE
@@ -34,6 +36,9 @@ def test_suggestions_are_a_dropdown_not_inline_chips() -> None:
         "addEventListener('focus', openSuggestions)",
         "addEventListener('input', openSuggestions)",
         "addEventListener('blur', closeSuggestions)",
+        "function clearQuestion()",
+        "input.value = '';",
+        "input.focus();",
         # mousedown (not click) so selection wins the race against the
         # input's blur closing the list — the bug this UI pattern invites.
         "item.onmousedown",
@@ -56,3 +61,13 @@ def test_ask_window_renders_llm_metrics() -> None:
     assert "prompt_tokens" in PAGE_SOURCE
     assert "completion_tokens" in PAGE_SOURCE
     assert "cost_usd" in PAGE_SOURCE
+
+
+def test_provenance_panel_renders_actual_execution_workflow() -> None:
+    assert "Provenance &amp; Execution" in PAGE_SOURCE
+    assert 'aria-label="Query provenance workflow"' in PAGE_SOURCE
+    for step in ("Conceptual query", "Federate", "Join", "Grounded answer"):
+        assert step in PAGE_SOURCE
+    assert "legs.map(s =>" in PAGE_SOURCE
+    assert "srcTag(s.kind, s.source_id)" in PAGE_SOURCE
+    assert "s.row_count" in PAGE_SOURCE
