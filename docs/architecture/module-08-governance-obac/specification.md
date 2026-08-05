@@ -39,6 +39,37 @@ The governance layer that turns the fabric from a query tool into the enterprise
 - **FR-3:** Declarative source accessors (replace per-source scripts).
 - **FR-4:** Explore SHACL/constraint extraction from the ontology extractor for policy encoding.
 
+### 4.1 P3 WP-15/WP-17/WP-18 query-policy layer (2026-08-05)
+
+[ADR-0004](../module-05-federated-query-engine/adr/ADR-0004-identity-planes-and-policy-enforcement.md)
+now fixes the contracts that policy enforcement will consume:
+
+- steward/build and asker/query identities are separate planes; this increment
+  implements only the asker/query runtime plane;
+- generic OIDC authentication terminates at HTTP/MCP edges and produces an
+  immutable, bearer-free `RequestContext` with an `(issuer, subject)` principal,
+  tenant-ready attributes, purpose, IDs, and absolute deadline;
+- the PDP contract and production client are OpenFGA-compatible centralized
+  ReBAC, with allow/rewrite/deny at both preflight and postflight, layered over
+  source-native controls;
+- citations and cross-source bind seeds are governed data, not policy-free
+  provenance;
+- source auth is explicitly `service` or `delegated`; delegated mode fails
+  closed unless a broker and context-aware adapter are both present.
+
+CDF now enforces the M11 catalog policy subset at query time: role/group/scope/
+purpose checks, per-source/concept/property classification and masks,
+principal-bound row scope, source-disclosure controls, governed bind seeds,
+post-join masking, postflight re-evaluation, citation redaction, and policy-
+filtered HTTP/MCP introspection. Service-mode fabric masking/row pushdown is
+default-denied unless the manifest explicitly trusts that PEP operation.
+
+CDF still does **not** provision an OpenFGA service/model/store/tuples, IdP, RFC
+8693 STS, Snowflake external OAuth integration, Postgres impersonation mapping,
+or source RLS/masking policy. The OpenFGA backend is a bounded fail-closed
+client, and tests use an injected offline transport. Those external/control-
+plane dependencies must exist and be tested before production enablement.
+
 ## 5. Non-functional requirements
 Policy defined once; enforcement auditable/cited; no policy logic duplicated into agents.
 

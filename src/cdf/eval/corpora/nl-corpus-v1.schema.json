@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arangodb.com/contextual-data-fabric/nl-corpus-v1.schema.json",
+  "title": "Contextual Data Fabric NL Corpus v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "corpus_version", "examples"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "corpus_version": {"type": "string", "minLength": 1},
+    "examples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "question", "aliases", "expected"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "question": {"type": "string", "minLength": 1},
+          "aliases": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sparql", "sources", "join_keys", "refusal"],
+            "properties": {
+              "sparql": {"type": ["string", "null"]},
+              "sources": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "join_keys": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"type": "string", "pattern": "^\\?"}
+              },
+              "refusal": {"type": "boolean"},
+              "refusal_reason_contains": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "path": {"enum": ["deterministic", "llm", "refuse"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

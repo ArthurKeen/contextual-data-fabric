@@ -94,6 +94,7 @@ class ArangoExecutor:
         bundle: Any | None = None,
         resolver: Any | None = None,
         db: Any | None = None,
+        client: Any | None = None,
         translate: Translate | None = None,
         transport: Transport | None = None,
         source_objects: tuple[str, ...] = (),
@@ -107,6 +108,7 @@ class ArangoExecutor:
                 via A3), a ready ``MappingBundle``, or a built ``SchemaResolver``.
                 One is required unless ``translate`` is supplied.
             db: a python-arango database handle for the default transport.
+            client: optional owning python-arango client, retained for close.
             translate / transport: dependency-injection seams (tests, or a custom
                 engine). Override the CSI→resolver→AQL step and the DB call.
             source_objects: physical objects served (collections/edges), cited on
@@ -129,6 +131,8 @@ class ArangoExecutor:
 
         self._translate = translate
         self._transport = transport
+        self._db = db
+        self._client = client
         self._source_objects = tuple(source_objects)
         self._clock = clock or (lambda: datetime.now(timezone.utc).isoformat())
 
@@ -143,3 +147,11 @@ class ArangoExecutor:
             as_of=self._clock(),
             source_objects=self._source_objects,
         )
+
+    def close(self) -> None:
+        """Close the python-arango handle when its implementation supports it."""
+        close = getattr(self._client, "close", None)
+        if not callable(close):
+            close = getattr(self._db, "close", None)
+        if callable(close):
+            close()

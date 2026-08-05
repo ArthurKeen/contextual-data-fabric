@@ -3,10 +3,10 @@
 Turns an English question into a conceptual SPARQL query the federation engine
 can run. It **harvests the owned LLM client** from ``arango-sparql-py``'s
 ``nl2sparql`` package (provider-agnostic, env-driven — the same engine adapted
-from ``arango-cypher-py``'s NL work) but grounds the prompt in the **federation
-catalog** (concepts across *all* sources) and validates the model's output with
-**E1 ``partition_query``**, not an Arango-only AQL transpile — so a cross-source
-query (e.g. an Account in Postgres joined to a Ticket in Arango) is accepted.
+from ``arango-cypher-py``'s NL work) but grounds the prompt in the caller's
+**authorized projection of the federation catalog** and validates the model's
+output with **E1 ``partition_query``**, not an Arango-only AQL transpile — so an
+authorized cross-source query is accepted.
 
 Contract, tuned to the fabric's "refuse over guess" principle:
 
@@ -25,8 +25,11 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
+
+from cdf.eval.nl_corpus import CorpusExample, FewShotRetriever
 
 from .catalog import SourceCatalog
 from .planner import UnsupportedQueryError, partition_query
@@ -72,7 +75,11 @@ def default_client() -> Any | None:
     return get_default_client()
 
 
-def build_system_prompt(catalog: SourceCatalog) -> str:
+def build_system_prompt(
+    catalog: SourceCatalog,
+    *,
+    vocabulary: Sequence[Mapping[str, Any]] | None = None,
+) -> str:
     """Ground the model in exactly the concepts the catalog knows."""
     base = catalog.concept_base
     lines = [
@@ -85,7 +92,7 @@ def build_system_prompt(catalog: SourceCatalog) -> str:
         "used only on a subject typed as the class that owns it:",
         "",
     ]
-    for src in catalog.vocabulary():
+    for src in vocabulary if vocabulary is not None else catalog.vocabulary():
         lines.append(f"# source {src['source_id']} ({src['kind']})")
         for cls in src["classes"]:
             props = ", ".join(cls["properties"]) or "(no properties)"
@@ -121,6 +128,94 @@ def build_system_prompt(catalog: SourceCatalog) -> str:
     return "\n".join(lines)
 
 
+class AuthorizedFewShotRetriever:
+    """Filter prompt examples to an already-authorized vocabulary projection."""
+
+    def __init__(
+        self,
+        retriever: FewShotRetriever,
+        vocabulary: Sequence[Mapping[str, Any]],
+        concept_base: str,
+    ) -> None:
+        self.retriever = retriever
+        self.concept_base = concept_base
+        self.source_ids = frozenset(str(item["source_id"]) for item in vocabulary)
+        self.concepts = frozenset(
+            str(concept["name"])
+            for item in vocabulary
+            for concept in item.get("classes", ())
+        )
+        self.properties = frozenset(
+            str(prop)
+            for item in vocabulary
+            for concept in item.get("classes", ())
+            for prop in concept.get("properties", ())
+        )
+        self.relationships = frozenset(
+            str(relationship)
+            for item in vocabulary
+            for relationship in item.get("relationships", ())
+        )
+
+    def retrieve(self, question: str, *, top_k: int) -> Sequence[CorpusExample]:
+        if top_k <= 0:
+            return ()
+        corpus = getattr(self.retriever, "corpus", None)
+        available = len(getattr(corpus, "examples", ()))
+        candidate_limit = max(top_k, available, top_k * 10)
+        examples = self.retriever.retrieve(question, top_k=candidate_limit)
+        allowed_names = self.concepts | self.properties | self.relationships
+        filtered: list[CorpusExample] = []
+        for example in examples:
+            if example.refusal or example.sparql is None:
+                continue
+            if not set(example.expected_sources).issubset(self.source_ids):
+                continue
+            referenced = frozenset(
+                re.findall(r"\bc:([A-Za-z_][A-Za-z0-9_]*)", example.sparql)
+            )
+            referenced |= frozenset(
+                re.findall(
+                    rf"<{re.escape(self.concept_base)}([^>]+)>",
+                    example.sparql,
+                )
+            )
+            if not referenced.issubset(allowed_names):
+                continue
+            filtered.append(example)
+            if len(filtered) == top_k:
+                break
+        return tuple(filtered)
+
+
+def build_few_shot_section(
+    question: str,
+    retriever: FewShotRetriever | None,
+    *,
+    top_k: int,
+) -> str:
+    """Render retrieved examples as prompt guidance, never executable routing."""
+    if retriever is None or top_k <= 0:
+        return ""
+    examples = retriever.retrieve(question, top_k=top_k)
+    if not examples:
+        return ""
+    lines = [
+        "",
+        "Trusted examples (guidance only; do not copy entity-specific constants",
+        "unless the current user explicitly supplied the same entity):",
+    ]
+    for example in examples:
+        answer = "REFUSE" if example.refusal else (example.sparql or "REFUSE")
+        lines.extend(
+            [
+                f"Example question: {example.question}",
+                f"Example answer: {answer}",
+            ]
+        )
+    return "\n".join(lines)
+
+
 _SPARQL_FENCE = re.compile(r"```(?:sparql)?\s*(.+?)```", re.IGNORECASE | re.DOTALL)
 _SPARQL_START = re.compile(r"(?is)\b(PREFIX|SELECT|ASK|CONSTRUCT|DESCRIBE)\b")
 
@@ -149,6 +244,9 @@ def nl_to_sparql(
     *,
     client: Any,
     max_repairs: int = 2,
+    few_shot_retriever: FewShotRetriever | None = None,
+    few_shot_top_k: int = 3,
+    vocabulary: Sequence[Mapping[str, Any]] | None = None,
 ) -> NlResult:
     """Translate ``question`` to a catalog-grounded, partition-valid SPARQL query.
 
@@ -157,13 +255,27 @@ def nl_to_sparql(
         catalog: the federation catalog (grounds the prompt + validates output).
         client: an ``LLMClient`` (``generate(messages) -> response.content``).
         max_repairs: how many times to feed a validation error back to the model.
+        few_shot_retriever: optional prompt-example retrieval seam. Retrieved
+            queries are context only and are never returned directly.
+        few_shot_top_k: maximum prompt examples to retrieve.
+        vocabulary: optional policy-projected vocabulary used for prompt
+            construction. Query validation still uses the full local catalog;
+            callers must retain final plan authorization.
 
     Returns:
         An :class:`NlResult`. ``ok`` is ``True`` only when the query parsed, used
         known concepts, and routed to ≥1 source; otherwise it is **refused**.
     """
+    system_prompt = build_system_prompt(
+        catalog,
+        vocabulary=vocabulary,
+    ) + build_few_shot_section(
+        question,
+        few_shot_retriever,
+        top_k=few_shot_top_k,
+    )
     messages = [
-        {"role": "system", "content": build_system_prompt(catalog)},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": question},
     ]
     warnings: list[str] = []

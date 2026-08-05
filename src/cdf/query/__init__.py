@@ -26,30 +26,85 @@ the executor (E2), the per-source query generators (Ontop/R2RML relational leg,
 ``arango-sparql-py`` AQL leg), and provenance (E3) consume.
 """
 
-from .catalog import SourceCatalog
+from cdf.resolution import (
+    ResolutionEvent,
+    ResolutionLegMetrics,
+    ResolutionPlanMetrics,
+    ResolutionRefusal,
+    ResolutionShortfall,
+)
+
+from .admission import AdmissionRefusal, PlanAdmissionPolicy
+from .assembly import (
+    ArangoAssemblyBackend,
+    AssemblyBackend,
+    AssemblyExecution,
+    AssemblyJob,
+    AssemblyMetrics,
+    AssemblyPolicy,
+    AssemblyRefusal,
+    ExecutionMode,
+)
+from .catalog import (
+    ClassStatistics,
+    PropertyStatistics,
+    SourceCatalog,
+    SourceStatistics,
+    parse_csi_statistics,
+)
 from .executor import (
+    ContextAwareSourceExecutor,
     FederatedResult,
+    LegExecutionMetrics,
+    PlanExecutionMetrics,
     RetrievalStep,
     SourceExecutor,
     SourceResult,
     execute_plan,
 )
 from .grounding import AnswerEnvelope, Citation, ground
+from .optimizer import LegEstimate, PlanEstimate, SeedDirection, estimate_plan
 from .planner import UnsupportedQueryError, partition_query
 from .types import PartitionPlan, SourceRef, SubQuery, TriplePattern
 
 __all__ = [
     "SourceCatalog",
+    "SourceStatistics",
+    "ClassStatistics",
+    "PropertyStatistics",
+    "parse_csi_statistics",
     "partition_query",
     "UnsupportedQueryError",
     "execute_plan",
     "SourceExecutor",
+    "ContextAwareSourceExecutor",
     "SourceResult",
     "RetrievalStep",
     "FederatedResult",
+    "LegExecutionMetrics",
+    "PlanExecutionMetrics",
     "ground",
     "AnswerEnvelope",
     "Citation",
+    "PlanAdmissionPolicy",
+    "AdmissionRefusal",
+    "ExecutionMode",
+    "AssemblyBackend",
+    "AssemblyJob",
+    "AssemblyExecution",
+    "AssemblyMetrics",
+    "AssemblyPolicy",
+    "AssemblyRefusal",
+    "ArangoAssemblyBackend",
+    "estimate_plan",
+    "PlanEstimate",
+    "LegEstimate",
+    "SeedDirection",
+    "ResolutionEvent",
+    "ResolutionLegMetrics",
+    "ResolutionPlanMetrics",
+    "ResolutionRefusal",
+    "ResolutionShortfall",
     "PartitionPlan",
     "SourceRef",
     "SubQuery",

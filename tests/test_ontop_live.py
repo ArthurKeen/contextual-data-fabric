@@ -18,6 +18,7 @@ from cdf.adapters import OntopExecutor
 from cdf.query.types import SourceRef, SubQuery
 
 ENDPOINT = os.getenv("ONTOP_SPARQL_ENDPOINT")
+REFORMULATE_ENDPOINT = os.getenv("ONTOP_REFORMULATE_ENDPOINT")
 
 pytestmark = pytest.mark.skipif(
     not ENDPOINT, reason="set ONTOP_SPARQL_ENDPOINT to run the live Ontop test"
@@ -37,7 +38,12 @@ def test_live_ontop_answers_a_subquery():
             "<urn:arango-sparql:concept#accountName> ?name . }"
         ),
     )
-    executor = OntopExecutor(endpoint=ENDPOINT, source_objects=("public.accounts",), timeout=15.0)
+    executor = OntopExecutor(
+        endpoint=ENDPOINT,
+        reformulate_endpoint=REFORMULATE_ENDPOINT,
+        source_objects=("public.accounts",),
+        timeout=15.0,
+    )
     try:
         result = executor.execute(sq)
     except (urllib.error.URLError, ConnectionError) as exc:  # pragma: no cover
@@ -48,3 +54,8 @@ def test_live_ontop_answers_a_subquery():
     assert len(names) == 3, f"expected the 3 corpus accounts, got {names}"
     assert result.as_of is not None
     assert result.source_objects == ("public.accounts",)
+    if REFORMULATE_ENDPOINT:
+        assert result.native_query is not None
+        assert result.native_query.upper().startswith(("SELECT", "WITH"))
+        assert "ACCOUNTS" in result.native_query.upper()
+        assert "CONSTRUCT [" not in result.native_query

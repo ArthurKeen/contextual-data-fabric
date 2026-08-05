@@ -488,6 +488,44 @@
     },
     "relationships": {}
   },
+  "statistics": {
+    "version": "1",
+    "snapshotId": "demo-postgresql-crm-2026-08-05",
+    "asOf": "2026-08-05T00:00:00Z",
+    "source": {
+      "rowCount": 25000,
+      "estimatedBytes": 12500000,
+      "costPerGbUsd": 0.01
+    },
+    "classes": {
+      "Account": {
+        "rowCount": 3000,
+        "estimatedBytes": 1500000,
+        "properties": {
+          "accountId": {
+            "ndv": 3000
+          },
+          "healthBand": {
+            "ndv": 4,
+            "selectivity": 0.25
+          }
+        }
+      },
+      "Contract": {
+        "rowCount": 4200,
+        "estimatedBytes": 2100000,
+        "properties": {
+          "accountId": {
+            "ndv": 2900
+          },
+          "status": {
+            "ndv": 6,
+            "selectivity": 0.1666666667
+          }
+        }
+      }
+    }
+  },
   "provenance": {
     "producer": "r2g",
     "producerVersion": "0.2.0",

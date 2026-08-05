@@ -43,9 +43,38 @@ def test_parses_bindings_and_coerces_datatypes():
     assert result.rows == ({"name": "Acme", "arr": 50000},)  # integer coerced
     assert result.source_objects == ("public.accounts",)
     assert result.as_of == "T0"
-    assert result.native_query == _SQ.sparql
+    assert result.native_query is None
     # The adapter sent the sub-query's SPARQL verbatim.
     assert captured["sparql"] == _SQ.sparql
+
+
+def test_records_ontop_reformulated_sql_as_native_query():
+    captured = {}
+
+    def reformulate(sparql):
+        captured["sparql"] = sparql
+        return 'SELECT "name" FROM "accounts"'
+
+    result = OntopExecutor(
+        transport=lambda _q: _results([]),
+        reformulate_transport=reformulate,
+    ).execute(_SQ)
+
+    assert captured["sparql"] == _SQ.sparql
+    assert result.native_query == 'SELECT "name" FROM "accounts"'
+
+
+def test_reformulation_failure_does_not_fail_successful_query():
+    def unavailable(_sparql):
+        raise ConnectionError("reformulation endpoint unavailable")
+
+    result = OntopExecutor(
+        transport=lambda _q: _results([]),
+        reformulate_transport=unavailable,
+    ).execute(_SQ)
+
+    assert result.rows == ()
+    assert result.native_query is None
 
 
 def test_coerces_decimal_boolean_and_leaves_strings():

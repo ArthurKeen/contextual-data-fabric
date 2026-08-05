@@ -38,6 +38,7 @@ import threading
 from collections.abc import Callable
 from collections.abc import Mapping as _Mapping
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from rdflib import RDF, Literal, URIRef
@@ -58,11 +59,94 @@ from cdf.adapters.clickhouse import (
 from cdf.query.executor import Binding, SourceResult
 from cdf.query.types import SubQuery
 
-__all__ = ["SnowflakeExecutor", "SnowflakeError", "compile_sql", "parse_r2rml"]
+__all__ = [
+    "SnowflakeExecutor",
+    "SnowflakeError",
+    "build_snowflake_connect_args",
+    "validate_snowflake_connect_args",
+    "compile_sql",
+    "parse_r2rml",
+]
 
 
 class SnowflakeError(ValueError):
     """Raised when an R2RML mapping or a sub-query cannot be compiled."""
+
+
+def build_snowflake_connect_args(
+    environ: _Mapping[str, str],
+    *,
+    role_env: str = "SNOWFLAKE_ROLE",
+) -> dict[str, str]:
+    """Build validated connector kwargs without reading private-key contents.
+
+    Password and key-pair authentication are deliberately exclusive. The
+    connector receives ``authenticator="SNOWFLAKE_JWT"`` plus the supported
+    ``private_key_file`` / ``private_key_file_pwd`` arguments and reads the key
+    itself at connection time; the fabric never loads key bytes into a mapping,
+    log, metric, or answer envelope.
+    """
+    args = {
+        "account": environ.get("SNOWFLAKE_ACCOUNT"),
+        "user": environ.get("SNOWFLAKE_USER"),
+        "password": environ.get("SNOWFLAKE_PASSWORD"),
+        "private_key_file": environ.get("SNOWFLAKE_PRIVATE_KEY_FILE"),
+        "private_key_file_pwd": environ.get("SNOWFLAKE_PRIVATE_KEY_FILE_PWD"),
+        "warehouse": environ.get("SNOWFLAKE_WAREHOUSE"),
+        "database": environ.get("SNOWFLAKE_DATABASE"),
+        "schema": environ.get("SNOWFLAKE_SCHEMA"),
+        "role": environ.get(role_env),
+    }
+    return validate_snowflake_connect_args(args)
+
+
+def validate_snowflake_connect_args(
+    connect_args: _Mapping[str, str | None],
+) -> dict[str, str]:
+    """Validate canonical Snowflake connector fields from any secret backend."""
+    account = connect_args.get("account")
+    user = connect_args.get("user")
+    password = connect_args.get("password")
+    private_key_file = connect_args.get("private_key_file")
+    private_key_file_pwd = connect_args.get("private_key_file_pwd")
+
+    if not account:
+        raise ValueError("SNOWFLAKE_ACCOUNT is required")
+    if not user:
+        raise ValueError("SNOWFLAKE_USER is required")
+    if password and private_key_file:
+        raise ValueError(
+            "configure exactly one Snowflake authentication method: "
+            "SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_FILE"
+        )
+    if private_key_file_pwd and not private_key_file:
+        raise ValueError(
+            "SNOWFLAKE_PRIVATE_KEY_FILE_PWD requires SNOWFLAKE_PRIVATE_KEY_FILE"
+        )
+    if not password and not private_key_file:
+        raise ValueError(
+            "Snowflake authentication requires SNOWFLAKE_PASSWORD or "
+            "SNOWFLAKE_PRIVATE_KEY_FILE"
+        )
+    if private_key_file and not Path(private_key_file).is_file():
+        raise ValueError("SNOWFLAKE_PRIVATE_KEY_FILE must name an existing file")
+
+    args: dict[str, str | None] = {
+        "account": account,
+        "user": user,
+        "warehouse": connect_args.get("warehouse"),
+        "database": connect_args.get("database"),
+        "schema": connect_args.get("schema"),
+        "role": connect_args.get("role"),
+    }
+    if private_key_file:
+        args["authenticator"] = "SNOWFLAKE_JWT"
+        args["private_key_file"] = private_key_file
+        if private_key_file_pwd:
+            args["private_key_file_pwd"] = private_key_file_pwd
+    else:
+        args["password"] = password
+    return {key: value for key, value in args.items() if value}
 
 
 # ---------------------------------------------------------------------------
@@ -194,8 +278,9 @@ _POOL_MAX = 4
 #: 390114 ("Authentication token has expired. The user must authenticate again.")
 #: is the one pooling exposes: a session idling in the pool past the master-token
 #: TTL (~4h default) can no longer renew, so its next use fails. A freshly
-#: authenticated connection (the default transport reconnects with the stored
-#: password) recovers cleanly, so these are retriable, not query faults.
+#: authenticated connection (the default transport reconnects with the configured
+#: password or key-pair parameters) recovers cleanly, so these are retriable, not
+#: query faults.
 _SESSION_AUTH_ERRNOS = frozenset({390114})
 
 
@@ -298,6 +383,7 @@ def _snowflake_transport(connect_args: _Mapping[str, Any]) -> Transport:
         assert last is not None  # both attempts hit session-level errors
         raise last
 
+    transport.drain = _drain  # type: ignore[attr-defined]
     return transport
 
 
@@ -321,9 +407,10 @@ class SnowflakeExecutor:
             mapping: a pre-parsed mapping (dependency injection for tests).
             transport: ``(sql) -> rows`` seam; default runs the Python connector.
             connect_args: kwargs for ``snowflake.connector.connect`` (``account``,
-                ``user``, ``password``, ``warehouse``, ``database``, ``schema``,
-                ``role``) for the default transport. Credentials stay in the
-                engine env (CC-7).
+                ``user``, one of ``password`` or ``private_key_file`` /
+                ``private_key_file_pwd``, ``warehouse``, ``database``, ``schema``,
+                ``role``) for the default transport. Credentials stay in the engine
+                env (CC-7).
             source_objects: physical tables served, cited per result (FR-2).
             clock: as-of stamp provider (FR-12); defaults to UTC now.
         """
@@ -353,3 +440,11 @@ class SnowflakeExecutor:
             as_of=self._clock(),
             source_objects=self._source_objects,
         )
+
+    def drain(self) -> None:
+        """Close every idle pooled Snowflake session during credential rotation."""
+        drain = getattr(self._transport, "drain", None)
+        if callable(drain):
+            drain()
+
+    close = drain

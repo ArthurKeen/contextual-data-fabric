@@ -32,6 +32,7 @@ and the opt-in live test (a fake transport accepts SQL a real server may reject)
 from __future__ import annotations
 
 import re
+import threading
 from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
@@ -299,16 +300,35 @@ def compile_sql(sparql: str, mapping: Mapping) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _clickhouse_transport(dsn: str) -> Transport:
-    """Default transport: run SQL over ``clickhouse-connect`` (HTTP)."""
+class _ClickHouseTransport:
+    """Lazily opened persistent client with an explicit close lifecycle."""
 
-    def transport(sql: str) -> Any:
+    def __init__(self, dsn: str) -> None:
+        self._dsn = dsn
+        self._client: Any | None = None
+        self._lock = threading.Lock()
+
+    def __call__(self, sql: str) -> Any:
         import clickhouse_connect  # lazy: engine driver, not a core dep
 
-        client = clickhouse_connect.get_client(dsn=dsn)
+        with self._lock:
+            if self._client is None:
+                self._client = clickhouse_connect.get_client(dsn=self._dsn)
+            client = self._client
         return client.query(sql).named_results()
 
-    return transport
+    def close(self) -> None:
+        with self._lock:
+            client = self._client
+            self._client = None
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
+
+
+def _clickhouse_transport(dsn: str) -> Transport:
+    """Default transport: run SQL over a reusable ``clickhouse-connect`` client."""
+    return _ClickHouseTransport(dsn)
 
 
 class ClickHouseExecutor:
@@ -359,3 +379,9 @@ class ClickHouseExecutor:
             as_of=self._clock(),
             source_objects=self._source_objects,
         )
+
+    def close(self) -> None:
+        """Close an injected/persistent transport when it exposes lifecycle."""
+        close = getattr(self._transport, "close", None)
+        if callable(close):
+            close()

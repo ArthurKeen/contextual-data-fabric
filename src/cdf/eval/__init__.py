@@ -8,5 +8,23 @@ cannot silently regress the engine's contract.
 """
 
 from .golden import GoldenOutcome, load_goldens, run_golden
+from .nl_corpus import (
+    CorpusExample,
+    CorpusValidationError,
+    DeterministicCorpusRouter,
+    LexicalFewShotRetriever,
+    NlCorpus,
+    load_nl_corpus,
+)
 
-__all__ = ["GoldenOutcome", "load_goldens", "run_golden"]
+__all__ = [
+    "GoldenOutcome",
+    "load_goldens",
+    "run_golden",
+    "CorpusExample",
+    "CorpusValidationError",
+    "DeterministicCorpusRouter",
+    "LexicalFewShotRetriever",
+    "NlCorpus",
+    "load_nl_corpus",
+]

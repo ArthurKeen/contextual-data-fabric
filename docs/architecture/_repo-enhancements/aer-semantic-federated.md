@@ -4,8 +4,8 @@ repo: arango-entity-resolution
 type:
   - internal
   - repo-enhancement-spec
-status: draft
-version: 0.1
+status: active
+version: 0.2
 owner: PJ (Paul Losiewicz)
 serves_modules: ["06-entity-resolution"]
 phase_intro: 2
@@ -18,6 +18,15 @@ related:
 
 > **Requirement (one line):** extend AER beyond deterministic matching to **semantic** matching, and toward **federation-aware** resolution (resolve against records fetched live from a source, not only pre-ingested ones), while keeping the guards/survivorship the fabric relies on.
 
+## WP-13 delivery note (2026-08-05)
+
+The precision-first canonical-hub service/API, native scoped Arango vector
+provider, `fabric_canonical_hub` profile, and fixture gate are implemented as
+new files in the local AER worktree. CDF's guarded adapter and evaluator are
+also local. These additions are uncommitted and are **not** claimed to be on
+either AER remote `main`; the release and CDF dependency pin remain pending.
+M5 runtime-row integration is WP-14/P3, not part of this delivery.
+
 ## 1. Current state (verified against `~/code/arango-entity-resolution`, v3.5.1 — v0.2)
 AER provides `CrossCollectionMatchingService` (blocking + Levenshtein/Jaro-Winkler → `resolvedTo` edges) and `WCCClusteringService`. In `customer-context` it is wrapped with a no-cross-account guard and per-domain authority-first survivorship + `whyLost` provenance (its own golden-record logic is deliberately not used). Matching in the current canonical-hub flow is largely deterministic/one-to-one.
 
@@ -27,8 +36,8 @@ AER provides `CrossCollectionMatchingService` (blocking + Levenshtein/Jaro-Winkl
 Federated Customer 360 must resolve the same entity across heterogeneous sources where keys don't line up — deterministic exact-match isn't enough. Longer term, resolution must happen against data **fetched live** at query time (no pre-ingest), which is the federation model.
 
 ## 3. Required enhancements
-- **RE-1 (P2, re-scoped v0.2):** ~~Build~~ **Configure + harden** semantic matching — the embedding/ANN + LLM-verification machinery exists (§1); the work is a **precision-first threshold profile** for the fabric's cross-source case plus the evaluation harness that proves it demo-safe (over-merge is the failure mode in front of a customer).
-- **RE-2 (P2):** Expose a clean **canonical-hub API** (`resolve(entity) -> canonical_id`) the query engine (M5) calls during reassembly.
+- **RE-1 (P2, re-scoped v0.2):** ✅ **Implemented locally in WP-13** — precision-first semantic profile plus fixture evaluation with precision, recall, abstention, scope, and evidence metrics.
+- **RE-2 (P2):** ✅ **API implemented locally in WP-13; release/pin pending** — clean read-only canonical-hub `resolve` service returning canonical ID or explicit abstention/refusal with evidence.
 - **RE-3 (P3):** **Federation-aware ER** — resolve a record fetched live from a source against the canonical hub at query time, not only at ingest.
 - **RE-4 (P2):** Preserve/first-class the guards + survivorship + `whyLost` provenance the fabric needs for citations (don't regress what `customer-context` added).
 

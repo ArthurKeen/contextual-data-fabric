@@ -6,6 +6,7 @@ a network, or the arango-sparql-py engine."""
 
 from __future__ import annotations
 
+from cdf.eval.nl_corpus import LexicalFewShotRetriever, load_nl_corpus
 from cdf.query import SourceCatalog
 from cdf.query.nl import build_system_prompt, extract_sparql, nl_to_sparql
 
@@ -130,6 +131,29 @@ def test_translates_valid_question_in_one_call():
     assert result.sparql and "c:accountId" in result.sparql
     assert result.llm_calls == 1
     assert result.error is None
+
+
+def test_few_shot_examples_are_injected_as_prompt_guidance():
+    client = _FakeClient([GOOD])
+    result = nl_to_sparql(
+        "Assess Meridian renewal risk from telemetry and documents",
+        _catalog(),
+        client=client,
+        few_shot_retriever=LexicalFewShotRetriever(load_nl_corpus()),
+        few_shot_top_k=2,
+    )
+    assert result.ok
+    system = client.calls[0][0]["content"]
+    assert "Trusted examples (guidance only" in system
+    assert "Example question:" in system
+    assert "Example answer: PREFIX" in system
+    # The current user question remains the final user turn; examples are not
+    # substituted into the execution result.
+    assert client.calls[0][-1] == {
+        "role": "user",
+        "content": "Assess Meridian renewal risk from telemetry and documents",
+    }
+    assert result.sparql == GOOD
 
 
 def test_repair_loop_recovers():

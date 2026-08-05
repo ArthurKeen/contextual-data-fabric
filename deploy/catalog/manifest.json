@@ -1,0 +1,281 @@
+{
+  "catalogManifestVersion": "1",
+  "conceptBase": "urn:arango-sparql:concept#",
+  "contentHash": "f3c420ec3e6910ca541f53543e633c577a43b3cbc27c38db0ab1420adc42511d",
+  "generation": "sha256:424ea0a4885e084c2f9d1119b83a84e58093de6c6db8f191ce477fc1ee1e8423",
+  "sources": [
+    {
+      "auth": {
+        "delegation": "none",
+        "mode": "service"
+      },
+      "concepts": [
+        "Chunk",
+        "Document",
+        "Ticket"
+      ],
+      "csi": {
+        "direction": "reverse",
+        "generation": "2026-07-19T22:50:07Z",
+        "path": "deploy/csi/arango-cmf.json",
+        "producer": "arango-schema-analyzer",
+        "sha256": "c061d0be151a7a79c6859b69010d3c299a25dda53367d9448f5c7c9c85b5e8f8"
+      },
+      "entitlements": {
+        "allowedRoles": [],
+        "classification": "internal",
+        "mask": "none"
+      },
+      "joinKeys": [
+        "accountId"
+      ],
+      "kind": "arango",
+      "r2rml": null,
+      "ref": "cmf",
+      "runtimeResolution": {
+        "mode": "none"
+      },
+      "sourceId": "arango:cmf",
+      "statisticsSnapshot": {
+        "asOf": "2026-08-05T00:00:00Z",
+        "classes": {
+          "Document": {
+            "estimatedBytes": 40000000,
+            "properties": {
+              "accountId": {
+                "ndv": 3000
+              },
+              "source": {
+                "ndv": 8,
+                "selectivity": 0.125
+              }
+            },
+            "rowCount": 10000
+          },
+          "Ticket": {
+            "estimatedBytes": 10000000,
+            "properties": {
+              "accountId": {
+                "ndv": 2500
+              },
+              "severity": {
+                "ndv": 5,
+                "selectivity": 0.2
+              }
+            },
+            "rowCount": 5000
+          }
+        },
+        "snapshotId": "demo-arango-cmf-2026-08-05",
+        "source": {
+          "estimatedBytes": 180000000,
+          "rowCount": 45000
+        },
+        "version": "1"
+      }
+    },
+    {
+      "auth": {
+        "delegation": "none",
+        "mode": "service"
+      },
+      "concepts": [
+        "QueryEvent"
+      ],
+      "csi": {
+        "direction": "forward",
+        "generation": "sha256:d22b5e7bf5bbb2c7a556549f4dcb38a320122ba81498f95db8d58e28df24c13e",
+        "path": "deploy/csi/clickhouse-analytics.json",
+        "producer": "r2g",
+        "sha256": "d22b5e7bf5bbb2c7a556549f4dcb38a320122ba81498f95db8d58e28df24c13e"
+      },
+      "entitlements": {
+        "allowedRoles": [],
+        "classification": "internal",
+        "mask": "none"
+      },
+      "joinKeys": [
+        "accountId"
+      ],
+      "kind": "clickhouse",
+      "r2rml": {
+        "direction": "forward",
+        "generation": "sha256:711379268f5766bd8504057eb7843b00e7296d1af65b949d2980ad5ce49ea9d7",
+        "path": "deploy/r2rml/clickhouse_analytics.ttl",
+        "producer": "r2g",
+        "sha256": "711379268f5766bd8504057eb7843b00e7296d1af65b949d2980ad5ce49ea9d7"
+      },
+      "ref": "analytics",
+      "runtimeResolution": {
+        "mode": "none"
+      },
+      "sourceId": "clickhouse:analytics",
+      "statisticsSnapshot": {
+        "asOf": "2026-08-05T00:00:00Z",
+        "classes": {
+          "QueryEvent": {
+            "estimatedBytes": 32000000,
+            "properties": {
+              "accountId": {
+                "ndv": 5000
+              },
+              "feature": {
+                "ndv": 24,
+                "selectivity": 0.05
+              }
+            },
+            "rowCount": 250000
+          }
+        },
+        "snapshotId": "demo-clickhouse-2026-08-05",
+        "source": {
+          "costPerGbUsd": 0.02,
+          "estimatedBytes": 32000000,
+          "rowCount": 250000
+        },
+        "version": "1"
+      }
+    },
+    {
+      "auth": {
+        "delegation": "none",
+        "mode": "service"
+      },
+      "concepts": [
+        "Account",
+        "Contact",
+        "Contract",
+        "NpsSurvey",
+        "Opportunity"
+      ],
+      "csi": {
+        "direction": "forward",
+        "generation": "2026-07-22T22:12:21.693927+00:00",
+        "path": "deploy/csi/postgresql-crm.json",
+        "producer": "r2g",
+        "sha256": "e51d0213a5432b7c89f3e815a05cca685f2129dd2d56ecc24d9a68edaedaf48c"
+      },
+      "entitlements": {
+        "allowedRoles": [],
+        "classification": "internal",
+        "mask": "none"
+      },
+      "joinKeys": [
+        "accountId"
+      ],
+      "kind": "postgresql",
+      "r2rml": {
+        "direction": "forward",
+        "generation": "sha256:0e8f131578b52a92802fb9fdfd9f20d74e1cd041019c49ec365ec17f6452a121",
+        "path": "deploy/ontop/input/mapping.ttl",
+        "producer": "r2g",
+        "sha256": "0e8f131578b52a92802fb9fdfd9f20d74e1cd041019c49ec365ec17f6452a121"
+      },
+      "ref": "crm",
+      "runtimeResolution": {
+        "mode": "none"
+      },
+      "sourceId": "postgresql:crm",
+      "statisticsSnapshot": {
+        "asOf": "2026-08-05T00:00:00Z",
+        "classes": {
+          "Account": {
+            "estimatedBytes": 1500000,
+            "properties": {
+              "accountId": {
+                "ndv": 3000
+              },
+              "healthBand": {
+                "ndv": 4,
+                "selectivity": 0.25
+              }
+            },
+            "rowCount": 3000
+          },
+          "Contract": {
+            "estimatedBytes": 2100000,
+            "properties": {
+              "accountId": {
+                "ndv": 2900
+              },
+              "status": {
+                "ndv": 6,
+                "selectivity": 0.1666666667
+              }
+            },
+            "rowCount": 4200
+          }
+        },
+        "snapshotId": "demo-postgresql-crm-2026-08-05",
+        "source": {
+          "costPerGbUsd": 0.01,
+          "estimatedBytes": 12500000,
+          "rowCount": 25000
+        },
+        "version": "1"
+      }
+    },
+    {
+      "auth": {
+        "delegation": "none",
+        "mode": "service"
+      },
+      "concepts": [
+        "UsageMetric"
+      ],
+      "csi": {
+        "direction": "forward",
+        "generation": "2026-07-22T22:09:16.862530+00:00",
+        "path": "deploy/csi/snowflake-telemetry.json",
+        "producer": "r2g",
+        "sha256": "ba9f732696e3f500a092e5363c4903c732d42281c57c611ed9323771a2bbb976"
+      },
+      "entitlements": {
+        "allowedRoles": [],
+        "classification": "internal",
+        "mask": "none"
+      },
+      "joinKeys": [
+        "accountId"
+      ],
+      "kind": "snowflake",
+      "r2rml": {
+        "direction": "forward",
+        "generation": "sha256:00fae4cf1419b7b2fb73f953a04fd534d941352e560b986433f51dbf16d020c0",
+        "path": "deploy/r2rml/snowflake_telemetry.ttl",
+        "producer": "r2g",
+        "sha256": "00fae4cf1419b7b2fb73f953a04fd534d941352e560b986433f51dbf16d020c0"
+      },
+      "ref": "telemetry",
+      "runtimeResolution": {
+        "mode": "none"
+      },
+      "sourceId": "snowflake:telemetry",
+      "statisticsSnapshot": {
+        "asOf": "2026-08-05T00:00:00Z",
+        "classes": {
+          "UsageMetric": {
+            "estimatedBytes": 4800000,
+            "properties": {
+              "accountId": {
+                "ndv": 3000
+              },
+              "period": {
+                "ndv": 24,
+                "selectivity": 0.0416666667
+              }
+            },
+            "rowCount": 12000
+          }
+        },
+        "snapshotId": "demo-snowflake-2026-08-05",
+        "source": {
+          "costPerGbUsd": 2.0,
+          "estimatedBytes": 4800000,
+          "rowCount": 12000
+        },
+        "version": "1"
+      }
+    }
+  ]
+}

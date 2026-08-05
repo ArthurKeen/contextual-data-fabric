@@ -44,6 +44,10 @@ _load_dotenv(Path(os.environ.get("CDF_ENV_FILE", str(_REPO / ".env"))))
 os.environ.setdefault("CDF_CSI_DIR", str(_REPO / "deploy" / "csi"))
 os.environ.setdefault("CDF_PREPARED_QUESTIONS", str(_REPO / "deploy" / "questions.json"))
 os.environ.setdefault("ONTOP_SPARQL_ENDPOINT", "http://localhost:8090/sparql")
+os.environ.setdefault(
+    "ONTOP_REFORMULATE_ENDPOINT",
+    "http://localhost:8090/ontop/reformulate",
+)
 os.environ.setdefault("ARANGO_URL", "http://localhost:8530")
 os.environ.setdefault("ARANGO_DB", "cmf")
 os.environ.setdefault("ARANGO_USER", "root")
@@ -197,22 +201,35 @@ PAGE = """<!doctype html>
 const el = (h) => { const d=document.createElement('div'); d.innerHTML=h; return d.firstElementChild; };
 const esc = (s) => (s==null?'':(''+s)).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const srcTag = (kind, id) => `<span class="src src-${esc(kind)}">${esc(id)}</span>`;
+const nativeLanguage = (kind) => kind === 'arango' ? 'AQL' :
+  (kind === 'postgresql' || kind === 'snowflake' || kind === 'clickhouse') ? 'SQL' : 'native query';
 
 const EXAMPLES = __QUESTIONS__;
 
-function renderMetrics(m) {
+function renderMetrics(nl, execution) {
   const box = document.getElementById('metrics');
   box.innerHTML = '';
-  if (!m) { box.hidden = true; return; }
-  const total = Number(m.prompt_tokens || 0) + Number(m.completion_tokens || 0);
-  const elapsed = Number(m.duration_ms || 0);
-  const time = elapsed >= 1000 ? `${(elapsed / 1000).toFixed(2)} s` : `${elapsed.toFixed(1)} ms`;
-  const cost = m.cost_usd == null ? 'unpriced' : `$${Number(m.cost_usd).toFixed(6)}`;
-  const labels = [
-    ['LLM compute time', time],
-    ['tokens', total.toLocaleString()],
-    ['cost', cost],
-  ];
+  if (!nl && !execution) { box.hidden = true; return; }
+  const duration = (value) => {
+    const elapsed = Number(value || 0);
+    return elapsed >= 1000 ? `${(elapsed / 1000).toFixed(2)} s` : `${elapsed.toFixed(1)} ms`;
+  };
+  const labels = [];
+  if (nl) {
+    const total = Number(nl.prompt_tokens || 0) + Number(nl.completion_tokens || 0);
+    const cost = nl.cost_usd == null ? 'unpriced' : `$${Number(nl.cost_usd).toFixed(6)}`;
+    labels.push(
+      ['LLM compute time', duration(nl.duration_ms)],
+      ['LLM tokens', total.toLocaleString()],
+      ['LLM cost', cost],
+    );
+  }
+  if (execution) {
+    labels.push(['plan wall time', duration(execution.total_duration_ms)]);
+    (execution.legs || []).forEach(leg => {
+      labels.push([`${leg.source_id} execution`, duration(leg.duration_ms)]);
+    });
+  }
   box.innerHTML = labels.map(([label, value]) =>
     `<span>${esc(label)} <b>${esc(value)}</b></span>`).join('');
   box.hidden = false;
@@ -272,14 +289,14 @@ function moveActive(delta) {
 }
 
 async function post(payload, out, stat) {
-  stat.innerHTML='running…'; out.innerHTML=''; renderMetrics(null);
+  stat.innerHTML='running…'; out.innerHTML=''; renderMetrics(null, null);
   try {
     const r = await fetch('/federate', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({...payload, allow_partial: document.getElementById('ap').checked})});
     const d = await r.json();
     stat.innerHTML='';
     if (!r.ok) { out.appendChild(el(`<div class="card err"><b>${r.status}:</b> ${esc(d.detail||JSON.stringify(d))}</div>`)); return; }
-    renderMetrics(d.nl_metrics);
+    renderMetrics(d.nl_metrics, d.execution_metrics);
     render(d, out);
   } catch(e) { stat.innerHTML=`<span class="err">${esc(''+e)}</span>`; }
 }
@@ -378,8 +395,9 @@ function render(d, out) {
     card.appendChild(el(`<div class="flow">${srcTag(c.kind, c.source_id)}
        <span>objects: <b>${(c.source_objects||[]).map(esc).join(', ')||'—'}</b></span>
        <span>· ${c.row_count} rows</span>
-       <span>· as-of ${esc(c.as_of||'—')}</span></div>`));
-    card.appendChild(el(`<pre>${esc(c.native_query||'')}</pre>`));
+       <span>· as-of ${esc(c.as_of||'—')}</span>
+       <span>· generated ${nativeLanguage(c.kind)}</span></div>`));
+    card.appendChild(el(`<pre>${esc(c.native_query||'native query unavailable for this source')}</pre>`));
     body.appendChild(card);
   });
 }

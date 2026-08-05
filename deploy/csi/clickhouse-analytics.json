@@ -60,6 +60,31 @@
     },
     "relationships": {}
   },
+  "statistics": {
+    "version": "1",
+    "snapshotId": "demo-clickhouse-2026-08-05",
+    "asOf": "2026-08-05T00:00:00Z",
+    "source": {
+      "rowCount": 250000,
+      "estimatedBytes": 32000000,
+      "costPerGbUsd": 0.02
+    },
+    "classes": {
+      "QueryEvent": {
+        "rowCount": 250000,
+        "estimatedBytes": 32000000,
+        "properties": {
+          "accountId": {
+            "ndv": 5000
+          },
+          "feature": {
+            "ndv": 24,
+            "selectivity": 0.05
+          }
+        }
+      }
+    }
+  },
   "provenance": {
     "producer": "r2g",
     "producerVersion": "0.2.0",

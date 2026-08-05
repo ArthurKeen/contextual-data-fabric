@@ -68,6 +68,173 @@ This is the runtime heart of the Query building block. Given a natural-language 
 - **FR-14 (P1 floor / P2 full):** **Plan-time admission control** (CC-11) — no naked scans (every leg carries a selective binding derived from the question's concepts); per-leg row/byte budgets with mandatory LIMITs; a round-trip budget (max legs, max sequential depth); pre-flight `EXPLAIN` with a cost ceiling (P2). Plans failing admission are rewritten, downgraded to assembled, or refused — never run as-is.
 - **FR-15 (P1):** **Run-time enforcement + trip semantics** (CC-11, CC-5) — per-leg timeouts and row caps at the cursor, overall deadline, federator memory budget (no disk spill), per-source circuit breaker. A capped/truncated leg is **declared in the retrieval path** ("capped at N rows — partial"), never silent; refusals name the reason and the alternative ("run as an assembled job?").
 
+### 4.1 P2.2 statistics, physical-plan, and admission contracts
+
+CSI v1 remains backward compatible: a document may omit `statistics`. When
+present, CDF consumes this additive contract:
+
+```json
+{
+  "statistics": {
+    "version": "1",
+    "snapshotId": "warehouse-2026-08-05",
+    "asOf": "2026-08-05T00:00:00Z",
+    "source": {
+      "rowCount": 100000,
+      "estimatedBytes": 64000000,
+      "costPerGbUsd": 2.0
+    },
+    "classes": {
+      "Account": {
+        "rowCount": 3000,
+        "estimatedBytes": 1500000,
+        "properties": {
+          "accountId": {"ndv": 3000},
+          "healthBand": {"ndv": 4, "selectivity": 0.25}
+        }
+      }
+    },
+    "properties": {
+      "accountId": {"ndv": 3000}
+    }
+  }
+}
+```
+
+`cardinality` is accepted as an alias for `rowCount`; if both are present they
+must agree. Counts, bytes, NDV, and rates must be finite and non-negative;
+selectivity must be in `[0, 1]`. Unsupported statistics versions and malformed
+values fail catalog construction. Unknown additive fields are ignored.
+
+Without statistics, the planner uses conservative defaults (1,000,000 rows and
+1,024 bytes/row), reports cost as unknown, and preserves the P1
+relational-then-Arango staging. With statistics, connected joins up to eight
+legs use exact deterministic dynamic programming; larger connected components
+use selective-first greedy ordering. Independent component roots share a stage.
+All ties use stable source IDs. The plan reports per-leg rows/bytes/cost,
+snapshot/as-of, stages/order, seed directions, and total rows/bytes/cost.
+
+Admission checks estimated rows, bytes, and known cost before execution. Runtime
+checks wall time, intermediate rows, final rows, and seed rows. A refusal is a
+structured `{code, phase, metric, observed, limit, message}` and is never
+represented as silent truncation. `CDF_SEED_BATCH_ROWS` controls one `VALUES`
+batch; seed sets up to `CDF_MAX_SEED_ROWS` execute in deterministic batches and
+are merged/de-duplicated. Larger sets refuse and never execute the target
+unseeded.
+
+### 4.2 P2.2 bounded assembled execution contract
+
+Execution is explicit: `virtual` is the default and preserves the P1
+fetch/bind-join behavior; `assembled` is opt-in on `FederationService`,
+`POST /federate`, and MCP `federate`. An assembled request is refused unless an
+assembly backend is explicitly enabled and configured. It is also refused
+before resource creation when any leg lacks validated CSI statistics, or when
+the preflight materialized-row/byte estimate exceeds the mandatory assembly
+budgets.
+
+Every admitted request receives an unpredictable job ID and an isolated
+temporary Arango named graph with dedicated vertex and edge collections.
+Source-row vertices carry source ID, partition SPARQL, native query, and as-of
+lineage. Joined-intermediate vertices have `derived_from` edges to their direct
+inputs. Job IDs and aggregate counts are safe telemetry; credentials and caller
+tokens are never passed to or stored in the graph.
+
+Assembly has hard materialized-row, serialized-byte, wall-time, and TTL limits.
+A breach refuses the answer; it never truncates. Cleanup runs in `finally` after
+success, source failure, admission failure, cancellation, or exception.
+Per-collection TTL indexes plus `expires_at` metadata are the crash fallback.
+Cleanup failure changes the result to a structured refusal and is exposed in
+`AssemblyMetrics` rather than hidden.
+
+**Execution boundary:** the temporary graph is the bounded intermediate and
+lineage substrate. WP-12 deliberately retains the proven deterministic Python
+table-binding join for answer semantics; it mirrors each joined intermediate
+into the graph rather than translating arbitrary joins to AQL. Graph-native
+analytics can consume that job graph while it exists, but moving the
+answer-producing join itself to AQL requires a separate semantic-parity gate.
+
+### 4.3 P2.3 connector lifecycle and public-error boundary
+
+M5 receives logical source executors from M1. It does not resolve credentials
+while reading CSI/R2RML. Before a leg executes, the generation-aware M1 proxy
+may resolve and atomically replace its executor; in-flight calls retain their
+old handle until completion, after which the old pool/client is drained.
+Failed replacement keeps the last known-good executor and records only a
+scrubbed operational failure.
+
+Every source-leg and assembly exception is passed through the central
+`cdf.connectors` scrubber before it enters `RetrievalStep.error`,
+`AssemblyRefusal`, an answer envelope, HTTP, MCP, or logs. Safe source health
+metadata is limited to configured/backend/generation-alias/reload status and
+time. Generation aliases are operator-provided opaque IDs, never hashes of
+secret values.
+
+### 4.4 WP-13/WP-14 canonical-hub runtime boundary
+
+CDF owns a stable `CandidateResolver` seam and independently enforces required
+account scope, observable-only inputs, oracle-ID exclusion, an absolute
+deadline, resolved-candidate scope, canonical-ID presence, score threshold,
+top-vs-second margin, and evidence completeness. The optional AER adapter is
+lazy: core CDF and its tests do not require AER to be installed.
+
+WP-14 now wires that CDF-owned contract into source-leg execution. A strict
+catalog binding declares the canonical join variable and pattern, account-scope
+binding, observable field-to-binding allowlist, policy profile, and resolver
+name. Canonical values bypass the resolver. Other distinct observations resolve
+under one plan deadline and call budget, then replace the native join value
+before telemetry row counts, seed generation, joining, or optional assembly.
+Resolution-enabled legs run in the initial unseeded stage so a canonical
+`VALUES` clause is never compared with a source-native key.
+
+Abstained/deadline/backend-unavailable rows are removed and counted. Strict mode
+refuses any shortfall; opt-in partial mode may return only the safely normalized
+remaining rows. Any resolver refusal, including a cross-account candidate, is
+always fail-closed. Retrieval steps, citations, HTTP/MCP envelopes, and plan/leg
+metrics carry value-free resolution events and evidence. Temporary assembly
+lineage stores only reduced event summaries; normalized source rows remain
+authoritative.
+
+The AER implementation and adapter remain local/API-ready as of 2026-08-05.
+There is still no AER dependency pin or claim that the API is released. Runtime
+depends only on CDF's injected resolver protocol. `from_env` supports an
+operator-owned `CDF_ENTITY_RESOLVER_FACTORY=package.module:function` composition
+seam; the checked-in demo catalog keeps runtime resolution disabled.
+
+### 4.5 P3 WP-15/WP-17/WP-18 governed query boundary
+
+[ADR-0004](adr/ADR-0004-identity-planes-and-policy-enforcement.md) separates
+steward/build identity from asker/query identity. HTTP verifies generic OIDC
+JWTs when configured; MCP v2 reads the SDK's official verified access-token
+context. Both create the same immutable `RequestContext` and discard bearer
+material. Direct/library and stdio development calls receive an explicit named
+anonymous-dev principal unless authentication is required.
+
+`FederationService.federate_question`, `federate_sparql`, assembled execution,
+and `execute_plan` pass the context explicitly. Independent thread-pool legs
+receive the same immutable request context inside `SourceExecutionContext`.
+Safe request/trace IDs, normalized purpose, tenant, and issuer/subject principal
+key may enter answer/execution metadata; bearer tokens and unrestricted claims
+may not.
+
+Catalog source auth is `service|delegated`. Service mode preserves legacy
+executors. Delegated mode exchanges through an injected `DelegationBroker` and
+requires adapter context support; missing configuration refuses that leg and
+never retries under service credentials.
+
+The partition plan is authorized before optimizer/admission. Every source,
+concept, property, filter, join, and projection use receives an
+allow/rewrite/deny decision. Safe rewrites inject principal-bound row scope and
+register post-join masks; denied or load-bearing unauthorized uses refuse before
+source dispatch. Every returned row is checked against scope before resolution,
+assembly, joins, and seed creation. Postflight repeats the decision and governs
+bindings, source objects, native/SPARQL citations, disclosure metadata, and
+withheld optional data.
+
+The offline catalog PDP is deterministic. The production client is
+OpenFGA-compatible and fail-closed, but external IdP/JWKS, OpenFGA
+store/model/tuples, STS/source delegation, and source RLS/masking remain
+deployment dependencies, not CDF-provisioned features.
+
 ## 5. Non-functional requirements
 - **No data movement** (loosely-coupled default; assembled only on demand, bounded, temporary).
 - **Grounded/cited or refused** — every fact traces to a real sub-query result.
@@ -81,7 +248,8 @@ This is the runtime heart of the Query building block. Given a natural-language 
 ## 7. Phase mapping
 - **P1:** loosely-coupled, one relational DB (Postgres) + Arango unstructured graph, LLM planner, full retrieval path.
 - **P2:** assembled pattern; deterministic planner hardening; cost/latency instrumentation; Snowflake via M1.
-- **P3:** multi-source planner; join optimization.
+- **P3:** multi-source planner; join optimization; governed policy preflight,
+  row/seed enforcement, postflight masking/citations, and OpenFGA-compatible PDP.
 
 ## 8. Acceptance criteria / demo (P1)
 - A seed CSM question (see [[contextual-data-fabric-prd]] §4) is answered end-to-end: the engine hits **Postgres live** and the **Arango unstructured graph**, joins on the canonical entity, and returns an answer whose **retrieval path shows the actual SQL and AQL** and the source objects. No Postgres bulk copy into Arango. Refuses cleanly if a leg can't be cited.

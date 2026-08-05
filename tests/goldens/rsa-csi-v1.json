@@ -1,0 +1,50 @@
+{
+  "csiVersion": "1",
+  "conceptualModel": {
+    "entities": [
+      {
+        "name": "Customer",
+        "properties": [
+          {"name": "customerId", "type": "string"},
+          {"name": "name", "type": "string"}
+        ]
+      }
+    ],
+    "relationships": []
+  },
+  "cdfRelationalPhysicalMapping": {
+    "extensionVersion": "1",
+    "physicalMapping": {
+      "entities": {
+        "Customer": {
+          "tableName": "customers",
+          "properties": {
+            "customerId": {"column": "customer_id"},
+            "name": {"column": "name"}
+          }
+        }
+      }
+    }
+  },
+  "provenance": {
+    "producer": "relational-schema-analyzer",
+    "producerVersion": "0.4.0",
+    "direction": "forward",
+    "source": {"kind": "postgresql", "ref": "customers"},
+    "generatedAt": "2026-08-05T12:00:00Z"
+  },
+  "statistics": {
+    "version": "1",
+    "snapshotId": "customers-1",
+    "asOf": "2026-08-05T11:00:00Z",
+    "source": {"rowCount": 10, "estimatedBytes": 2048},
+    "classes": {
+      "Customer": {
+        "rowCount": 10,
+        "properties": {
+          "customerId": {"ndv": 10}
+        }
+      }
+    }
+  }
+}

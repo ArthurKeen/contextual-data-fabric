@@ -7,22 +7,47 @@ against genuine partition contracts.
 
 from __future__ import annotations
 
+import time
+
 from cdf.query import SourceCatalog, SourceResult, execute_plan, partition_query
 
 PREFIX = "PREFIX c: <urn:arango-sparql:concept#>\n"
 
 
 class FakeExecutor:
-    def __init__(self, rows, *, native=None, as_of=None, fail=False):
+    def __init__(
+        self,
+        rows,
+        *,
+        native=None,
+        as_of=None,
+        fail=False,
+        bytes_processed=None,
+        cost_usd=None,
+        retry_count=0,
+        truncated=False,
+    ):
         self._rows = tuple(rows)
         self._native = native
         self._as_of = as_of
         self._fail = fail
+        self._bytes_processed = bytes_processed
+        self._cost_usd = cost_usd
+        self._retry_count = retry_count
+        self._truncated = truncated
 
     def execute(self, subquery):
         if self._fail:
             raise RuntimeError("source unavailable")
-        return SourceResult(rows=self._rows, native_query=self._native, as_of=self._as_of)
+        return SourceResult(
+            rows=self._rows,
+            native_query=self._native,
+            as_of=self._as_of,
+            bytes_processed=self._bytes_processed,
+            cost_usd=self._cost_usd,
+            retry_count=self._retry_count,
+            truncated=self._truncated,
+        )
 
 
 def _csi(kind, ref, entities, relationships=()):
@@ -149,6 +174,13 @@ def test_leg_failure_is_declared_not_raised():
     failed_step = next(s for s in result.retrieval_path if s.source_id == "arango:docs")
     assert failed_step.status == "failed"
     assert "source unavailable" in failed_step.error
+    metrics = result.execution_metrics
+    assert metrics is not None
+    failed_metric = next(m for m in metrics.legs if m.source_id == "arango:docs")
+    assert failed_metric.status == "failed"
+    assert failed_metric.duration_ms >= 0
+    assert failed_metric.row_count == 0
+    assert failed_metric.cost_usd is None
 
 
 def test_missing_executor_treated_as_failed_leg():
@@ -162,6 +194,11 @@ def test_missing_executor_treated_as_failed_leg():
     step = next(s for s in result.retrieval_path if s.source_id == "arango:docs")
     assert step.status == "failed"
     assert "no executor" in step.error
+    metrics = result.execution_metrics
+    assert metrics is not None
+    missing_metric = next(m for m in metrics.legs if m.source_id == "arango:docs")
+    assert missing_metric.status == "failed"
+    assert missing_metric.duration_ms >= 0
 
 
 def test_unresolved_plan_marks_result_partial():
@@ -182,10 +219,33 @@ def test_single_source_passthrough():
     plan = partition_query(PREFIX + "SELECT ?o ?t WHERE { ?o a c:Order ; c:total ?t }", cat)
     result = execute_plan(
         plan,
-        {"postgresql:shop": FakeExecutor([{"o": "o1", "t": 100}, {"o": "o2", "t": 50}])},
+        {
+            "postgresql:shop": FakeExecutor(
+                [{"o": "o1", "t": 100}, {"o": "o2", "t": 50}],
+                bytes_processed=2048,
+                cost_usd=0.004,
+                retry_count=1,
+                truncated=True,
+            )
+        },
     )
     assert result.partial is False
     assert result.bindings == ({"o": "o1", "t": 100}, {"o": "o2", "t": 50})
+    metrics = result.execution_metrics
+    assert metrics is not None
+    assert metrics.partition_duration_ms is None
+    assert metrics.total_duration_ms >= 0
+    assert metrics.execution_duration_ms >= 0
+    assert metrics.reassembly_duration_ms >= 0
+    assert metrics.row_count == 2
+    assert metrics.bytes_processed == 2048
+    assert metrics.cost_usd == 0.004
+    assert metrics.retry_count == 1
+    assert metrics.truncated is True
+    assert len(metrics.legs) == 1
+    leg = metrics.legs[0]
+    assert (leg.source_id, leg.status, leg.row_count) == ("postgresql:shop", "ok", 2)
+    assert leg.seed_cap == 1000
 
 
 # -- stage concurrency (parallel legs within a stage) -------------------------
@@ -206,6 +266,7 @@ def test_relational_legs_run_concurrently():
 
         def execute(self, subquery):
             barrier.wait(timeout=3.0)  # raises BrokenBarrierError if sequential
+            time.sleep(0.03)
             return SourceResult(rows=self._rows)
 
     cat = SourceCatalog.from_csi_documents(
@@ -231,6 +292,13 @@ def test_relational_legs_run_concurrently():
     assert result.bindings == ({"name": "Acme", "qv": 12.5},)
     # Retrieval path stays in deterministic plan order despite concurrency.
     assert [s.status for s in result.retrieval_path] == ["ok", "ok"]
+    metrics = result.execution_metrics
+    assert metrics is not None
+    assert [m.status for m in metrics.legs] == ["ok", "ok"]
+    assert metrics.leg_duration_sum_ms == sum(m.duration_ms for m in metrics.legs)
+    # Concurrent leg durations overlap; summed source time is not plan wall time.
+    assert metrics.execution_duration_ms < metrics.leg_duration_sum_ms
+    assert metrics.total_duration_ms < metrics.leg_duration_sum_ms
 
 
 def test_graph_stage_is_seeded_with_the_joined_relational_keys():
