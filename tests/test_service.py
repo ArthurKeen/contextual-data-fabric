@@ -53,6 +53,23 @@ class _StubExecutor:
         )
 
 
+class _StubLLMClient:
+    provider = "openai"
+    model = "gpt-5-mini"
+
+    def generate(self, messages):
+        return type(
+            "Response",
+            (),
+            {
+                "content": _SPARQL,
+                "prompt_tokens": 120,
+                "completion_tokens": 30,
+                "cached_tokens": 20,
+            },
+        )()
+
+
 @pytest.fixture()
 def client() -> TestClient:
     catalog = SourceCatalog.from_csi_documents([_ACCOUNT_CSI, _TICKET_CSI])
@@ -79,12 +96,54 @@ def test_federate_sparql_returns_grounded_envelope(client: TestClient) -> None:
     assert body["bindings"] == [{"name": "Acme"}]
     assert body["citations"][0]["source_id"] == "postgresql:crm"
     assert body["retrieval_path"][0]["status"] == "ok"
+    assert body["nl_metrics"] is None
 
 
 def test_federate_prepared_question_resolves(client: TestClient) -> None:
     resp = client.post("/federate", json={"question": "Which  accounts EXIST?"})
     assert resp.status_code == 200
-    assert resp.json()["status"] == "grounded"
+    body = resp.json()
+    assert body["status"] == "grounded"
+    assert body["nl_metrics"] == {
+        "path": "registry",
+        "duration_ms": 0.0,
+        "llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cached_tokens": 0,
+        "cost_usd": 0.0,
+        "provider": None,
+        "model": None,
+    }
+
+
+def test_federate_question_reports_llm_time_tokens_and_cost(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "cdf.service.metering.estimate_cost_usd",
+        lambda provider, model, prompt_tokens, completion_tokens: 0.00123,
+    )
+    catalog = SourceCatalog.from_csi_documents([_ACCOUNT_CSI, _TICKET_CSI])
+    service = FederationService(
+        catalog=catalog,
+        executors={"postgresql:crm": _StubExecutor([{"a": "urn:1", "name": "Acme"}])},
+        nl_client=_StubLLMClient(),
+    )
+
+    body = TestClient(create_app(service)).post(
+        "/federate", json={"question": "Which accounts exist?"}
+    ).json()
+
+    assert body["status"] == "grounded"
+    metrics = body["nl_metrics"]
+    assert metrics["path"] == "llm"
+    assert metrics["duration_ms"] >= 0
+    assert metrics["llm_calls"] == 1
+    assert metrics["prompt_tokens"] == 120
+    assert metrics["completion_tokens"] == 30
+    assert metrics["cached_tokens"] == 20
+    assert metrics["cost_usd"] == 0.00123
+    assert metrics["provider"] == "openai"
+    assert metrics["model"] == "gpt-5-mini"
 
 
 def test_unknown_question_is_refused_not_guessed(client: TestClient) -> None:

@@ -44,6 +44,27 @@ class Citation:
 
 
 @dataclass(frozen=True)
+class NlMetrics:
+    """How the question became conceptual SPARQL — cost/latency provenance (CC-6).
+
+    ``path`` is ``"registry"`` for a prepared-question hit (no LLM involved:
+    zero calls, zero tokens, zero dollars) or ``"llm"`` for the NL front-end.
+    ``cost_usd`` is ``None`` when the (provider, model) pair is unpriced —
+    unpriced is not free, so it is never reported as ``0.0``.
+    """
+
+    path: str  # "registry" | "llm"
+    duration_ms: float = 0.0
+    llm_calls: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    cached_tokens: int = 0
+    cost_usd: float | None = None
+    provider: str | None = None
+    model: str | None = None
+
+
+@dataclass(frozen=True)
 class AnswerEnvelope:
     """The gated, cited envelope E3 hands to M7."""
 
@@ -59,6 +80,10 @@ class AnswerEnvelope:
     failed_sources: tuple[str, ...] = ()
     unavailable_vars: tuple[str, ...] = ()
     unresolved: tuple[object, ...] = ()
+    nl_metrics: NlMetrics | None = None
+    """Translation provenance for the question path (registry hit or LLM call);
+    ``None`` when the caller sent conceptual SPARQL directly. Set by the
+    service layer."""
 
     @property
     def is_grounded(self) -> bool:

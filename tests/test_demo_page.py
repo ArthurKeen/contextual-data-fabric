@@ -47,3 +47,12 @@ def test_dropdown_wiring_present(wiring: str) -> None:
 @pytest.mark.parametrize("key", ["ArrowDown", "ArrowUp", "Escape"])
 def test_keyboard_navigation_handled(key: str) -> None:
     assert f"e.key === '{key}'" in PAGE_SOURCE
+
+
+def test_ask_window_renders_llm_metrics() -> None:
+    assert 'id="metrics"' in PAGE_SOURCE
+    assert "renderMetrics(d.nl_metrics)" in PAGE_SOURCE
+    assert "LLM compute time" in PAGE_SOURCE
+    assert "prompt_tokens" in PAGE_SOURCE
+    assert "completion_tokens" in PAGE_SOURCE
+    assert "cost_usd" in PAGE_SOURCE

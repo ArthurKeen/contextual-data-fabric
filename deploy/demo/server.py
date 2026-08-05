@@ -136,6 +136,10 @@ PAGE = """<!doctype html>
   details summary { cursor:pointer; color:var(--muted); font-size:12.5px; }
   .meta { color:var(--muted); font-size:12.5px; }
   .err { color:var(--refuse); }
+  .metrics { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .metrics span { font:11.5px/1.4 ui-monospace,Menlo,monospace; color:var(--muted);
+    background:var(--code); border:1px solid var(--line); border-radius:6px; padding:4px 9px; }
+  .metrics span b { color:var(--ink, #282828); font-weight:600; }
 </style></head>
 <body><div class="wrap">
   <h1>Contextual Data Fabric — Federated Query</h1>
@@ -158,6 +162,7 @@ PAGE = """<!doctype html>
       <label class="chk"><input type="checkbox" id="ap"> allow partial (concierge mode)</label>
       <span id="status"></span>
     </div>
+    <div id="metrics" class="metrics" hidden></div>
   </div>
 
   <details id="advanced" class="card">
@@ -180,6 +185,24 @@ const esc = (s) => (s==null?'':(''+s)).replace(/[&<>]/g, c => ({'&':'&amp;','<':
 const srcTag = (kind, id) => `<span class="src src-${esc(kind)}">${esc(id)}</span>`;
 
 const EXAMPLES = __QUESTIONS__;
+
+function renderMetrics(m) {
+  const box = document.getElementById('metrics');
+  box.innerHTML = '';
+  if (!m) { box.hidden = true; return; }
+  const total = Number(m.prompt_tokens || 0) + Number(m.completion_tokens || 0);
+  const elapsed = Number(m.duration_ms || 0);
+  const time = elapsed >= 1000 ? `${(elapsed / 1000).toFixed(2)} s` : `${elapsed.toFixed(1)} ms`;
+  const cost = m.cost_usd == null ? 'unpriced' : `$${Number(m.cost_usd).toFixed(6)}`;
+  const labels = [
+    ['LLM compute time', time],
+    ['tokens', total.toLocaleString()],
+    ['cost', cost],
+  ];
+  box.innerHTML = labels.map(([label, value]) =>
+    `<span>${esc(label)} <b>${esc(value)}</b></span>`).join('');
+  box.hidden = false;
+}
 
 // Prepared questions pop up under the field on focus (filtered as you type)
 // instead of permanently occupying the page as chips.
@@ -228,13 +251,14 @@ function moveActive(delta) {
 }
 
 async function post(payload, out, stat) {
-  stat.innerHTML='running…'; out.innerHTML='';
+  stat.innerHTML='running…'; out.innerHTML=''; renderMetrics(null);
   try {
     const r = await fetch('/federate', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({...payload, allow_partial: document.getElementById('ap').checked})});
     const d = await r.json();
     stat.innerHTML='';
     if (!r.ok) { out.appendChild(el(`<div class="card err"><b>${r.status}:</b> ${esc(d.detail||JSON.stringify(d))}</div>`)); return; }
+    renderMetrics(d.nl_metrics);
     render(d, out);
   } catch(e) { stat.innerHTML=`<span class="err">${esc(''+e)}</span>`; }
 }
