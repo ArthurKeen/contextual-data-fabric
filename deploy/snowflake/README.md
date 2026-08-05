@@ -20,17 +20,38 @@ corpus loader, and the generated mapping.
 2. In a Snowsight worksheet, run [`setup.sql`](setup.sql) as `ACCOUNTADMIN`
    (replace `<YOUR_USER>`): creates warehouse `CDF_WH`, database `TELEMETRY`, a
    resource monitor (CC-11), and the read-only role `CDF_RO` (CC-7).
-3. Put the connection in the gitignored root `.env` (engine env only, CC-7):
+3. Put the connection in the gitignored root `.env` (engine env only, CC-7).
+   Key-pair authentication is preferred for shared/demo environments:
 
    ```
    SNOWFLAKE_ACCOUNT=oewnmae-zh45116   # org-account form; sb42555.us-east-2 also works
    SNOWFLAKE_USER=...                  # your login
-   SNOWFLAKE_PASSWORD=...              # password ok for the trial; key-pair is P2
+   SNOWFLAKE_PRIVATE_KEY_FILE=/absolute/path/to/rsa_key.p8
+   SNOWFLAKE_PRIVATE_KEY_FILE_PWD=...  # only for an encrypted key; omit otherwise
    SNOWFLAKE_WAREHOUSE=CDF_WH
    SNOWFLAKE_DATABASE=TELEMETRY
    SNOWFLAKE_SCHEMA=PUBLIC
    SNOWFLAKE_ROLE=CDF_RO
    ```
+
+   Assign the corresponding public key to the Snowflake user using Snowflake's
+   standard key-pair setup. The connector receives `private_key_file` (and,
+   when set, `private_key_file_pwd`) and reads the file itself; the fabric never
+   reads key bytes into mappings, logs, metrics, or answer envelopes.
+
+   For local trial compatibility, password authentication remains supported:
+
+   ```
+   SNOWFLAKE_ACCOUNT=...
+   SNOWFLAKE_USER=...
+   SNOWFLAKE_PASSWORD=...
+   # plus the same warehouse/database/schema/role values above
+   ```
+
+   Configure **exactly one** of `SNOWFLAKE_PASSWORD` and
+   `SNOWFLAKE_PRIVATE_KEY_FILE`. A key passphrase without a key file, a missing
+   key file, or both authentication methods is rejected before a connection is
+   attempted.
 
 Accept: `USE ROLE CDF_RO; USE WAREHOUSE CDF_WH; SELECT 1;` works.
 
@@ -64,6 +85,13 @@ confirms the emitted SQL is accepted:
 set -a; . ./.env; set +a
 .venv/bin/python -m pytest tests/test_snowflake_live.py -q   # skips without SNOWFLAKE_ACCOUNT
 ```
+
+The live test uses the same validated environment wiring as the service and
+loader, so the command works with either key-pair or password authentication.
+GitHub Actions currently keeps the password fallback because repository secrets
+cannot directly provide a mounted private-key file; a key-pair CI deployment
+should mount the key as a secret file and set `SNOWFLAKE_PRIVATE_KEY_FILE` to
+that path, never echo the key into logs.
 
 ## Cost (WP-S8 — the B7 story)
 

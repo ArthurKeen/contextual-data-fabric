@@ -11,7 +11,12 @@ from __future__ import annotations
 import pytest
 
 from cdf.adapters import SnowflakeExecutor
-from cdf.adapters.snowflake import SnowflakeError, compile_sql, parse_r2rml
+from cdf.adapters.snowflake import (
+    SnowflakeError,
+    build_snowflake_connect_args,
+    compile_sql,
+    parse_r2rml,
+)
 from cdf.query.types import SourceRef, SubQuery
 
 C = "urn:arango-sparql:concept#"
@@ -173,6 +178,63 @@ def test_executor_requires_transport_or_connect_args():
         SnowflakeExecutor(mapping=MAPPING)  # no transport, no connect_args
 
 
+def test_password_auth_connect_args_preserve_local_trial_fallback():
+    args = build_snowflake_connect_args(
+        {
+            "SNOWFLAKE_ACCOUNT": "org-account",
+            "SNOWFLAKE_USER": "cdf",
+            "SNOWFLAKE_PASSWORD": "test-only",
+            "SNOWFLAKE_ROLE": "CDF_RO",
+        }
+    )
+    assert args["password"] == "test-only"
+    assert "private_key_file" not in args
+
+
+def test_key_pair_connect_args_omit_password_and_do_not_read_key(tmp_path):
+    key_path = tmp_path / "snowflake-key.p8"
+    key_path.touch()
+
+    args = build_snowflake_connect_args(
+        {
+            "SNOWFLAKE_ACCOUNT": "org-account",
+            "SNOWFLAKE_USER": "cdf",
+            "SNOWFLAKE_PRIVATE_KEY_FILE": str(key_path),
+            "SNOWFLAKE_ROLE": "CDF_RO",
+        }
+    )
+
+    assert args["private_key_file"] == str(key_path)
+    assert args["authenticator"] == "SNOWFLAKE_JWT"
+    assert "password" not in args
+    assert "private_key" not in args
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        (
+            {
+                "SNOWFLAKE_PASSWORD": "test-only",
+                "SNOWFLAKE_PRIVATE_KEY_FILE": "also-configured.p8",
+            },
+            "exactly one",
+        ),
+        ({"SNOWFLAKE_PRIVATE_KEY_FILE_PWD": "set"}, "requires"),
+        ({}, "requires SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_FILE"),
+        ({"SNOWFLAKE_PRIVATE_KEY_FILE": "missing.p8"}, "existing file"),
+    ],
+)
+def test_invalid_snowflake_auth_configuration_is_rejected(extra, message):
+    env = {
+        "SNOWFLAKE_ACCOUNT": "org-account",
+        "SNOWFLAKE_USER": "cdf",
+        **extra,
+    }
+    with pytest.raises(ValueError, match=message):
+        build_snowflake_connect_args(env)
+
+
 def test_from_env_wires_a_snowflake_leg(tmp_path):
     """A snowflake CSI + SNOWFLAKE_ACCOUNT + a per-source R2RML file builds a
     SnowflakeExecutor (no connection until execute — connect_args are lazy)."""
@@ -201,6 +263,45 @@ def test_from_env_wires_a_snowflake_leg(tmp_path):
         "SNOWFLAKE_ACCOUNT": "oewnmae-zh45116",
         "SNOWFLAKE_USER": "cdf",
         "SNOWFLAKE_PASSWORD": "x",
+        "CDF_NL_DISABLED": "1",
+    })
+    assert isinstance(service.executors["snowflake:telemetry"], SFExec)
+    health = service.credential_health()["snowflake:telemetry"]
+    assert health["configured"] is True
+    assert health["backend"] == "env"
+    assert health["generation"] == "legacy"
+    assert health["last_reload_status"] == "succeeded"
+    assert health["last_reload_time"] is not None
+
+
+def test_from_env_wires_snowflake_key_pair_without_password(tmp_path):
+    import json
+
+    from cdf.adapters import SnowflakeExecutor as SFExec
+    from cdf.service.app import FederationService
+
+    csi_dir = tmp_path / "csi"
+    csi_dir.mkdir()
+    (csi_dir / "sf.json").write_text(json.dumps({
+        "csiVersion": "1",
+        "conceptualModel": {"entities": [
+            {"name": "UsageMetric", "properties": [{"name": "accountId"}]}]},
+        "arangoPhysicalMapping": {"entities": {}, "relationships": {}},
+        "provenance": {"producer": "r2g", "direction": "forward",
+                       "source": {"kind": "snowflake", "ref": "telemetry"}},
+    }))
+    r2rml_dir = tmp_path / "r2rml"
+    r2rml_dir.mkdir()
+    (r2rml_dir / "snowflake_telemetry.ttl").write_text(R2RML)
+    key_path = tmp_path / "snowflake-key.p8"
+    key_path.touch()
+
+    service = FederationService.from_env({
+        "CDF_CSI_DIR": str(csi_dir),
+        "CDF_R2RML_DIR": str(r2rml_dir),
+        "SNOWFLAKE_ACCOUNT": "org-account",
+        "SNOWFLAKE_USER": "cdf",
+        "SNOWFLAKE_PRIVATE_KEY_FILE": str(key_path),
         "CDF_NL_DISABLED": "1",
     })
     assert isinstance(service.executors["snowflake:telemetry"], SFExec)
@@ -333,6 +434,24 @@ def test_pool_reuses_one_connection_across_queries(monkeypatch):
     assert transport("SELECT 3") == [{"aid": "ACME"}]
     assert calls["n"] == 1  # one TLS+auth session for three queries
     assert conn.executed == ["SELECT 1", "SELECT 2", "SELECT 3"]
+
+
+def test_executor_drain_closes_idle_snowflake_sessions(monkeypatch):
+    conn = _FakeConnection()
+    transport, _calls = _pooled_transport(monkeypatch, [conn])
+    executor = SnowflakeExecutor(mapping=MAPPING, transport=transport)
+    executor.execute(
+        SubQuery(
+            source=SourceRef("snowflake:t", "snowflake", "t"),
+            triples=(),
+            variables=("?aid",),
+            sparql=PREFIX
+            + "SELECT ?aid WHERE { ?u a c:UsageMetric ; c:accountId ?aid }",
+        )
+    )
+    assert not conn.closed
+    executor.drain()
+    assert conn.closed
 
 
 def test_stale_session_is_retried_once_on_a_fresh_connection(monkeypatch):

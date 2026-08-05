@@ -16,6 +16,16 @@ test = ["pytest>=8.0"]
 dev = ["ruff>=0.4", "mypy>=1.10"]
 # The HTTP seam (M9/PRD §10.2). httpx is fastapi's TestClient transport.
 service = ["fastapi>=0.110", "uvicorn>=0.29", "httpx>=0.27"]
+# The semantic agent seam (M5/F2). MCP v2 renamed FastMCP to MCPServer.
+mcp = ["mcp>=2.0,<3.0"]
+# Generic OIDC JWT verification (signature/JWKS + RSA/EC key support).
+auth = ["PyJWT[crypto]>=2.13,<3.0"]
+# Explicit P2.2 assembled mode; imported lazily only when enabled/configured.
+assembly = ["python-arango>=8.0,<9.0"]
+
+[project.scripts]
+cdf-mcp = "cdf.mcp_server:main"
+cdf-catalog = "cdf.catalog.cli:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
@@ -25,7 +35,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"cdf.eval" = ["goldens/*.json"]
+"cdf.eval" = ["goldens/*.json", "corpora/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

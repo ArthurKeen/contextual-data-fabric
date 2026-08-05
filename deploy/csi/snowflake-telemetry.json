@@ -108,6 +108,31 @@
     },
     "relationships": {}
   },
+  "statistics": {
+    "version": "1",
+    "snapshotId": "demo-snowflake-2026-08-05",
+    "asOf": "2026-08-05T00:00:00Z",
+    "source": {
+      "rowCount": 12000,
+      "estimatedBytes": 4800000,
+      "costPerGbUsd": 2.0
+    },
+    "classes": {
+      "UsageMetric": {
+        "rowCount": 12000,
+        "estimatedBytes": 4800000,
+        "properties": {
+          "accountId": {
+            "ndv": 3000
+          },
+          "period": {
+            "ndv": 24,
+            "selectivity": 0.0416666667
+          }
+        }
+      }
+    }
+  },
   "provenance": {
     "producer": "r2g",
     "producerVersion": "0.2.0",

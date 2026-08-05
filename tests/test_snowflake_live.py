@@ -17,6 +17,7 @@ import os
 import pytest
 
 from cdf.adapters import SnowflakeExecutor
+from cdf.adapters.snowflake import build_snowflake_connect_args
 from cdf.query.types import SourceRef, SubQuery
 
 ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
@@ -44,16 +45,8 @@ R2RML = f"""
 """
 
 
-def _connect_args() -> dict[str, str | None]:
-    return {
-        "account": os.environ["SNOWFLAKE_ACCOUNT"],
-        "user": os.environ.get("SNOWFLAKE_USER"),
-        "password": os.environ.get("SNOWFLAKE_PASSWORD"),
-        "warehouse": os.environ.get("SNOWFLAKE_WAREHOUSE"),
-        "database": os.environ.get("SNOWFLAKE_DATABASE"),
-        "schema": os.environ.get("SNOWFLAKE_SCHEMA"),
-        "role": os.environ.get("SNOWFLAKE_ROLE"),
-    }
+def _connect_args() -> dict[str, str]:
+    return build_snowflake_connect_args(os.environ)
 
 
 def _executor() -> SnowflakeExecutor:

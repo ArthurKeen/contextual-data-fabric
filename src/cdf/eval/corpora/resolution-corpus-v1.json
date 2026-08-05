@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "corpus_version": "resolution-v1",
+  "profile": {
+    "observable_fields": [
+      "name",
+      "email_domain",
+      "phone_country",
+      "postal_code",
+      "country"
+    ],
+    "resolve_threshold": 0.88,
+    "minimum_margin": 0.08
+  },
+  "examples": [
+    {
+      "id": "exact-observable-match",
+      "account_scope": "acct-a",
+      "attributes": {
+        "name": "Northstar Health",
+        "email_domain": "northstar.example",
+        "country": "US"
+      },
+      "truth_canonical_id": "canonical/northstar",
+      "backend": {
+        "status": "resolved",
+        "canonical_id": "canonical/northstar",
+        "reason": "threshold_and_margin_satisfied",
+        "score": 0.98,
+        "margin": 1.0,
+        "candidate_account_scope": "acct-a",
+        "evidence": {
+          "profile": "fabric_canonical_hub",
+          "candidate_count": 1,
+          "field_scores": [
+            {"field": "name", "similarity": 1.0, "weight": 0.3},
+            {"field": "email_domain", "similarity": 1.0, "weight": 0.3},
+            {"field": "country", "similarity": 1.0, "weight": 0.1}
+          ],
+          "vector_score": 0.98
+        }
+      }
+    },
+    {
+      "id": "semantic-typo-match",
+      "account_scope": "acct-a",
+      "attributes": {
+        "name": "Meridan Logistcs",
+        "email_domain": "meridian.example",
+        "country": "US"
+      },
+      "truth_canonical_id": "canonical/meridian",
+      "backend": {
+        "status": "resolved",
+        "canonical_id": "canonical/meridian",
+        "reason": "threshold_and_margin_satisfied",
+        "score": 0.95,
+        "margin": 1.0,
+        "candidate_account_scope": "acct-a",
+        "evidence": {
+          "profile": "fabric_canonical_hub",
+          "candidate_count": 1,
+          "field_scores": [
+            {"field": "name", "similarity": 0.91, "weight": 0.3},
+            {"field": "email_domain", "similarity": 1.0, "weight": 0.3},
+            {"field": "country", "similarity": 1.0, "weight": 0.1}
+          ],
+          "vector_score": 0.96
+        }
+      }
+    },
+    {
+      "id": "ambiguous-near-tie",
+      "account_scope": "acct-a",
+      "attributes": {"name": "Acme Holdings", "country": "US"},
+      "truth_canonical_id": "canonical/acme-east",
+      "backend": {
+        "status": "resolved",
+        "canonical_id": "canonical/acme-east",
+        "reason": "backend_proposed_match",
+        "score": 0.97,
+        "margin": 0.01,
+        "candidate_account_scope": "acct-a",
+        "evidence": {
+          "profile": "fabric_canonical_hub",
+          "candidate_count": 2,
+          "field_scores": [
+            {"field": "name", "similarity": 1.0, "weight": 0.3},
+            {"field": "country", "similarity": 1.0, "weight": 0.1}
+          ],
+          "vector_score": 0.96
+        }
+      }
+    },
+    {
+      "id": "below-threshold-non-match",
+      "account_scope": "acct-a",
+      "attributes": {"name": "Blue River Labs", "country": "US"},
+      "truth_canonical_id": null,
+      "backend": {
+        "status": "resolved",
+        "canonical_id": "canonical/red-mountain",
+        "reason": "backend_proposed_match",
+        "score": 0.72,
+        "margin": 1.0,
+        "candidate_account_scope": "acct-a",
+        "evidence": {
+          "profile": "fabric_canonical_hub",
+          "candidate_count": 1,
+          "field_scores": [
+            {"field": "name", "similarity": 0.2, "weight": 0.3}
+          ],
+          "vector_score": 0.72
+        }
+      }
+    },
+    {
+      "id": "no-candidate",
+      "account_scope": "acct-a",
+      "attributes": {"name": "Unseen Company", "country": "US"},
+      "truth_canonical_id": null,
+      "backend": {
+        "status": "abstained",
+        "canonical_id": null,
+        "reason": "no_candidate",
+        "score": null,
+        "margin": null,
+        "candidate_account_scope": null,
+        "evidence": null
+      }
+    },
+    {
+      "id": "cross-account-provider-breach",
+      "account_scope": "acct-a",
+      "attributes": {"name": "Shared Name", "country": "US"},
+      "truth_canonical_id": null,
+      "backend": {
+        "status": "resolved",
+        "canonical_id": "canonical/other-scope",
+        "reason": "backend_proposed_match",
+        "score": 0.99,
+        "margin": 1.0,
+        "candidate_account_scope": "acct-b",
+        "evidence": {
+          "profile": "fabric_canonical_hub",
+          "candidate_count": 1,
+          "field_scores": [
+            {"field": "name", "similarity": 1.0, "weight": 0.3},
+            {"field": "country", "similarity": 1.0, "weight": 0.1}
+          ],
+          "vector_score": 0.99
+        }
+      }
+    },
+    {
+      "id": "missing-canonical-id",
+      "account_scope": "acct-a",
+      "attributes": {"name": "Missing Hub Key", "country": "US"},
+      "truth_canonical_id": null,
+      "backend": {
+        "status": "resolved",
+        "canonical_id": null,
+        "reason": "backend_proposed_match",
+        "score": 0.99,
+        "margin": 1.0,
+        "candidate_account_scope": "acct-a",
+        "evidence": {
+          "profile": "fabric_canonical_hub",
+          "candidate_count": 1,
+          "field_scores": [
+            {"field": "name", "similarity": 1.0, "weight": 0.3},
+            {"field": "country", "similarity": 1.0, "weight": 0.1}
+          ],
+          "vector_score": 0.99
+        }
+      }
+    },
+    {
+      "id": "oracle-input-refused",
+      "account_scope": "acct-a",
+      "attributes": {
+        "name": "Oracle Leak",
+        "canonical_id": "canonical/must-not-enter-backend"
+      },
+      "truth_canonical_id": null,
+      "backend": {
+        "status": "resolved",
+        "canonical_id": "canonical/must-not-enter-backend",
+        "reason": "must_not_be_called",
+        "score": 1.0,
+        "margin": 1.0,
+        "candidate_account_scope": "acct-a",
+        "evidence": null
+      }
+    }
+  ]
+}

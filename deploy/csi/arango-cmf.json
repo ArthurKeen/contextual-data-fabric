@@ -191,6 +191,43 @@
     "relationships": {},
     "shardFamilies": []
   },
+  "statistics": {
+    "version": "1",
+    "snapshotId": "demo-arango-cmf-2026-08-05",
+    "asOf": "2026-08-05T00:00:00Z",
+    "source": {
+      "rowCount": 45000,
+      "estimatedBytes": 180000000
+    },
+    "classes": {
+      "Document": {
+        "rowCount": 10000,
+        "estimatedBytes": 40000000,
+        "properties": {
+          "accountId": {
+            "ndv": 3000
+          },
+          "source": {
+            "ndv": 8,
+            "selectivity": 0.125
+          }
+        }
+      },
+      "Ticket": {
+        "rowCount": 5000,
+        "estimatedBytes": 10000000,
+        "properties": {
+          "accountId": {
+            "ndv": 2500
+          },
+          "severity": {
+            "ndv": 5,
+            "selectivity": 0.2
+          }
+        }
+      }
+    }
+  },
   "provenance": {
     "producer": "arango-schema-analyzer",
     "producerVersion": "0.11.0",

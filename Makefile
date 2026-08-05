@@ -27,6 +27,7 @@ CDF_SIBLINGS ?= $(HOME)/code
 DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
            ARANGO_USER=root ARANGO_PASSWORD=cdf \
            ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:$(CDF_ONTOP_PORT)/sparql \
+           ONTOP_REFORMULATE_ENDPOINT=http://127.0.0.1:$(CDF_ONTOP_PORT)/ontop/reformulate \
            CLICKHOUSE_DSN=clickhouse://cdf:cdf@127.0.0.1:$(CDF_CLICKHOUSE_HTTP_PORT)/analytics \
            CDF_CSI_DIR=deploy/csi CDF_R2RML_DIR=deploy/r2rml \
            CDF_PREPARED_QUESTIONS=deploy/questions.json
@@ -38,12 +39,12 @@ LOAD_ENV = set -a; . ./.env 2>/dev/null || true; set +a;
 
 PY = .venv/bin/python
 
-.PHONY: install up seed gate demo test down jdbc free-ui
+.PHONY: install up seed gate demo test catalog-integrity authorization-golden down jdbc free-ui
 
 install:
 	python3 -m venv .venv
 	$(PY) -m pip install -q --upgrade pip
-	$(PY) -m pip install -e ".[test,service,dev]" "psycopg[binary]" python-arango snowflake-connector-python
+	$(PY) -m pip install -e ".[test,service,mcp,auth,dev]" "psycopg[binary]" python-arango snowflake-connector-python
 	# Owned sibling libraries: local checkout if present, else public GitHub.
 	# The [nl] extra pulls the NL engine (arango-query-core + openai/anthropic) so
 	# the free-form NL front-end is wired — without it default_client() degrades to
@@ -87,7 +88,16 @@ free-ui:
 demo: up seed gate free-ui
 	$(DEMO_ENV) $(PY) deploy/demo/server.py
 
-test:
+catalog-integrity:
+	@tmp=$$(mktemp); trap 'rm -f "$$tmp"' EXIT; \
+	  $(PY) -m cdf.catalog.cli build --root . --output "$$tmp" >/dev/null; \
+	  diff -u deploy/catalog/manifest.json "$$tmp"
+	$(PY) -m cdf.catalog.cli validate --root . deploy/catalog/manifest.json
+
+authorization-golden:
+	$(PY) -m pytest tests/test_governance.py -q
+
+test: catalog-integrity authorization-golden
 	.venv/bin/ruff check src tests deploy
 	.venv/bin/mypy src
 	$(PY) -m pytest tests -q

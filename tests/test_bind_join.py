@@ -55,9 +55,11 @@ class _Recorder:
     def __init__(self, rows):
         self.rows = rows
         self.seen_sparql: str | None = None
+        self.seen_sparqls: list[str] = []
 
     def execute(self, subquery):
         self.seen_sparql = subquery.sparql
+        self.seen_sparqls.append(subquery.sparql)
         return SourceResult(rows=tuple(self.rows), native_query="native", as_of="t0")
 
 
@@ -92,15 +94,29 @@ def test_second_leg_is_seeded_with_first_legs_join_keys() -> None:
     assert not result.partial
 
 
-def test_seed_cap_disables_pushdown_but_not_the_join() -> None:
+def test_seed_over_batch_size_uses_values_batches_and_deduplicates() -> None:
     plan = partition_query(_JOIN_SPARQL, _catalog())
     pg = _Recorder([{"a": f"urn:{i}", "name": f"n{i}", "acct": f"k{i}"} for i in range(5)])
     ar = _Recorder([{"t": "tickets/1", "subject": "s", "acct": "k3"}])
     result = execute_plan(plan, {"postgresql:crm": pg, "arango:tickets": ar}, seed_cap=2)
 
-    assert "VALUES" not in (ar.seen_sparql or "")
+    assert len(ar.seen_sparqls) == 3
+    assert all("VALUES (?acct)" in sparql for sparql in ar.seen_sparqls)
+    seeded_values = " ".join(ar.seen_sparqls)
+    assert all(f'"k{i}"' in seeded_values for i in range(5))
     arango_step = next(s for s in result.retrieval_path if s.kind == "arango")
-    assert arango_step.seeded_vars == ()
+    assert arango_step.seeded_vars == ("acct",)
+    assert arango_step.seed_strategy == "values-batched"
+    assert arango_step.seed_batch_count == 3
+    metrics = result.execution_metrics
+    assert metrics is not None
+    arango_metrics = next(m for m in metrics.legs if m.kind == "arango")
+    assert arango_metrics.seed_row_count == 5
+    assert arango_metrics.seed_cap == 2
+    assert arango_metrics.seed_cap_exceeded is True
+    assert arango_metrics.seed_batch_count == 3
+    assert arango_metrics.seed_overflow is False
+    assert metrics.seed_cap_exceeded is True
     # Engine-side join still reconciles correctly.
     assert result.bindings == ({"name": "n3", "subject": "s"},)
 

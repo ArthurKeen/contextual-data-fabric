@@ -5,7 +5,7 @@ type:
   - internal
   - module-spec
 status: draft
-version: 0.1
+version: 0.2
 owner: TBD
 building_block: Both
 depends_on_modules: []
@@ -43,6 +43,67 @@ Own the boundary to each external source. Two distinct jobs: (a) a **metadata-sa
 - **FR-6 (P1 floor / P2 hardened):** P1 security floor (PRD §10.7 / CC-7): every source connection uses a **read-only DB role**; credentials come from environment/secret store, never code or mapping artifacts; no raw-credential logging. P2: full credential management + per-source read-only enforcement.
 - **FR-7 (P1):** **Logical source registry + SecretResolver seam.** Connectors are addressed by logical source name; M1 resolves name → credential at `open()` time. P1 backend: `.env`; P2 backend: a secret store (Vault / cloud manager) behind the same seam. Reuse r2g Phase 8's credential pattern (encrypted registry, `$ENV_VAR` resolution at use time, token redaction on read, DSN-scrubbed errors). Nothing outside M1 ever holds a raw credential; all read-back surfaces (incl. MCP tools) redact.
 - **FR-8 (P2):** **Per-source auth hardening:** Snowflake **key-pair auth** (not passwords), Databricks **service principal + OAuth M2M**; rotation via the secret store with no code change. **No per-user passthrough** — deferred to M8 (PRD §10.7 identity model).
+- **FR-9 (P3 / WP-17 baseline):** Every query source declares
+  `service|delegated`. `service` preserves the existing least-privilege
+  connector. `delegated` requires a `DelegationBroker` exchange from the
+  immutable query principal + logical source + operator-owned base-identity
+  reference into a short-lived, repr-safe `SourceIdentity`, passed through
+  `SourceExecutionContext`. A missing broker or context-aware adapter fails
+  closed and must never fall back to service credentials. RFC 8693 is the
+  preferred exchange where supported; source-specific adapters are explicit.
+  CDF does not provision an STS, Snowflake external OAuth, Postgres role
+  mappings, or any source-native policy.
+
+### P2.3 SecretResolver and rotation contract (WP-8)
+
+`cdf.connectors` is the M1 runtime boundary. CSI and R2RML contain only the
+logical `source_id`, engine `kind`, and non-secret `ref`; the resolver is called
+when an executor is opened, never while mappings are parsed. A resolved
+connector carries immutable fields plus an operator-supplied opaque generation
+alias. Its repr and normal dataclass/JSON paths do not expose fields.
+
+Two backends implement the same `SecretResolver` protocol:
+
+- `env` keeps the legacy flat `ARANGO_*`, `CLICKHOUSE_DSN`,
+  `SNOWFLAKE_*`, and `ONTOP_SPARQL_ENDPOINT` contract. For multiple sources of
+  one kind, `CDF_SECRET_REGISTRY_JSON` provides entries keyed by exact
+  `source_id`.
+- `file` reads a names-only registry at `CDF_SECRET_REGISTRY_PATH`; each entry
+  points to one JSON document directly under `CDF_SECRET_MOUNT_PATH`. This is
+  the production Docker/Kubernetes mounted-secret path. Registry and secret
+  files must be regular files owned by root or the service user and, on POSIX,
+  must not grant group/other access (mount with mode `0400`/`0600`).
+
+Each mounted document has exactly `generation` and `fields`. `generation` is an
+opaque alias such as `rotation-2026-08`; it is not a hash of credential
+material. Operators must change it whenever any field changes. The
+generation-aware executor proxy checks before execution (or at
+`CDF_SECRET_POLL_INTERVAL_SECONDS`), builds the replacement first, swaps it
+atomically, and retains the last known-good executor if reload fails. Calls
+already using the old generation finish before its lifecycle is drained.
+Snowflake drains every idle pooled session; other adapters close their client
+when supported.
+
+The assembly Arango backend uses logical source `cdf:assembly` and follows the
+same resolver contract. Ontop's endpoint is connector configuration, while the
+Postgres credentials used by Ontop remain in that separate Ontop process and
+must be mounted/rotated there independently. LLM provider keys are deliberately
+outside this source-connector resolver; they remain owned by the NL provider
+client until a provider-specific injection path can avoid broadening access.
+
+Health surfaces expose only `configured`, backend name, generation alias, and
+last reload status/time. Central redaction scrubs URL/DSN userinfo,
+bearer/basic authorization, credential key/value pairs, and exact resolved
+credential values from source and assembly failures before retrieval, HTTP,
+MCP, or logs. Exact-value registration is limited to credential-bearing fields
+and embedded URL/DSN credentials; active generations hold ref-counted leases,
+and obsolete values are released only after their old executor drains.
+
+The generation-aware registry preserves the same execution-context seam during
+rotation: context-aware adapters receive `SourceExecutionContext`; legacy
+adapters remain valid only in service mode. Short-lived delegated material is
+not put in CSI/R2RML, connector health, request context, retrieval paths, or
+logs.
 
 ## 5. Non-functional requirements
 No bulk data movement (sampling + pushdown only); read-only by default; connection reuse for latency; source errors surfaced (never silently swallowed).

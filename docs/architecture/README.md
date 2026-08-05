@@ -15,6 +15,7 @@ contextual-data-fabric/
     architecture/
       README.md                          ← this file (super-module / index)
       deployment-p1.md                   ← Phase-1 demo topology: what runs where (v0.2.1)
+      project-scorecard.md               ← current executable-gate evidence
       _TEMPLATE-module-spec.md           ← copy this to author a module spec
       module-01-connectors/
         specification.md
@@ -61,9 +62,9 @@ Two headline building blocks from the [[contextual-data-fabric-prd|PRD]] — the
 | **M5** | **Federated Query Engine** | English → resolve concepts → **decompose** → per-source query gen (SQL pushdown / AQL / agent) → execute → **reassemble**. Loosely-coupled + assembled; LLM + deterministic. | Query |
 | **M6** | **Entity Resolution / Canonical Hub** | Cross-source ER → canonical entities in Arango. Wraps **AER**. | Both |
 | **M7** | **Grounding & Provenance** | Validated answer envelope + **cited retrieval path across the federation boundary** (actual SQL + AQL + source object); refuse if uncited. | Query |
-| **M8** | **Governance / OBAC** | Ontology-based access control + business rules (Palantir/IAM-via-ontology) via declarative mappings + SHACL. **Future.** | Both |
+| **M8** | **Governance / OBAC** | Ontology-based access control and business rules via catalog/OpenFGA-compatible allow/rewrite/deny, governed rows, masking, citations, and delegated identity seams. | Both |
 | **M9** | **Demo Harness** | Thin agent UI to run seed questions end-to-end (reuse the customer-360 Vercel pattern). Not sold. | — |
-| **M10** | **Evaluation & Golden Set** | Golden seed questions with expected answers/sources/citations + runner + regression gate — makes "trust is structural" testable (PRD §10.1). Not sold. | — |
+| **M10** | **Evaluation & Golden Set** | Live/fixture goldens, NL decomposition scoring, canonical-resolution precision, catalog integrity, and authorization gates — makes "trust is structural" testable (PRD §10.1). Not sold. | — |
 
 ---
 

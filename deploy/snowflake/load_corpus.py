@@ -36,6 +36,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from cdf.adapters.snowflake import build_snowflake_connect_args
+
 TABLE = "USAGE_METRICS"
 SUBDIR = "snowflake"
 PATTERN = "*_snowflake_usage_metrics.json"
@@ -125,16 +127,13 @@ if __name__ == "__main__":
     ).expanduser()
     if not os.environ.get("SNOWFLAKE_ACCOUNT"):
         sys.exit("set the SNOWFLAKE_* env (e.g. `set -a; . ./.env; set +a`) first")
-    load(
-        corpus,
-        {
-            "account": os.environ["SNOWFLAKE_ACCOUNT"],
-            "user": os.environ.get("SNOWFLAKE_USER"),
-            "password": os.environ.get("SNOWFLAKE_PASSWORD"),
-            "warehouse": os.environ.get("SNOWFLAKE_WAREHOUSE"),
-            "database": os.environ.get("SNOWFLAKE_DATABASE"),
-            "schema": os.environ.get("SNOWFLAKE_SCHEMA"),
-            # WRITE role for the load — never the read-only CDF_RO the engine uses.
-            "role": os.environ.get("SNOWFLAKE_LOADER_ROLE", "ACCOUNTADMIN"),
-        },
-    )
+    loader_env = dict(os.environ)
+    # WRITE role for the load — never the read-only CDF_RO the engine uses.
+    loader_env.setdefault("SNOWFLAKE_LOADER_ROLE", "ACCOUNTADMIN")
+    try:
+        connect_args = build_snowflake_connect_args(
+            loader_env, role_env="SNOWFLAKE_LOADER_ROLE"
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    load(corpus, connect_args)

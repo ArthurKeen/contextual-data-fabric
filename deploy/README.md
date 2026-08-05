@@ -181,6 +181,161 @@ The answer panel shows the status badge (`grounded` / `refused` / `partial`),
 the per-source partition (the actual SQL and AQL that ran, source objects,
 as-of timestamps, row counts), and the joined result.
 
+## Production connector secrets and rotation
+
+Local/demo deployments remain backward compatible with the flat
+`ARANGO_*`, `CLICKHOUSE_DSN`, `SNOWFLAKE_*`, and
+`ONTOP_SPARQL_ENDPOINT` environment variables. Production should mount a
+names-only registry plus one JSON secret per logical source:
+
+```bash
+CDF_SECRET_BACKEND=file
+CDF_SECRET_REGISTRY_PATH=/run/cdf-secrets/registry.json
+CDF_SECRET_MOUNT_PATH=/run/cdf-secrets
+CDF_SECRET_POLL_INTERVAL_SECONDS=5
+```
+
+[`secrets/registry.example.json`](secrets/registry.example.json) contains only
+logical source IDs and mounted filenames. Do not commit the referenced files.
+Each referenced file must contain exactly:
+
+```json
+{
+  "generation": "<opaque-rotation-alias>",
+  "fields": {
+    "<connector-field>": "<mounted-secret-value>"
+  }
+}
+```
+
+Mount both registry and secret documents as regular files owned by root or the
+service user, with POSIX mode `0400` or `0600`. Change `generation` whenever
+any field changes. The engine builds the replacement with the new fields,
+atomically swaps it, permits calls already using the old executor to finish,
+then drains the old pool. A failed replacement keeps the prior generation.
+`GET /health` and MCP `list_sources` expose only backend, generation alias, and
+reload status/time.
+
+Canonical fields are `url/database/user/password` for Arango,
+`dsn` for ClickHouse, `account/user/password` or
+`account/user/private_key_file[/private_key_file_pwd]` plus optional
+`warehouse/database/schema/role` for Snowflake, and `endpoint` for Ontop.
+Multiple sources of one kind use separate entries keyed by exact CSI
+`source_id`. The optional assembly backend uses `cdf:assembly` with kind
+`assembly` and Arango fields.
+
+The Ontop endpoint is safe connector configuration; Ontop's Postgres/JDBC
+credentials live in the separate Ontop process and must be mounted and rotated
+there. LLM provider API keys are intentionally not accepted by this
+source-connector registry.
+
+## Query identity and policy (P3 WP-15/WP-17/WP-18)
+
+Local HTTP, stdio MCP, and the demo remain backward compatible: authentication
+is optional and an explicit `cdf:dev|anonymous` query principal is used. A
+production composition should install `.[auth]`, construct an `OIDCVerifier`
+with an exact issuer, audience, allowed algorithms, and HTTPS JWKS URI, and call
+`create_app(..., verifier=verifier, auth_required=True)`. JWKS fetch timeouts,
+cache lifetime, and key count are bounded. The deployment owns IdP
+registration, claims, key rotation, and availability; CDF does not discover or
+provision an IdP.
+
+Accepted request headers are `Authorization: Bearer ...`, `X-Request-ID`,
+`X-Trace-ID`, `X-CDF-Purpose`, and an absolute RFC 3339 `X-CDF-Deadline`.
+Purpose is rejected unless the application supplies a purpose-policy callback.
+Request IDs, purpose, tenant, and the issuer/subject principal key are safe
+metadata; bearer tokens are verified at the edge and are never stored in
+`RequestContext`, answers, telemetry, source contexts, or logs. Identity-like
+body fields are rejected.
+
+MCP Streamable HTTP continues to use the MCP v2 SDK's `TokenVerifier` and
+`AuthSettings`; tools derive CDF context through the official
+`get_access_token()` API. Stdio/tests can inject a context factory. Setting
+`auth_required=True` makes every semantic tool refuse when no authenticated
+subject/context exists. Catalog source/concept/property introspection and NL
+preview now pass through the same PDP; unauthorized metadata is filtered or
+refused. In auth-required HTTP mode, unauthenticated health exposes only
+`{"status":"ok"}`.
+
+Select policy composition explicitly:
+
+- `CDF_POLICY_BACKEND=none` preserves local/legacy behavior and is rejected
+  when `CDF_POLICY_REQUIRED=true`;
+- `catalog` requires `CDF_CATALOG_MANIFEST` and applies its deterministic
+  source/concept/property rules offline;
+- `openfga` adds fail-closed relationship checks and requires explicit API URL,
+  store ID, authorization model ID, and relationship. CDF does not provision
+  those resources or synchronize tuples.
+
+Service-mode row scoping and masking are denied unless the corresponding
+manifest rule sets `allowFabricRowPushdown` or `allowFabricMasking`. Delegated
+mode still receives fabric preflight, returned-row verification, and postflight
+checks. HMAC masking requires `CDF_MASKING_KEY` or an injected
+`CDF_MASKING_KEY_RESOLVER_FACTORY`; the key and OpenFGA bearer material are
+opaque and excluded from envelopes/logging.
+
+All checked-in demo sources remain `service` auth mode. Selecting `delegated`
+without both an injected `DelegationBroker` and a context-aware source adapter
+fails closed—there is no service-credential fallback. This repository does not
+provide an RFC 8693 STS, Snowflake external-OAuth security integration,
+Postgres impersonation roles, or source-native RLS/masking configuration. Do
+not set delegated mode until those external dependencies are deployed and
+tested.
+
+## Query resource guardrails
+
+The service accepts optional admission/runtime caps. Unset estimate/runtime
+limits are disabled; seed safety remains enabled by default.
+
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `CDF_MAX_ESTIMATED_ROWS` | Refuse when the planned final row estimate exceeds this value | unset |
+| `CDF_MAX_ESTIMATED_BYTES` | Refuse when estimated source bytes exceed this value | unset |
+| `CDF_MAX_ESTIMATED_COST_USD` | Refuse when a fully known estimated cost exceeds this value | unset |
+| `CDF_RUNTIME_WALL_TIME_MS` | Declare a runtime refusal after this wall-clock budget | unset |
+| `CDF_MAX_INTERMEDIATE_ROWS` | Refuse when an engine-side intermediate exceeds this size | unset |
+| `CDF_MAX_FINAL_ROWS` | Refuse when the final result exceeds this size | unset |
+| `CDF_SEED_BATCH_ROWS` | Maximum distinct bind keys in one `VALUES` call | `1000` |
+| `CDF_MAX_SEED_ROWS` | Hard distinct-key ceiling across all seed batches | `10000` |
+| `CDF_ALLOW_PARTIAL_ON_RUNTIME_CAP` | Permit explicitly requested partial final-row truncation | `false` |
+
+CSI files may add the versioned `statistics` v1 block documented in the
+[M5 specification](../docs/architecture/module-05-federated-query-engine/specification.md).
+Malformed or negative statistics fail startup. Missing statistics remain valid
+and use conservative estimates plus the legacy safe stage order.
+
+### Opt-in assembled execution
+
+`POST /federate` and MCP `federate` accept
+`"execution_mode": "virtual" | "assembled"`. The default is `virtual`, so
+existing requests and answers are unchanged. `assembled` is disabled unless
+the deployment explicitly sets `CDF_ASSEMBLY_ENABLED=true` and configures an
+Arango backend:
+
+| Variable | Meaning | Default |
+|----------|---------|---------|
+| `CDF_ASSEMBLY_ENABLED` | Permit explicitly requested assembled jobs | `false` |
+| `CDF_ASSEMBLY_ARANGO_URL` | Legacy-env temporary-graph Arango URL; may fall back to `ARANGO_URL` | unset |
+| `CDF_ASSEMBLY_ARANGO_DATABASE` | Legacy-env temporary-graph database; may fall back to `ARANGO_DB` | `cmf` |
+| `CDF_ASSEMBLY_ARANGO_USER` / `_PASSWORD` | Legacy-env backend credentials; production file backend uses `cdf:assembly` | existing Arango values |
+| `CDF_ASSEMBLY_MAX_ROWS` | Hard total source + joined-intermediate vertex cap | `50000` |
+| `CDF_ASSEMBLY_MAX_BYTES` | Hard serialized temporary-payload cap | `67108864` |
+| `CDF_ASSEMBLY_WALL_TIME_MS` | Hard assembled-job wall-time budget | `30000` |
+| `CDF_ASSEMBLY_TTL_SECONDS` | Crash-fallback expiry on temporary vertices/edges | `300` |
+
+An assembled request requires validated CSI statistics for every leg and is
+refused if its preflight estimate is unknown or over budget. Each admitted run
+uses an unpredictable job ID and isolated temporary named graph plus vertex and
+edge collections. Source rows and deterministic joined intermediates are stored
+with lineage; derived rows link to their direct inputs. Cleanup runs on every
+outcome, and TTL indexes are a crash fallback. Cleanup failures are returned as
+structured refusals.
+
+The temporary graph is the bounded intermediate/lineage substrate. The
+answer-producing table-binding join intentionally remains the existing
+deterministic Python join; WP-12 does not translate arbitrary joins to AQL where
+semantic parity would be weaker.
+
 ## Limitations (what this demo does *not* yet show)
 
 - **Free-form English.** The LLM NL front-end **is implemented and wired**

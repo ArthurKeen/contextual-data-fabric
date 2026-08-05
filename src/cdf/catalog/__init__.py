@@ -1,0 +1,46 @@
+"""Authoritative catalog manifest v1 APIs (M11 / WP-16)."""
+
+from .builder import build_manifest, build_manifest_document, export_catalog, validate_manifest
+from .model import (
+    ArtifactRef,
+    AuthMetadata,
+    CatalogLoader,
+    CatalogManifest,
+    CatalogSource,
+    EntitlementRule,
+    Entitlements,
+    FileCatalogLoader,
+    LoadedCatalog,
+    RowConstraintSpec,
+    RuntimeResolution,
+    canonical_content_hash,
+    canonical_generation,
+    canonical_json,
+    file_sha256,
+    load_manifest,
+    parse_manifest,
+)
+
+__all__ = [
+    "ArtifactRef",
+    "AuthMetadata",
+    "CatalogLoader",
+    "CatalogManifest",
+    "CatalogSource",
+    "EntitlementRule",
+    "Entitlements",
+    "FileCatalogLoader",
+    "LoadedCatalog",
+    "RuntimeResolution",
+    "RowConstraintSpec",
+    "build_manifest",
+    "build_manifest_document",
+    "canonical_content_hash",
+    "canonical_generation",
+    "canonical_json",
+    "export_catalog",
+    "file_sha256",
+    "load_manifest",
+    "parse_manifest",
+    "validate_manifest",
+]

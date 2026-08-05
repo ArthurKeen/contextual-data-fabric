@@ -56,11 +56,18 @@ def test_keyboard_navigation_handled(key: str) -> None:
 
 def test_ask_window_renders_llm_metrics() -> None:
     assert 'id="metrics"' in PAGE_SOURCE
-    assert "renderMetrics(d.nl_metrics)" in PAGE_SOURCE
+    assert "renderMetrics(d.nl_metrics, d.execution_metrics)" in PAGE_SOURCE
     assert "LLM compute time" in PAGE_SOURCE
     assert "prompt_tokens" in PAGE_SOURCE
     assert "completion_tokens" in PAGE_SOURCE
     assert "cost_usd" in PAGE_SOURCE
+
+
+def test_metrics_separate_plan_wall_time_from_source_execution() -> None:
+    assert "plan wall time" in PAGE_SOURCE
+    assert "execution.total_duration_ms" in PAGE_SOURCE
+    assert "execution.legs" in PAGE_SOURCE
+    assert "leg.duration_ms" in PAGE_SOURCE
 
 
 def test_provenance_panel_renders_actual_execution_workflow() -> None:
@@ -71,3 +78,10 @@ def test_provenance_panel_renders_actual_execution_workflow() -> None:
     assert "legs.map(s =>" in PAGE_SOURCE
     assert "srcTag(s.kind, s.source_id)" in PAGE_SOURCE
     assert "s.row_count" in PAGE_SOURCE
+
+
+def test_provenance_labels_and_renders_generated_postgresql_sql() -> None:
+    assert "generated ${nativeLanguage(c.kind)}" in PAGE_SOURCE
+    assert "kind === 'postgresql'" in PAGE_SOURCE
+    assert "native query unavailable for this source" in PAGE_SOURCE
+    assert "c.native_query" in PAGE_SOURCE

@@ -1,0 +1,10 @@
+{
+  "hmac_name": "hmac-sha256:766f777e30aef6da1dcde4c987e17eea450dbe3148cfe64e1b7083ed75e77d7c",
+  "policy_ids": [
+    "policy:name-hmac",
+    "policy:account-read"
+  ],
+  "redacted_name": "[REDACTED]",
+  "row_filter": "FILTER(?tenantId = \"tenant-a\")",
+  "row_values": "VALUES ?tenantId { \"tenant-a\" }"
+}

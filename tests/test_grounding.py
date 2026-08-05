@@ -101,6 +101,7 @@ def test_grounded_answer_carries_citations():
     assert cites["postgresql:shop"].source_objects == ("public.orders",)
     assert cites["arango:docs"].as_of == "2026-07-14T00:00:00Z"
     assert env.refusal_reason is None
+    assert env.execution_metrics is result.execution_metrics
 
 
 def test_refuse_when_load_bearing_leg_fails():
@@ -118,6 +119,7 @@ def test_refuse_when_load_bearing_leg_fails():
     assert "arango:docs" in env.refusal_reason
     # Only the surviving leg is cited; nothing fabricated.
     assert {c.source_id for c in env.citations} == {"postgresql:shop"}
+    assert env.execution_metrics is result.execution_metrics
 
 
 def test_strict_mode_refuses_any_partiality_by_default():

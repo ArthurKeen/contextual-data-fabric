@@ -13,7 +13,7 @@ E1 partition ─▶ sub-query (SPARQL) ─▶ OntopExecutor ─▶ Ontop :8080/s
 
 | file | what |
 |------|------|
-| `docker-compose.yml` | Postgres + Ontop endpoint (`:8080/sparql`) |
+| `docker-compose.yml` | Postgres + Ontop query endpoint (`:8080/sparql`) and demo-only SQL reformulation endpoint (`:8080/ontop/reformulate`) |
 | `seed.sql` | demo `accounts` table (Acme, Globex) |
 | `input/mapping.ttl` | R2RML — the shape `r2g export-r2rml` emits |
 | `input/ontop.properties` | JDBC connection for Ontop |
@@ -34,10 +34,22 @@ curl -s http://localhost:8080/sparql \
   --data-urlencode 'query=PREFIX c: <urn:arango-sparql:concept#> SELECT ?name WHERE { ?a a c:Account ; c:name ?name }' \
   -H 'Accept: application/sparql-results+json'
 
-# 4) the opt-in live integration test
+# 4) inspect the PostgreSQL SQL Ontop generated
+curl -s http://localhost:8080/ontop/reformulate \
+  --data-urlencode 'query=PREFIX c: <urn:arango-sparql:concept#> SELECT ?name WHERE { ?a a c:Account ; c:name ?name }' \
+  --data-urlencode 'forNativeConsumption=true'
+
+# 5) the opt-in live integration test, including SQL provenance
 ONTOP_SPARQL_ENDPOINT=http://localhost:8080/sparql \
+ONTOP_REFORMULATE_ENDPOINT=http://localhost:8080/ontop/reformulate \
   .venv/bin/python -m pytest tests/test_ontop_live.py -q
 ```
+
+The reformulation endpoint exists because this demo compose file enables Ontop
+development mode. Production deployments should expose it only on an internal
+network, or omit `ONTOP_REFORMULATE_ENDPOINT`; query execution remains available
+and provenance reports the native query as unavailable instead of mislabeling
+SPARQL as SQL.
 
 ## Using your own schema
 

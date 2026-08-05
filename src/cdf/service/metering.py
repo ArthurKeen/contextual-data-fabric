@@ -24,6 +24,9 @@ from cdf.query.grounding import NlMetrics
 REGISTRY_METRICS = NlMetrics(path="registry", cost_usd=0.0)
 """The metrics block for a prepared-question hit: no LLM call, genuinely $0."""
 
+DETERMINISTIC_METRICS = NlMetrics(path="deterministic", cost_usd=0.0)
+"""The metrics block for an exact corpus route: no LLM call, genuinely $0."""
+
 
 def estimate_cost_usd(
     provider: str | None,
