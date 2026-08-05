@@ -14,7 +14,11 @@
 # Host ports — overridable; defaults match this machine's running stacks.
 export CDF_ARANGO_PORT   ?= 8530
 export CDF_POSTGRES_PORT ?= 5433
-export CDF_ONTOP_PORT    ?= 8090
+# 8090 is not free on this machine: dalio-bff binds 127.0.0.1:8090, and an
+# explicit loopback bind wins over Docker's wildcard, so the stack comes up
+# healthy and every SPARQL call 404s against the wrong server. 18090 is what
+# tools/run_workbench.sh already assumed.
+export CDF_ONTOP_PORT    ?= 18090
 export CDF_UI_PORT       ?= 8099
 export CDF_CLICKHOUSE_HTTP_PORT ?= 8123
 
@@ -35,7 +39,13 @@ DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
 # Snowflake creds live in the gitignored .env (CC-7). Recipes that touch the
 # Snowflake leg source it so SNOWFLAKE_* reach gate.py / load_corpus.py, which
 # read them from the environment (server.py loads .env itself).
-LOAD_ENV = set -a; if [ -f ./.env ]; then . ./.env; fi; set +a;
+# `.` is a POSIX special builtin: when it fails, a non-interactive shell exits
+# — and `|| true` does NOT rescue it (bash in POSIX mode, which is /bin/sh on
+# macOS, honours that). So the obvious `. ./.env 2>/dev/null || true` made every
+# recipe using it exit 1 having run nothing at all, silently, whenever .env was
+# absent. `make gate` on a fresh clone printed no output and failed. Test for
+# the file instead of catching the failure.
+LOAD_ENV = if [ -f ./.env ]; then set -a; . ./.env; set +a; fi;
 
 PY = .venv/bin/python
 CK25_EVIDENCE ?= docs/evidence/ck25-gpt-4o-mini-3x.json
