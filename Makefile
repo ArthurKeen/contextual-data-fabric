@@ -35,11 +35,12 @@ DEMO_ENV = ARANGO_URL=http://127.0.0.1:$(CDF_ARANGO_PORT) ARANGO_DB=cmf \
 # Snowflake creds live in the gitignored .env (CC-7). Recipes that touch the
 # Snowflake leg source it so SNOWFLAKE_* reach gate.py / load_corpus.py, which
 # read them from the environment (server.py loads .env itself).
-LOAD_ENV = set -a; . ./.env 2>/dev/null || true; set +a;
+LOAD_ENV = set -a; if [ -f ./.env ]; then . ./.env; fi; set +a;
 
 PY = .venv/bin/python
+CK25_EVIDENCE ?= docs/evidence/ck25-gpt-4o-mini-3x.json
 
-.PHONY: install up seed gate demo test optimizer-oracle performance-baseline sota-baseline sota-baseline-live catalog-integrity authorization-golden down jdbc free-ui
+.PHONY: install up seed gate demo test optimizer-oracle performance-baseline ck25-live sota-baseline sota-baseline-live catalog-integrity authorization-golden down jdbc free-ui
 
 install:
 	python3 -m venv .venv
@@ -107,6 +108,9 @@ optimizer-oracle:
 
 performance-baseline:
 	@$(PY) -m cdf.eval.performance_baseline
+
+ck25-live:
+	@$(PY) -m cdf.eval.ck25_eval --repetitions 3 --resume --output "$(CK25_EVIDENCE)"
 
 sota-baseline:
 	@$(PY) -m cdf.eval.sota_scorecard

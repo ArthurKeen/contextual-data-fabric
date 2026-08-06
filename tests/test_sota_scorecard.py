@@ -9,10 +9,23 @@ from pathlib import Path
 from cdf.eval.sota_scorecard import (
     CommandOutcome,
     _report_hash,
+    _text_summary,
     build_scorecard,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_text_summary_retains_only_failed_test_identifiers() -> None:
+    summary = _text_summary(
+        "FAILED tests/test_service.py::test_denied - AssertionError: secret-value\n"
+        "1 failed, 2 passed\n",
+        "",
+    )
+    assert summary["failed_tests"] == [
+        "tests/test_service.py::test_denied",
+    ]
+    assert "secret-value" not in repr(summary)
 
 
 def _successful_runner(command, _root, environment):
@@ -69,6 +82,24 @@ def _successful_runner(command, _root, environment):
                 ],
             }
         )
+    elif "cdf.eval.ck25_eval" in joined:
+        stdout = json.dumps(
+            {
+                "valid": True,
+                "model": "gpt-4o-mini",
+                "completed_repetitions": 3,
+                "total_case_evaluations": 147,
+                "passed": 120,
+                "pass_rate": 120 / 147,
+                "latency_p50_ms": 500.0,
+                "latency_p95_ms": 1_500.0,
+                "llm_calls": 160,
+                "prompt_tokens": 100_000,
+                "completion_tokens": 10_000,
+                "cost_usd": 0.021,
+                "report_sha256": "abc123",
+            }
+        )
     else:
         stdout = "20 passed, 2 skipped\n"
     return CommandOutcome(0, stdout, "", 12.3456)
@@ -107,6 +138,30 @@ def test_offline_scorecard_is_versioned_hashed_and_secret_free() -> None:
     assert digest == _report_hash(report)
     assert "secret-account" not in repr(report)
     assert "secret-password" not in repr(report)
+
+
+def test_live_credentials_are_exposed_only_to_live_golden() -> None:
+    seen_live = False
+
+    def environment_runner(command, root, environment):
+        nonlocal seen_live
+        if command[:2] == ("make", "gate"):
+            seen_live = True
+            assert environment["SNOWFLAKE_ACCOUNT"] == "live-account"
+            return CommandOutcome(0, "15/15 passed\n", "", 1.0)
+        assert "SNOWFLAKE_ACCOUNT" not in environment
+        return _successful_runner(command, root, environment)
+
+    report = build_scorecard(
+        root=ROOT,
+        live=True,
+        command_runner=environment_runner,
+        environment={"PATH": "/usr/bin", "SNOWFLAKE_ACCOUNT": "live-account"},
+        git_metadata={"commit": "abc123", "branch": "main", "dirty": False},
+        package_versions={},
+    )
+    assert seen_live is True
+    assert report["passed"] is True
 
 
 def test_required_command_failure_marks_report_failed_without_raw_output() -> None:

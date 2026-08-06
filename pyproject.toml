@@ -22,6 +22,8 @@ mcp = ["mcp>=2.0,<3.0"]
 auth = ["PyJWT[crypto]>=2.13,<3.0"]
 # Explicit P2.2 assembled mode; imported lazily only when enabled/configured.
 assembly = ["python-arango>=8.0,<9.0"]
+# Manual external-corpus evidence generation (CK25 execution judge).
+benchmark = ["PyYAML>=6.0", "pyoxigraph>=0.3.22"]
 
 [project.scripts]
 cdf-mcp = "cdf.mcp_server:main"
@@ -29,6 +31,7 @@ cdf-catalog = "cdf.catalog.cli:main"
 cdf-sota = "cdf.eval.sota_scorecard:main"
 cdf-optimizer-oracle = "cdf.eval.optimizer_oracle:main"
 cdf-performance-baseline = "cdf.eval.performance_baseline:main"
+cdf-ck25 = "cdf.eval.ck25_eval:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
