@@ -42,7 +42,16 @@ class _Runner:
         return SimpleNamespace(config=config, cases=cases)
 
 
-def test_ck25_repetition_records_accuracy_latency_tokens_and_cost(tmp_path) -> None:
+def test_ck25_repetition_records_accuracy_latency_tokens_and_cost(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "cdf.service.metering.estimate_cost_usd",
+        lambda _provider, _model, prompt_tokens, completion_tokens: (
+            prompt_tokens * 0.00000015 + completion_tokens * 0.0000006
+        ),
+    )
     runner = _Runner()
     repetition = run_repetition(
         runner,
