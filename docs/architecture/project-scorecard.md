@@ -4,8 +4,8 @@ type:
   - internal
   - scorecard
 status: current
-version: 1.0
-date: 2026-08-05
+version: 1.1
+date: 2026-08-06
 requirements: "docs/contextual-data-fabric-prd.md §10.1"
 related:
   - "docs/architecture/project-sota-scorecard.md"
@@ -31,17 +31,17 @@ scorecard]]; implementation completeness is not itself evidence of SOTA.
 - **Production deployment certification:** not claimed; external identity,
   policy, delegation, and released-AER evidence remains.
 
-## Recomputed evidence — 2026-08-05
+## Recomputed evidence — 2026-08-06
 
 1. **Live end-to-end correctness — PASS (15/15).**
    `make gate` passed all Postgres/Ontop, Snowflake, ClickHouse, and ArangoDB
    cases, including the five-question arc, empty answer, PII refusal, and prompt
-   injection.
-2. **Unit and contract suite — PASS (306 passed, 5 skipped).**
+   injection. The hosted run used Snowflake RSA key-pair authentication.
+2. **Unit and contract suite — PASS (308 passed, 5 skipped).**
    `make test` passed the full test suite; skips are environment-gated live
    adapter tests, not failures.
 3. **Static quality — PASS.**
-   Ruff reported no findings and mypy reported no issues across 51 source files.
+   Ruff reported no findings and mypy reported no issues across 55 source files.
 4. **NL decomposition — PASS (10/10).**
    Corpus v1.0.0 passed parse validity, partition validity, expected sources,
    join keys, refusal behavior, and ingress-path checks.
@@ -95,10 +95,11 @@ preflight/execution/postflight OBAC enforcement are implemented.
   services; current tests use deterministic transports and contracts.
 - Validate source-native RLS/masking and real Snowflake/Postgres delegated
   identities.
-- Run the live Snowflake gate with key-pair credentials; the recomputed live
-  gate used the currently configured password credential.
-- Port and score the external 49-case stochastic NL corpus. The in-repo
-  deterministic/fixture-capable corpus currently contains 10 cases.
+- Improve the public CK25 live-provider result from the measured 17/147 (11.6%)
+  without tuning on the 49 scored answers; retain the 10-case deterministic
+  decomposition/refusal gate separately.
+- Make the four-engine hosted gate merge-blocking once Snowflake cost and
+  availability controls are acceptable for every pull request.
 
 These are deployment and portfolio-scale evidence gaps, not missing code paths
 from the requested sequence.
@@ -108,6 +109,9 @@ from the requested sequence.
 ```bash
 make gate
 make test
+.venv/bin/python -m cdf.eval.ck25_eval \
+  --validate-evidence docs/evidence/ck25-gpt-4o-mini-3x.json
 .venv/bin/python -m cdf.eval.nl_eval --json
 .venv/bin/python -m cdf.eval.resolution_eval --json
+make sota-baseline-live
 ```

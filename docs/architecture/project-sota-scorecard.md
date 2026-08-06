@@ -5,8 +5,8 @@ type:
   - scorecard
   - competitive-benchmark
 status: current
-version: 1.0
-date: 2026-08-05
+version: 1.1
+date: 2026-08-06
 review_cycle: quarterly
 requirements: "docs/contextual-data-fabric-prd.md §2.3, §10.1"
 related:
@@ -29,9 +29,9 @@ scorecard]] answers **“did we implement and gate the planned work?”** Its cu
 answer is 7/7 implementation gates. This scorecard answers the harder question:
 **“have we proved that the result is a top performer?”**
 
-## Current result — 2026-08-05
+## Current result — 2026-08-06
 
-- **SOTA evidence score:** **49.6 / 100**
+- **SOTA evidence score:** **51.2 / 100**
 - **Evidence tier:** internally validated prototype
 - **Dimensions at public benchmark level:** 0/12
 - **Dimensions independently shown to lead:** 0/12
@@ -41,7 +41,7 @@ answer is 7/7 implementation gates. This scorecard answers the harder question:
 - **Largest evidence gap:** no public scale/performance or controlled
   competitor bakeoff
 
-The 49.6 score is not a product-quality percentage. It is the weighted maturity
+The 51.2 score is not a product-quality percentage. It is the weighted maturity
 of the **evidence supporting leadership claims**.
 
 ## Scoring rule
@@ -81,8 +81,9 @@ retroactively.
 ### 1. Federated query correctness — 3/5, weight 12, contribution 7.2
 
 **Current evidence:** 15/15 live golden cases across Postgres/Ontop, Snowflake,
-ClickHouse, and ArangoDB; five fixture goldens; deterministic bind-join,
-partial-failure, empty-answer, PII, and injection contracts.
+ClickHouse, and ArangoDB, including a hosted key-pair-authenticated run; five
+fixture goldens; deterministic bind-join, partial-failure, empty-answer, PII,
+and injection contracts.
 
 **Why it is not SOTA-proven:** the live corpus is small, `make gate` is not the
 full merge-blocking CI job, and no declared W3C SPARQL/R2RML or federation
@@ -116,11 +117,14 @@ and Cambridge Semantics Anzo.
 ### 3. Connector and source breadth — 3/5, weight 8, contribution 4.8
 
 **Current evidence:** four engine kinds are live in one federated gate:
-Postgres/Ontop, Snowflake, ClickHouse, and ArangoDB. Connectors share secret
-resolution, rotation, delegation, telemetry, and provenance contracts.
+Postgres/Ontop, Snowflake, ClickHouse, and ArangoDB. All four run in hosted
+scheduled/manual CI, while the three local engines remain merge-blocking.
+Connectors share secret resolution, rotation, delegation, telemetry, and
+provenance contracts.
 
 **Why it is not SOTA-proven:** four source kinds are far below established
-virtualization platforms, and only part of the live matrix runs in CI.
+virtualization platforms, and Snowflake is scheduled/manual rather than
+merge-blocking.
 
 **Leadership threshold:** 30 production-certified source kinds across at least
 six modality families; 12 sources pass one public connector-conformance suite
@@ -161,9 +165,18 @@ Databricks federation pushdown.
 **Current evidence:** 10/10 offline NL decomposition cases validate parse,
 partition, source selection, join keys, refusal, and ingress path. The LLM
 fallback is catalog-grounded, few-shot, metered, repaired, and policy-filtered.
+The public CK25 execution corpus was run three times with GPT-4o-mini using the
+published `arango-sparql-py@623aa24` harness: **5/49, 6/49, and 6/49**, or
+**17/147 (11.6%)**. The tamper-evident report records p50/p95 latency of
+1.50/4.68 seconds, 167 provider calls, 852,757 prompt tokens, 16,419 completion
+tokens, and **$0.137762** estimated cost. Five cases passed all repetitions, one
+passed two, and 43 passed none.
 
-**Why it is not SOTA-proven:** the corpus is small and mostly deterministic;
-the external 49-case corpus and a held-out live-provider benchmark are absent.
+**Why it is not SOTA-proven:** CK25 exposed poor zero-shot execution accuracy
+rather than demonstrating a competitive result, so this dimension remains at
+level 2. The corpus has no refusal cases, only 49 questions, and is not a
+held-out enterprise-federation benchmark. Running a benchmark is evidence;
+missing its outcome threshold does not earn a score promotion.
 
 **Leadership threshold:** at least 95% result accuracy on 500+ held-out
 enterprise questions, 100% on certified KPI questions, and at least 99%
@@ -235,14 +248,19 @@ under fuzzed failures.
 **Comparators to beat:** Palantir Ontology/AIP, Databricks Unity Catalog,
 Snowflake Horizon, Denodo, and Starburst.
 
-### 9. Reliability and operability — 2/5, weight 8, contribution 3.2
+### 9. Reliability and operability — 3/5, weight 8, contribution 4.8
 
 **Current evidence:** one-command deployment, mandatory pre-demo gate, declared
 partial/refusal behavior, connector rotation and draining, bounded assembly
-cleanup, safe retries, health metadata, and static/unit gates.
+cleanup, safe retries, health metadata, and static/unit gates. The hosted
+workflow passed the complete four-engine gate using a repository-secret-backed
+Snowflake RSA key, a deterministic 46-row CI fixture, and retained SOTA JSON
+and failure artifacts. `check` and the three-local-engine `live-local` job are
+required on `main`.
 
-**Why it is not SOTA-proven:** no production SLO history, full live CI gate,
-chaos suite, soak test, RTO/RPO proof, or automated incident artifact capture.
+**Why it is not SOTA-proven:** the Snowflake job is scheduled/manual rather
+than merge-blocking, and there is no production SLO history, chaos suite, soak
+test, or RTO/RPO proof.
 
 **Leadership threshold:** 99.99% monthly admission/API availability and 99.9%
 successful-query availability when declared sources are healthy; RPO zero for
@@ -304,14 +322,15 @@ Cortex interfaces, and Timbr's agent benchmark tooling.
 corpus, authorization golden, catalog integrity, Ruff, and mypy are executable.
 A single `cdf-sota` / `make sota-baseline-live` runner emits versioned,
 tamper-evident JSON containing check summaries, durations, environment/package
-versions, raw-output hashes, git metadata, and the optional live gate. Its first
-live run passed with 306 unit/contract tests, 15/15 live goldens, 10/10 NL
-cases, complete authorization/catalog/static checks, resolution precision 1.0,
-and the 20-case HTTP/MCP parity gate.
+versions, raw-output hashes, git metadata, and the optional live gate. The
+hosted run passed with 308 unit/contract tests, 15/15 live goldens, 10/10
+deterministic NL cases, complete authorization/catalog/static checks,
+resolution precision 1.0, the 20-case HTTP/MCP parity gate, and validation of
+the retained 147-evaluation CK25 report.
 
-**Why it is not SOTA-proven:** corpora are small, the full live gate is not
-merge-blocking CI, the current worktree report is not a published artifact, and
-no raw competitor bakeoff dataset/results are published.
+**Why it is not SOTA-proven:** corpora are small, the full four-engine gate is
+not merge-blocking, hosted artifacts expire after 30 days rather than being
+signed releases, and no raw competitor bakeoff dataset/results are published.
 
 **Leadership threshold:** one reproducible command emits signed JSON for every
 dimension; 500+ total held-out cases with version pins and raw artifacts; all
@@ -360,25 +379,29 @@ when the listed acceptance evidence is produced.
    compare selected join order, cumulative rows, seed direction, final rows,
    estimated bytes, and cost. All cases achieved an objective ratio of 1.0,
    promoting optimization/economics from level 2 to level 3.
-4. **IMPLEMENTED; HOSTED EVIDENCE PENDING — Full live gate in CI (+1.6 when proven).**
-   The workflow now runs Postgres/Ontop, ArangoDB, and ClickHouse on every
-   push/PR; scheduled/manual runs require Snowflake key-pair secrets, run the
-   complete scorecard, and retain evidence and failure logs. Reliability remains
-   level 2 until the hosted workflow passes and branch protection requires the
-   local-live job.
+4. **✅ DONE — Full live gate in CI (+1.6, 2026-08-06).**
+   The workflow runs Postgres/Ontop, ArangoDB, and ClickHouse on every push/PR.
+   A hosted manual run also passed Snowflake with RSA key-pair authentication,
+   ran the complete scorecard, and retained evidence/failure artifacts.
+   Reliability is promoted from level 2 to level 3.
 5. **✅ DONE — Internal scale/performance baseline (+1.6, 2026-08-05).**
    A versioned synthetic workload publishes p50/p95, concurrency, planning
    overhead, source rows/bytes, cost, dataset cardinalities, and two declared
    network profiles. Scale/performance is promoted from level 1 to level 2.
-6. **Port the external 49-case NL corpus — estimated 3–5 days, +1.6.**
-   Run multiple provider repetitions with result-based decomposition, refusal,
-   latency, token, and cost scoring. This promotes NL/agent accuracy from level
-   2 to level 3.
+6. **RUN COMPLETE; PROMOTION NOT EARNED — External 49-case NL corpus.**
+   Three execution-graded GPT-4o-mini repetitions produced 17/147 correct
+   results (11.6%). Latency, token, call, cost, model, corpus, license, harness,
+   and per-case consistency evidence is retained under `docs/evidence/`.
+   NL/agent accuracy remains level 2 until a frozen approach achieves a credible
+   outcome; the report must not be converted into +1.6 merely because it exists.
 
-Completed items 1, 2, 3, and 5 moved the evidence score from **44.4 to 49.6**.
-Proving the hosted CI gate and completing the 49-case NL run would move it to
-approximately **52.8**. The next medium-effort promotions are live OpenFGA/OIDC
-policy evidence (+2.0) and a released/pinned live AER evaluation (+1.6).
+Completed items 1, 2, 3, 4, and 5 moved the evidence score from **44.4 to
+51.2**. Item 6 improved diagnosis and reproducibility but not the score because
+the measured result failed the promotion threshold. The next outcome-focused
+priority is to improve CK25 execution accuracy on a frozen holdout without
+leaking test answers into prompts. The next medium-effort evidence promotions
+remain live OpenFGA/OIDC policy evidence (+2.0) and a released/pinned live AER
+evaluation (+1.6).
 Reaching the 70-point SOTA-candidate gate still requires public level-4
 benchmarks; internal test volume alone cannot establish competitor-relative
 leadership.

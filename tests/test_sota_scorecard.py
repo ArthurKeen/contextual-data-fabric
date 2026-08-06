@@ -9,10 +9,23 @@ from pathlib import Path
 from cdf.eval.sota_scorecard import (
     CommandOutcome,
     _report_hash,
+    _text_summary,
     build_scorecard,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_text_summary_retains_only_failed_test_identifiers() -> None:
+    summary = _text_summary(
+        "FAILED tests/test_service.py::test_denied - AssertionError: secret-value\n"
+        "1 failed, 2 passed\n",
+        "",
+    )
+    assert summary["failed_tests"] == [
+        "tests/test_service.py::test_denied",
+    ]
+    assert "secret-value" not in repr(summary)
 
 
 def _successful_runner(command, _root, environment):

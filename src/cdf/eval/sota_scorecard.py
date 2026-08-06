@@ -29,6 +29,7 @@ from cdf.connectors.redaction import redact
 SCHEMA_VERSION = 1
 REPORT_KIND = "cdf-sota-baseline"
 _SUMMARY_COUNT = re.compile(r"(?P<count>\d+)\s+(?P<label>passed|failed|skipped)")
+_FAILED_TEST = re.compile(r"^FAILED\s+(?P<test>\S+)", re.MULTILINE)
 _LIVE_ENV_KEYS = (
     "ARANGO_URL",
     "ARANGO_DB",
@@ -194,6 +195,9 @@ def _text_summary(stdout: str, stderr: str) -> dict[str, Any]:
         counts[match.group("label")] = int(match.group("count"))
     lines = [line.strip() for line in combined.splitlines() if line.strip()]
     summary: dict[str, Any] = {"counts": counts}
+    failed_tests = [match.group("test") for match in _FAILED_TEST.finditer(combined)]
+    if failed_tests:
+        summary["failed_tests"] = failed_tests[:50]
     if lines:
         summary["last_line"] = (redact(lines[-1]) or "")[:500]
     return summary
