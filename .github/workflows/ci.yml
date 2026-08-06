@@ -29,7 +29,7 @@ jobs:
           cache: pip
       # snowflake-connector-python: the pool/retry unit tests exercise the real
       # connector's error classes (mock-fidelity); without it they importorskip.
-      - run: pip install -e ".[test,service,mcp,auth]" ruff mypy snowflake-connector-python
+      - run: pip install -e ".[test,service,mcp,auth,assembly]" ruff mypy snowflake-connector-python
       - name: Offline catalog integrity
         run: make catalog-integrity PY=python
       - name: Offline authorization golden
