@@ -69,6 +69,24 @@ def _successful_runner(command, _root, environment):
                 ],
             }
         )
+    elif "cdf.eval.ck25_eval" in joined:
+        stdout = json.dumps(
+            {
+                "valid": True,
+                "model": "gpt-4o-mini",
+                "completed_repetitions": 3,
+                "total_case_evaluations": 147,
+                "passed": 120,
+                "pass_rate": 120 / 147,
+                "latency_p50_ms": 500.0,
+                "latency_p95_ms": 1_500.0,
+                "llm_calls": 160,
+                "prompt_tokens": 100_000,
+                "completion_tokens": 10_000,
+                "cost_usd": 0.021,
+                "report_sha256": "abc123",
+            }
+        )
     else:
         stdout = "20 passed, 2 skipped\n"
     return CommandOutcome(0, stdout, "", 12.3456)

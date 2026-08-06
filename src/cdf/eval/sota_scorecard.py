@@ -119,6 +119,17 @@ def _specs(python: str, *, live: bool) -> tuple[CheckSpec, ...]:
             "http_mcp_parity",
             (python, "-m", "pytest", "tests/test_interface_parity.py", "-q"),
         ),
+        CheckSpec(
+            "ck25_live_evidence",
+            (
+                python,
+                "-m",
+                "cdf.eval.ck25_eval",
+                "--validate-evidence",
+                "docs/evidence/ck25-gpt-4o-mini-3x.json",
+            ),
+            output_kind="ck25-json",
+        ),
     ]
     if live:
         specs.append(CheckSpec("live_golden", ("make", "gate", f"PY={python}")))
@@ -250,6 +261,25 @@ def _json_summary(output_kind: str, stdout: str) -> dict[str, Any]:
                 }
                 for profile in document.get("profiles") or []
             ],
+        }
+    if output_kind == "ck25-json":
+        return {
+            key: document.get(key)
+            for key in (
+                "valid",
+                "model",
+                "completed_repetitions",
+                "total_case_evaluations",
+                "passed",
+                "pass_rate",
+                "latency_p50_ms",
+                "latency_p95_ms",
+                "llm_calls",
+                "prompt_tokens",
+                "completion_tokens",
+                "cost_usd",
+                "report_sha256",
+            )
         }
     raise ValueError(f"unsupported JSON output kind: {output_kind}")
 

@@ -134,6 +134,7 @@ jobs:
       CDF_CSI_DIR: deploy/csi
       CDF_R2RML_DIR: deploy/r2rml
       CDF_PREPARED_QUESTIONS: deploy/questions.json
+      CDF_CORPUS_DIR: deploy/snowflake/fixtures
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
