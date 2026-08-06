@@ -62,6 +62,10 @@ Accept: `USE ROLE CDF_RO; USE WAREHOUSE CDF_WH; SELECT 1;` works.
 creates `USAGE_METRICS` with **unquoted (uppercase) physical names** — deliberate, so
 CC-12's naming layer maps `USAGE_METRICS`→`UsageMetric`, `QUERY_VOLUME_M`→
 `queryVolumeM`. `ACCOUNT_ID` is preserved as the cross-source join spine.
+Hosted CI sets `CDF_CORPUS_DIR=deploy/snowflake/fixtures`; that checked-in,
+synthetic 46-row copy makes the four-engine run independent of a developer's
+adjacent `customer-context` checkout. `tests/test_snowflake_fixture.py` guards
+its row count, join-spine IDs, required columns, and peak-period coverage.
 
 ## The mapping (WP-S3)
 
@@ -88,10 +92,10 @@ set -a; . ./.env; set +a
 
 The live test uses the same validated environment wiring as the service and
 loader, so the command works with either key-pair or password authentication.
-GitHub Actions currently keeps the password fallback because repository secrets
-cannot directly provide a mounted private-key file; a key-pair CI deployment
-should mount the key as a secret file and set `SNOWFLAKE_PRIVATE_KEY_FILE` to
-that path, never echo the key into logs.
+The scheduled/manual `live-full` GitHub Actions job materializes its encrypted
+`SNOWFLAKE_PRIVATE_KEY` repository secret as a mode-`0600` temporary file and
+sets `SNOWFLAKE_PRIVATE_KEY_FILE`; key bytes are never printed or retained as
+an artifact.
 
 ## Cost (WP-S8 — the B7 story)
 

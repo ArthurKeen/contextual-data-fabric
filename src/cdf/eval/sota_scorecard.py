@@ -29,6 +29,7 @@ from cdf.connectors.redaction import redact
 SCHEMA_VERSION = 1
 REPORT_KIND = "cdf-sota-baseline"
 _SUMMARY_COUNT = re.compile(r"(?P<count>\d+)\s+(?P<label>passed|failed|skipped)")
+_FAILED_TEST = re.compile(r"^FAILED\s+(?P<test>\S+)", re.MULTILINE)
 _LIVE_ENV_KEYS = (
     "ARANGO_URL",
     "ARANGO_DB",
@@ -119,6 +120,17 @@ def _specs(python: str, *, live: bool) -> tuple[CheckSpec, ...]:
             "http_mcp_parity",
             (python, "-m", "pytest", "tests/test_interface_parity.py", "-q"),
         ),
+        CheckSpec(
+            "ck25_live_evidence",
+            (
+                python,
+                "-m",
+                "cdf.eval.ck25_eval",
+                "--validate-evidence",
+                "docs/evidence/ck25-gpt-4o-mini-3x.json",
+            ),
+            output_kind="ck25-json",
+        ),
     ]
     if live:
         specs.append(CheckSpec("live_golden", ("make", "gate", f"PY={python}")))
@@ -183,6 +195,9 @@ def _text_summary(stdout: str, stderr: str) -> dict[str, Any]:
         counts[match.group("label")] = int(match.group("count"))
     lines = [line.strip() for line in combined.splitlines() if line.strip()]
     summary: dict[str, Any] = {"counts": counts}
+    failed_tests = [match.group("test") for match in _FAILED_TEST.finditer(combined)]
+    if failed_tests:
+        summary["failed_tests"] = failed_tests[:50]
     if lines:
         summary["last_line"] = (redact(lines[-1]) or "")[:500]
     return summary
@@ -250,6 +265,25 @@ def _json_summary(output_kind: str, stdout: str) -> dict[str, Any]:
                 }
                 for profile in document.get("profiles") or []
             ],
+        }
+    if output_kind == "ck25-json":
+        return {
+            key: document.get(key)
+            for key in (
+                "valid",
+                "model",
+                "completed_repetitions",
+                "total_case_evaluations",
+                "passed",
+                "pass_rate",
+                "latency_p50_ms",
+                "latency_p95_ms",
+                "llm_calls",
+                "prompt_tokens",
+                "completion_tokens",
+                "cost_usd",
+                "report_sha256",
+            )
         }
     raise ValueError(f"unsupported JSON output kind: {output_kind}")
 
@@ -359,15 +393,20 @@ def build_scorecard(
 
     timestamp = generated_at or datetime.now(timezone.utc)
     inherited = environment if environment is not None else os.environ
-    check_environment = dict(inherited) if live else _offline_environment(inherited)
+    offline_environment = _offline_environment(inherited)
+    specs = _specs(sys.executable, live=live)
     checks = tuple(
         _run_check(
             spec,
             root=root,
-            environment=check_environment,
+            environment=(
+                dict(inherited)
+                if live and spec.name == "live_golden"
+                else offline_environment
+            ),
             command_runner=command_runner,
         )
-        for spec in _specs(sys.executable, live=live)
+        for spec in specs
     )
     required_passed = all(
         check.status == "passed" for check in checks if check.required
