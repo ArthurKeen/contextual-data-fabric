@@ -393,15 +393,20 @@ def build_scorecard(
 
     timestamp = generated_at or datetime.now(timezone.utc)
     inherited = environment if environment is not None else os.environ
-    check_environment = dict(inherited) if live else _offline_environment(inherited)
+    offline_environment = _offline_environment(inherited)
+    specs = _specs(sys.executable, live=live)
     checks = tuple(
         _run_check(
             spec,
             root=root,
-            environment=check_environment,
+            environment=(
+                dict(inherited)
+                if live and spec.name == "live_golden"
+                else offline_environment
+            ),
             command_runner=command_runner,
         )
-        for spec in _specs(sys.executable, live=live)
+        for spec in specs
     )
     required_passed = all(
         check.status == "passed" for check in checks if check.required

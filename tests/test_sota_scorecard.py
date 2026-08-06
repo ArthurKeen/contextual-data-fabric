@@ -140,6 +140,30 @@ def test_offline_scorecard_is_versioned_hashed_and_secret_free() -> None:
     assert "secret-password" not in repr(report)
 
 
+def test_live_credentials_are_exposed_only_to_live_golden() -> None:
+    seen_live = False
+
+    def environment_runner(command, root, environment):
+        nonlocal seen_live
+        if command[:2] == ("make", "gate"):
+            seen_live = True
+            assert environment["SNOWFLAKE_ACCOUNT"] == "live-account"
+            return CommandOutcome(0, "15/15 passed\n", "", 1.0)
+        assert "SNOWFLAKE_ACCOUNT" not in environment
+        return _successful_runner(command, root, environment)
+
+    report = build_scorecard(
+        root=ROOT,
+        live=True,
+        command_runner=environment_runner,
+        environment={"PATH": "/usr/bin", "SNOWFLAKE_ACCOUNT": "live-account"},
+        git_metadata={"commit": "abc123", "branch": "main", "dirty": False},
+        package_versions={},
+    )
+    assert seen_live is True
+    assert report["passed"] is True
+
+
 def test_required_command_failure_marks_report_failed_without_raw_output() -> None:
     def failing_runner(command, _root, _environment):
         joined = " ".join(command)
