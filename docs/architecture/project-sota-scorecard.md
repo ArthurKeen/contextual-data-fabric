@@ -323,7 +323,7 @@ corpus, authorization golden, catalog integrity, Ruff, and mypy are executable.
 A single `cdf-sota` / `make sota-baseline-live` runner emits versioned,
 tamper-evident JSON containing check summaries, durations, environment/package
 versions, raw-output hashes, git metadata, and the optional live gate. The
-hosted run passed with 308 unit/contract tests, 15/15 live goldens, 10/10
+hosted run passed with 310 unit/contract tests, 15/15 live goldens, 10/10
 deterministic NL cases, complete authorization/catalog/static checks,
 resolution precision 1.0, the 20-case HTTP/MCP parity gate, and validation of
 the retained 147-evaluation CK25 report.

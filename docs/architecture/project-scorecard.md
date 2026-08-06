@@ -37,7 +37,7 @@ scorecard]]; implementation completeness is not itself evidence of SOTA.
    `make gate` passed all Postgres/Ontop, Snowflake, ClickHouse, and ArangoDB
    cases, including the five-question arc, empty answer, PII refusal, and prompt
    injection. The hosted run used Snowflake RSA key-pair authentication.
-2. **Unit and contract suite — PASS (308 passed, 5 skipped).**
+2. **Unit and contract suite — PASS (310 passed, 5 skipped).**
    `make test` passed the full test suite; skips are environment-gated live
    adapter tests, not failures.
 3. **Static quality — PASS.**
