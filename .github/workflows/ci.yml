@@ -1,21 +1,26 @@
-# CI for the fabric engine (P1 close-out WP-P1.8).
-#
-# Two jobs:
-#   * check — ruff + mypy + the unit suite on every push/PR. Fast, no infra.
-#   * live  — the opt-in integration layer made mandatory in CI: brings up the
-#     deploy/ stacks (ArangoDB; Postgres + Ontop over the repo's R2RML) and runs
-#     the live-leg tests end-to-end. This is CC-9's enforcement hook — a pin
-#     bump or engine change that breaks a live leg goes red here, not in a demo.
+# CI for the fabric engine (CC-9 and the SOTA reliability evidence gate).
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    # Full four-engine run, including Snowflake, every weekday at 06:17 UTC.
+    - cron: "17 6 * * 1-5"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdf-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,9 +38,11 @@ jobs:
       - run: mypy src
       - run: pytest tests -q
 
-  live:
+  live-local:
+    name: live-local (Postgres/Ontop + ArangoDB + ClickHouse)
     runs-on: ubuntu-latest
     needs: check
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,40 +50,146 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install engine + live-leg libraries
-        # arango-sparql-py is public — installs like any git dependency, so the
-        # Arango live test gates for real (no token, no skip).
         run: |
-          pip install -e ".[test,service]" python-arango snowflake-connector-python \
+          pip install -e ".[test,service,mcp,auth]" python-arango clickhouse-connect \
+            snowflake-connector-python ruff mypy \
             "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
-      - name: Postgres JDBC driver for Ontop
-        run: curl -sL -o deploy/ontop/jdbc/postgresql.jar https://jdbc.postgresql.org/download/postgresql-42.7.4.jar
-      - name: Bring up the stacks
-        run: |
-          docker compose -f deploy/arango/docker-compose.yml up -d --wait
-          docker compose -f deploy/ontop/docker-compose.yml up -d --wait
-      - name: Seed ArangoDB
-        run: ARANGO_URL=http://127.0.0.1:8529 ARANGO_PASSWORD=cdf python deploy/arango/seed.py
-      - name: Live-leg tests
-        run: |
-          ARANGO_URL=http://127.0.0.1:8529 ARANGO_DB=cmf ARANGO_PASSWORD=cdf \
-          ONTOP_SPARQL_ENDPOINT=http://127.0.0.1:8080/sparql \
-            pytest tests/test_arango_live.py tests/test_ontop_live.py -q
-      - name: Snowflake live leg (env-gated — skips cleanly without secrets)
-        # Snowflake is a cloud service (no container). Set the SNOWFLAKE_* repo
-        # secrets to gate the native Snowflake leg for real; without them,
-        # test_snowflake_live.py skips (declared, not hidden) — the
-        # arango-sparql-py precedent (CC-9 / PRD §7.7).
+      - name: Bring up all local source stacks
+        run: make up PY=python
+      - name: Seed deterministic graph fixtures
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-        run: pytest tests/test_snowflake_live.py -q
-      - name: Stack logs on failure
+          ARANGO_URL: http://127.0.0.1:8530
+          ARANGO_DB: cmf
+          ARANGO_USER: root
+          ARANGO_PASSWORD: cdf
+        run: |
+          python deploy/arango/seed.py
+          sleep 15
+      - name: Three-engine live adapter tests
+        env:
+          ARANGO_URL: http://127.0.0.1:8530
+          ARANGO_DB: cmf
+          ARANGO_USER: root
+          ARANGO_PASSWORD: cdf
+          ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:8090/sparql
+          ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:8090/ontop/reformulate
+          CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:8123/analytics
+        run: |
+          pytest tests/test_arango_live.py tests/test_ontop_live.py \
+            tests/test_clickhouse_live.py -q
+      - name: Local-source golden gate
+        env:
+          ARANGO_URL: http://127.0.0.1:8530
+          ARANGO_DB: cmf
+          ARANGO_USER: root
+          ARANGO_PASSWORD: cdf
+          ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:8090/sparql
+          ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:8090/ontop/reformulate
+          CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:8123/analytics
+          CDF_CSI_DIR: deploy/csi
+          CDF_R2RML_DIR: deploy/r2rml
+          CDF_PREPARED_QUESTIONS: deploy/questions.json
+        run: python deploy/demo/gate.py --exclude-source snowflake:telemetry
+      - name: Collect source logs on failure
         if: failure()
         run: |
-          docker compose -f deploy/arango/docker-compose.yml logs --tail 50
-          docker compose -f deploy/ontop/docker-compose.yml logs --tail 100
+          mkdir -p "$RUNNER_TEMP/cdf-live-local-logs"
+          docker compose -p cdf-arango -f deploy/arango/docker-compose.yml logs \
+            --no-color > "$RUNNER_TEMP/cdf-live-local-logs/arango.log"
+          docker compose -p cdf-ontop -f deploy/ontop/docker-compose.yml logs \
+            --no-color > "$RUNNER_TEMP/cdf-live-local-logs/ontop.log"
+          docker compose -p cdf-clickhouse -f deploy/clickhouse/docker-compose.yml logs \
+            --no-color > "$RUNNER_TEMP/cdf-live-local-logs/clickhouse.log"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-local-source-logs
+          path: ${{ runner.temp }}/cdf-live-local-logs
+          retention-days: 14
+      - name: Tear down local source stacks
+        if: always()
+        run: make down
+
+  live-full:
+    name: live-full (scheduled four-engine SOTA baseline)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    needs: live-local
+    timeout-minutes: 35
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      ARANGO_URL: http://127.0.0.1:8530
+      ARANGO_DB: cmf
+      ARANGO_USER: root
+      ARANGO_PASSWORD: cdf
+      ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:8090/sparql
+      ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:8090/ontop/reformulate
+      CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:8123/analytics
+      CDF_CSI_DIR: deploy/csi
+      CDF_R2RML_DIR: deploy/r2rml
+      CDF_PREPARED_QUESTIONS: deploy/questions.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install engine + all live-leg libraries
+        run: |
+          pip install -e ".[test,service,mcp,auth]" python-arango clickhouse-connect \
+            snowflake-connector-python ruff mypy \
+            "arango-sparql-py @ git+https://github.com/ArthurKeen/arango-sparql-py"
+      - name: Require and materialize Snowflake key-pair credentials
+        env:
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+        run: |
+          test -n "$SNOWFLAKE_ACCOUNT"
+          test -n "$SNOWFLAKE_USER"
+          test -n "$SNOWFLAKE_PRIVATE_KEY"
+          umask 077
+          printf '%s' "$SNOWFLAKE_PRIVATE_KEY" > "$RUNNER_TEMP/snowflake-key.p8"
+          echo "SNOWFLAKE_PRIVATE_KEY_FILE=$RUNNER_TEMP/snowflake-key.p8" >> "$GITHUB_ENV"
+      - name: Bring up and seed all source stacks
+        run: |
+          make up PY=python
+          python deploy/arango/seed.py
+          sleep 15
+          python deploy/snowflake/load_corpus.py
+      - name: Snowflake live adapter test
+        run: pytest tests/test_snowflake_live.py -q
+      - name: Emit complete live SOTA evidence
+        run: |
+          python -m cdf.eval.sota_scorecard --live \
+            --output "$RUNNER_TEMP/cdf-sota-live.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cdf-sota-live-evidence
+          path: ${{ runner.temp }}/cdf-sota-live.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Collect source logs on failure
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/cdf-live-full-logs"
+          docker compose -p cdf-arango -f deploy/arango/docker-compose.yml logs \
+            --no-color > "$RUNNER_TEMP/cdf-live-full-logs/arango.log"
+          docker compose -p cdf-ontop -f deploy/ontop/docker-compose.yml logs \
+            --no-color > "$RUNNER_TEMP/cdf-live-full-logs/ontop.log"
+          docker compose -p cdf-clickhouse -f deploy/clickhouse/docker-compose.yml logs \
+            --no-color > "$RUNNER_TEMP/cdf-live-full-logs/clickhouse.log"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-full-source-logs
+          path: ${{ runner.temp }}/cdf-live-full-logs
+          retention-days: 14
+      - name: Tear down local source stacks
+        if: always()
+        run: make down

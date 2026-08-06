@@ -96,6 +96,21 @@ def load_goldens(directory: str | Path) -> list[dict[str, Any]]:
     ]
 
 
+def filter_goldens(
+    cases: Iterable[dict[str, Any]],
+    excluded_sources: Iterable[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split out cases requiring sources absent from a partial live stack."""
+
+    excluded = set(excluded_sources)
+    selected: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    for case in cases:
+        expected = set((case.get("expect") or {}).get("sources_touched") or [])
+        (skipped if expected & excluded else selected).append(case)
+    return selected, skipped
+
+
 def _bag(rows: Iterable[dict[str, Any]]) -> list[tuple]:
     """Order-insensitive canonical form for a bag of bindings."""
     return sorted(tuple(sorted(r.items())) for r in rows)

@@ -26,6 +26,9 @@ assembly = ["python-arango>=8.0,<9.0"]
 [project.scripts]
 cdf-mcp = "cdf.mcp_server:main"
 cdf-catalog = "cdf.catalog.cli:main"
+cdf-sota = "cdf.eval.sota_scorecard:main"
+cdf-optimizer-oracle = "cdf.eval.optimizer_oracle:main"
+cdf-performance-baseline = "cdf.eval.performance_baseline:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

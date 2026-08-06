@@ -16,6 +16,7 @@ contextual-data-fabric/
       README.md                          ← this file (super-module / index)
       deployment-p1.md                   ← Phase-1 demo topology: what runs where (v0.2.1)
       project-scorecard.md               ← current executable-gate evidence
+      project-sota-scorecard.md          ← competitor-relative leadership evidence
       _TEMPLATE-module-spec.md           ← copy this to author a module spec
       module-01-connectors/
         specification.md
