@@ -256,7 +256,9 @@ cleanup, safe retries, health metadata, and static/unit gates. The hosted
 workflow passed the complete four-engine gate using a repository-secret-backed
 Snowflake RSA key, a deterministic 46-row CI fixture, and retained SOTA JSON
 and failure artifacts. `check` and the three-local-engine `live-local` job are
-required on `main`.
+required on `main`. [Hosted run 31090989998](https://github.com/ArthurKeen/contextual-data-fabric/actions/runs/31090989998)
+passed all three jobs and retained report SHA-256
+`21c2947f8b56b3531107cc6bd1add0f4761bf0b8608cd18916ab8a0654257785`.
 
 **Why it is not SOTA-proven:** the Snowflake job is scheduled/manual rather
 than merge-blocking, and there is no production SLO history, chaos suite, soak

@@ -11,3 +11,8 @@ The CK25 report derives from the external
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The owned
 `arango-sparql-py` sibling retains the full attribution notice, corpus, instance
 graph, and execution-based answer-set judge.
+
+`ck25-gpt-4o-mini-3x.json` is the 2026-08-06 GPT-4o-mini zero-shot result:
+17/147 correct (11.6%) across three repetitions, with latency, token, call, and
+cost evidence. It is a diagnostic baseline, not a passing accuracy claim or a
+score promotion.

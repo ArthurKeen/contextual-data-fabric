@@ -36,7 +36,8 @@ scorecard]]; implementation completeness is not itself evidence of SOTA.
 1. **Live end-to-end correctness — PASS (15/15).**
    `make gate` passed all Postgres/Ontop, Snowflake, ClickHouse, and ArangoDB
    cases, including the five-question arc, empty answer, PII refusal, and prompt
-   injection. The hosted run used Snowflake RSA key-pair authentication.
+   injection. [Hosted run 31090989998](https://github.com/ArthurKeen/contextual-data-fabric/actions/runs/31090989998)
+   used Snowflake RSA key-pair authentication and passed all three CI jobs.
 2. **Unit and contract suite — PASS (310 passed, 5 skipped).**
    `make test` passed the full test suite; skips are environment-gated live
    adapter tests, not failures.
