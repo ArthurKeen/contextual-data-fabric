@@ -7,6 +7,8 @@ status: current
 version: 1.0
 date: 2026-08-05
 requirements: "docs/contextual-data-fabric-prd.md §10.1"
+related:
+  - "docs/architecture/project-sota-scorecard.md"
 ---
 
 # Contextual Data Fabric — Project Scorecard
@@ -15,6 +17,10 @@ This scorecard records evidence, not an invented maturity percentage. The
 implementation score is the share of required, executable gates that passed.
 Deployment integrations that cannot be proved in this checkout are listed
 separately and are not silently counted as green.
+
+Competitor-relative leadership is scored separately in the
+[[contextual-data-fabric/docs/architecture/project-sota-scorecard|SOTA
+scorecard]]; implementation completeness is not itself evidence of SOTA.
 
 ## Result
 
@@ -31,7 +37,7 @@ separately and are not silently counted as green.
    `make gate` passed all Postgres/Ontop, Snowflake, ClickHouse, and ArangoDB
    cases, including the five-question arc, empty answer, PII refusal, and prompt
    injection.
-2. **Unit and contract suite — PASS (300 passed, 3 skipped).**
+2. **Unit and contract suite — PASS (306 passed, 5 skipped).**
    `make test` passed the full test suite; skips are environment-gated live
    adapter tests, not failures.
 3. **Static quality — PASS.**

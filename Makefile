@@ -39,7 +39,7 @@ LOAD_ENV = set -a; . ./.env 2>/dev/null || true; set +a;
 
 PY = .venv/bin/python
 
-.PHONY: install up seed gate demo test catalog-integrity authorization-golden down jdbc free-ui
+.PHONY: install up seed gate demo test optimizer-oracle performance-baseline sota-baseline sota-baseline-live catalog-integrity authorization-golden down jdbc free-ui
 
 install:
 	python3 -m venv .venv
@@ -101,6 +101,18 @@ test: catalog-integrity authorization-golden
 	.venv/bin/ruff check src tests deploy
 	.venv/bin/mypy src
 	$(PY) -m pytest tests -q
+
+optimizer-oracle:
+	@$(PY) -m cdf.eval.optimizer_oracle
+
+performance-baseline:
+	@$(PY) -m cdf.eval.performance_baseline
+
+sota-baseline:
+	@$(PY) -m cdf.eval.sota_scorecard
+
+sota-baseline-live:
+	@$(PY) -m cdf.eval.sota_scorecard --live
 
 down:
 	docker compose -p cdf-arango -f deploy/arango/docker-compose.yml down

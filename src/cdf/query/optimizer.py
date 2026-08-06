@@ -292,7 +292,12 @@ def _best_component_order(
             subset = frozenset(subset_tuple)
             best: tuple[int, int, tuple[int, ...], dict[str, int]] | None = None
             for right in subset:
-                previous = states[subset - {right}]
+                previous = states.get(subset - {right})
+                # A connected component can still contain a disconnected
+                # proper subset (for example, two leaves of a star). Such a
+                # subset has no valid left-deep state and must not be expanded.
+                if previous is None:
+                    continue
                 previous_indices = previous[2]
                 shared_variables: set[str] = set()
                 for left in previous_indices:

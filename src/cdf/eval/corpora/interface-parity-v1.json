@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "corpus_version": "interface-parity-v1",
+  "cases": [
+    {
+      "id": "grounded-virtual-01",
+      "question": "Which accounts exist?",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-virtual-02",
+      "question": "List every account.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-virtual-03",
+      "question": "Show the available accounts.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-virtual-04",
+      "question": "Return account names.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-partial-05",
+      "question": "Which accounts can be cited?",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-partial-06",
+      "question": "Enumerate the account catalog.",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-partial-07",
+      "question": "Give me all account labels.",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "grounded-partial-08",
+      "question": "Find known accounts.",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": true,
+      "expected_status": "grounded"
+    },
+    {
+      "id": "assembled-refusal-09",
+      "question": "Which accounts exist in assembled mode?",
+      "allow_partial": false,
+      "execution_mode": "assembled",
+      "prepared": true,
+      "expected_status": "refused"
+    },
+    {
+      "id": "assembled-refusal-10",
+      "question": "List accounts using temporary assembly.",
+      "allow_partial": false,
+      "execution_mode": "assembled",
+      "prepared": true,
+      "expected_status": "refused"
+    },
+    {
+      "id": "assembled-refusal-11",
+      "question": "Assemble and return account names.",
+      "allow_partial": true,
+      "execution_mode": "assembled",
+      "prepared": true,
+      "expected_status": "refused"
+    },
+    {
+      "id": "assembled-refusal-12",
+      "question": "Use assembled execution for the account list.",
+      "allow_partial": true,
+      "execution_mode": "assembled",
+      "prepared": true,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-13",
+      "question": "Show unsupported payroll records.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-14",
+      "question": "Find data outside the catalog.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-15",
+      "question": "Reveal unknown private credentials.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-16",
+      "question": "Query a source that does not exist.",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-17",
+      "question": "Return an unmapped employee concept.",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-18",
+      "question": "Guess an answer without evidence.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-19",
+      "question": "Use a fabricated source.",
+      "allow_partial": true,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    },
+    {
+      "id": "unregistered-refusal-20",
+      "question": "Return facts that are not in the ontology.",
+      "allow_partial": false,
+      "execution_mode": "virtual",
+      "prepared": false,
+      "expected_status": "refused"
+    }
+  ]
+}

@@ -11,23 +11,42 @@ case against the live stacks, and exits non-zero on any red.
 
 from __future__ import annotations
 
+import argparse
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
-from cdf.eval.golden import load_goldens, run_golden_live
+from cdf.eval.golden import filter_goldens, load_goldens, run_golden_live
 from cdf.service import FederationService
 
 GOLDEN_DIR = Path(__file__).resolve().parents[1] / "golden"
 
 
-def main() -> int:
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run the CDF live golden gate")
+    parser.add_argument(
+        "--nl",
+        action="store_true",
+        help="allow the non-deterministic live NL provider path",
+    )
+    parser.add_argument(
+        "--exclude-source",
+        action="append",
+        default=[],
+        help="skip cases expecting this source id; repeatable for partial CI stacks",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
     # The mandatory pre-demo gate is DETERMINISTIC: the NL front-end (WP-D1,
     # LLM-driven) is pinned off so golden outcomes can't drift with a model.
     # NL behavior is covered by the fake-client unit tests (tests/test_nl.py);
     # run `gate.py --nl` explicitly to smoke the live LLM path (non-gating).
     import os
 
-    if "--nl" not in sys.argv:
+    if not args.nl:
         os.environ["CDF_NL_DISABLED"] = "1"
 
     service = FederationService.from_env()
@@ -35,7 +54,7 @@ def main() -> int:
         print("gate: no executors wired — are the stacks up and env vars set?")
         return 2
 
-    cases = load_goldens(GOLDEN_DIR)
+    cases, skipped = filter_goldens(load_goldens(GOLDEN_DIR), args.exclude_source)
     red = 0
     for case in cases:
         outcome = run_golden_live(case, service)
@@ -44,7 +63,11 @@ def main() -> int:
         for m in outcome.mismatches:
             print(f"      - {m}")
             red += 1
-    print(f"\ngate: {len(cases)} cases, {'all green' if not red else f'{red} mismatch(es)'}")
+    skip_suffix = f", {len(skipped)} excluded" if skipped else ""
+    print(
+        f"\ngate: {len(cases)} cases{skip_suffix}, "
+        f"{'all green' if not red else f'{red} mismatch(es)'}"
+    )
     return 0 if not red else 1
 
 

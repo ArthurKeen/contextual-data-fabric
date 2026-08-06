@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "corpus_version": "optimizer-oracle-v1",
+  "cases": [
+    {
+      "id": "two-source-selective-first",
+      "expected_oracle_order": ["snowflake:usage", "postgresql:accounts"],
+      "sources": [
+        {
+          "kind": "postgresql",
+          "ref": "accounts",
+          "entity": "OracleAccount",
+          "row_count": 1000,
+          "bytes_per_row": 128,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"account_id": 1000}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "usage",
+          "entity": "OracleUsage",
+          "row_count": 10,
+          "bytes_per_row": 64,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"account_id": 10}
+        }
+      ]
+    },
+    {
+      "id": "three-source-chain",
+      "expected_oracle_order": ["arango:documents", "snowflake:events", "postgresql:customers"],
+      "sources": [
+        {
+          "kind": "postgresql",
+          "ref": "customers",
+          "entity": "OracleCustomer",
+          "row_count": 1000,
+          "bytes_per_row": 160,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"customer_id": 1000}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "events",
+          "entity": "OracleEvent",
+          "row_count": 100,
+          "bytes_per_row": 96,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"customer_id": 100, "document_id": 100}
+        },
+        {
+          "kind": "arango",
+          "ref": "documents",
+          "entity": "OracleDocument",
+          "row_count": 10,
+          "bytes_per_row": 256,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"document_id": 10}
+        }
+      ]
+    },
+    {
+      "id": "four-source-star",
+      "expected_oracle_order": ["clickhouse:tiny", "postgresql:hub", "arango:profile", "snowflake:history"],
+      "sources": [
+        {
+          "kind": "postgresql",
+          "ref": "hub",
+          "entity": "OracleHub",
+          "row_count": 10000,
+          "bytes_per_row": 192,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"profile_id": 10000, "tiny_id": 10000, "history_id": 10000}
+        },
+        {
+          "kind": "arango",
+          "ref": "profile",
+          "entity": "OracleProfile",
+          "row_count": 100,
+          "bytes_per_row": 220,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"profile_id": 100}
+        },
+        {
+          "kind": "clickhouse",
+          "ref": "tiny",
+          "entity": "OracleTiny",
+          "row_count": 10,
+          "bytes_per_row": 48,
+          "cost_per_gb_usd": 0.01,
+          "variables": {"tiny_id": 10}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "history",
+          "entity": "OracleHistory",
+          "row_count": 1000,
+          "bytes_per_row": 80,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"history_id": 1000}
+        }
+      ]
+    },
+    {
+      "id": "four-source-chain",
+      "expected_oracle_order": ["arango:chain-d", "clickhouse:chain-c", "snowflake:chain-b", "postgresql:chain-a"],
+      "sources": [
+        {
+          "kind": "postgresql",
+          "ref": "chain-a",
+          "entity": "OracleChainA",
+          "row_count": 5000,
+          "bytes_per_row": 144,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"edge_ab": 5000}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "chain-b",
+          "entity": "OracleChainB",
+          "row_count": 500,
+          "bytes_per_row": 96,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"edge_ab": 500, "edge_bc": 500}
+        },
+        {
+          "kind": "clickhouse",
+          "ref": "chain-c",
+          "entity": "OracleChainC",
+          "row_count": 50,
+          "bytes_per_row": 64,
+          "cost_per_gb_usd": 0.01,
+          "variables": {"edge_bc": 50, "edge_cd": 50}
+        },
+        {
+          "kind": "arango",
+          "ref": "chain-d",
+          "entity": "OracleChainD",
+          "row_count": 5,
+          "bytes_per_row": 256,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"edge_cd": 5}
+        }
+      ]
+    },
+    {
+      "id": "dual-key-triangle",
+      "expected_oracle_order": ["clickhouse:triangle-c", "postgresql:triangle-a", "snowflake:triangle-b"],
+      "sources": [
+        {
+          "kind": "postgresql",
+          "ref": "triangle-a",
+          "entity": "OracleTriangleA",
+          "row_count": 1000,
+          "bytes_per_row": 128,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"tenant_id": 10, "account_id": 1000}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "triangle-b",
+          "entity": "OracleTriangleB",
+          "row_count": 300,
+          "bytes_per_row": 96,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"tenant_id": 10, "account_id": 300}
+        },
+        {
+          "kind": "clickhouse",
+          "ref": "triangle-c",
+          "entity": "OracleTriangleC",
+          "row_count": 30,
+          "bytes_per_row": 72,
+          "cost_per_gb_usd": 0.01,
+          "variables": {"tenant_id": 10, "account_id": 30}
+        }
+      ]
+    },
+    {
+      "id": "five-source-skewed-chain",
+      "expected_oracle_order": ["postgresql:skew-e", "arango:skew-d", "clickhouse:skew-c", "snowflake:skew-b", "postgresql:skew-a"],
+      "sources": [
+        {
+          "kind": "postgresql",
+          "ref": "skew-a",
+          "entity": "OracleSkewA",
+          "row_count": 100000,
+          "bytes_per_row": 180,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"skew_ab": 100000}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "skew-b",
+          "entity": "OracleSkewB",
+          "row_count": 10000,
+          "bytes_per_row": 100,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"skew_ab": 10000, "skew_bc": 10000}
+        },
+        {
+          "kind": "clickhouse",
+          "ref": "skew-c",
+          "entity": "OracleSkewC",
+          "row_count": 1000,
+          "bytes_per_row": 60,
+          "cost_per_gb_usd": 0.01,
+          "variables": {"skew_bc": 1000, "skew_cd": 1000}
+        },
+        {
+          "kind": "arango",
+          "ref": "skew-d",
+          "entity": "OracleSkewD",
+          "row_count": 100,
+          "bytes_per_row": 240,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"skew_cd": 100, "skew_de": 100}
+        },
+        {
+          "kind": "postgresql",
+          "ref": "skew-e",
+          "entity": "OracleSkewE",
+          "row_count": 10,
+          "bytes_per_row": 120,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"skew_de": 10}
+        }
+      ]
+    },
+    {
+      "id": "eight-source-dp-boundary",
+      "expected_oracle_order": ["postgresql:dp-h", "arango:dp-g", "clickhouse:dp-f", "snowflake:dp-e", "postgresql:dp-d", "arango:dp-c", "clickhouse:dp-b", "snowflake:dp-a"],
+      "sources": [
+        {
+          "kind": "snowflake",
+          "ref": "dp-a",
+          "entity": "OracleDpA",
+          "row_count": 12800,
+          "bytes_per_row": 90,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"dp_ab": 12800}
+        },
+        {
+          "kind": "clickhouse",
+          "ref": "dp-b",
+          "entity": "OracleDpB",
+          "row_count": 6400,
+          "bytes_per_row": 60,
+          "cost_per_gb_usd": 0.01,
+          "variables": {"dp_ab": 6400, "dp_bc": 6400}
+        },
+        {
+          "kind": "arango",
+          "ref": "dp-c",
+          "entity": "OracleDpC",
+          "row_count": 3200,
+          "bytes_per_row": 220,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"dp_bc": 3200, "dp_cd": 3200}
+        },
+        {
+          "kind": "postgresql",
+          "ref": "dp-d",
+          "entity": "OracleDpD",
+          "row_count": 1600,
+          "bytes_per_row": 140,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"dp_cd": 1600, "dp_de": 1600}
+        },
+        {
+          "kind": "snowflake",
+          "ref": "dp-e",
+          "entity": "OracleDpE",
+          "row_count": 800,
+          "bytes_per_row": 90,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"dp_de": 800, "dp_ef": 800}
+        },
+        {
+          "kind": "clickhouse",
+          "ref": "dp-f",
+          "entity": "OracleDpF",
+          "row_count": 400,
+          "bytes_per_row": 60,
+          "cost_per_gb_usd": 0.01,
+          "variables": {"dp_ef": 400, "dp_fg": 400}
+        },
+        {
+          "kind": "arango",
+          "ref": "dp-g",
+          "entity": "OracleDpG",
+          "row_count": 200,
+          "bytes_per_row": 220,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"dp_fg": 200, "dp_gh": 200}
+        },
+        {
+          "kind": "postgresql",
+          "ref": "dp-h",
+          "entity": "OracleDpH",
+          "row_count": 100,
+          "bytes_per_row": 140,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"dp_gh": 100}
+        }
+      ]
+    },
+    {
+      "id": "lexicographic-tie-break",
+      "expected_oracle_order": ["arango:tie-a", "postgresql:tie-b", "snowflake:tie-c"],
+      "sources": [
+        {
+          "kind": "snowflake",
+          "ref": "tie-c",
+          "entity": "OracleTieC",
+          "row_count": 100,
+          "bytes_per_row": 80,
+          "cost_per_gb_usd": 0.04,
+          "variables": {"tie_key": 100}
+        },
+        {
+          "kind": "postgresql",
+          "ref": "tie-b",
+          "entity": "OracleTieB",
+          "row_count": 100,
+          "bytes_per_row": 120,
+          "cost_per_gb_usd": 0.02,
+          "variables": {"tie_key": 100}
+        },
+        {
+          "kind": "arango",
+          "ref": "tie-a",
+          "entity": "OracleTieA",
+          "row_count": 100,
+          "bytes_per_row": 240,
+          "cost_per_gb_usd": 0.03,
+          "variables": {"tie_key": 100}
+        }
+      ]
+    }
+  ]
+}

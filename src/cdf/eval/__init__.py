@@ -7,7 +7,7 @@ grounded/partial/refused status — so the later real-adapter work (Ontop / AQL)
 cannot silently regress the engine's contract.
 """
 
-from .golden import GoldenOutcome, load_goldens, run_golden
+from .golden import GoldenOutcome, filter_goldens, load_goldens, run_golden
 from .nl_corpus import (
     CorpusExample,
     CorpusValidationError,
@@ -19,6 +19,7 @@ from .nl_corpus import (
 
 __all__ = [
     "GoldenOutcome",
+    "filter_goldens",
     "load_goldens",
     "run_golden",
     "CorpusExample",
