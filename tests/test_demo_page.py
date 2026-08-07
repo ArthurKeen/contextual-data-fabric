@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 PAGE_SOURCE = (Path(__file__).parent.parent / "deploy" / "demo" / "server.py").read_text()
+EDITOR_SOURCE = (Path(__file__).parent.parent / "deploy" / "demo" / "editor.js").read_text()
 
 
 def test_page_still_injects_questions_and_sparql() -> None:
@@ -78,6 +79,42 @@ def test_provenance_panel_renders_actual_execution_workflow() -> None:
     assert "legs.map(s =>" in PAGE_SOURCE
     assert "srcTag(s.kind, s.source_id)" in PAGE_SOURCE
     assert "s.row_count" in PAGE_SOURCE
+
+
+def test_conceptual_query_editor_is_wired_into_the_page() -> None:
+    # The editor script and the live-catalog vocabulary are injected at render
+    # time; the textarea keeps its id so run() reads .value unchanged.
+    assert "__EDITOR_JS__" in PAGE_SOURCE
+    assert "initSparqlEditor('q', __VOCAB__);" in PAGE_SOURCE
+    assert 'replace("__EDITOR_JS__", EDITOR_JS)' in PAGE_SOURCE
+    assert '_json.dumps({"classes": vocab})' in PAGE_SOURCE
+    assert '<textarea id="q"' in PAGE_SOURCE
+
+
+def test_editor_completion_is_catalog_scoped_and_syntax_directed() -> None:
+    assert "function initSparqlEditor" in EDITOR_SOURCE
+    assert "vocab.classes" in EDITOR_SOURCE
+    # `?x a c:▮` completes classes only; a typed subject scopes its properties.
+    assert "afterA" in EDITOR_SOURCE
+    assert "subjectClass(" in EDITOR_SOURCE
+    # A concept no source maps is painted as an error — the refuse-over-guess
+    # contract, visible while typing.
+    assert "sqed-unknown" in EDITOR_SOURCE
+
+
+@pytest.mark.parametrize(
+    "wiring",
+    [
+        "e.key === 'ArrowDown'",
+        "e.key === 'ArrowUp'",
+        "e.key === 'Tab' || e.key === 'Enter'",
+        "e.key === 'Escape'",
+        # mousedown beats the textarea's blur, same pattern as the ask dropdown
+        "b.onmousedown",
+    ],
+)
+def test_editor_keyboard_and_mouse_contract(wiring: str) -> None:
+    assert wiring in EDITOR_SOURCE
 
 
 def test_provenance_labels_and_renders_generated_postgresql_sql() -> None:
