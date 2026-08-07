@@ -46,6 +46,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: check
     timeout-minutes: 25
+    env:
+      # Pinned, not inherited from the Makefile's `?=` defaults: `make up`
+      # publishes these ports and the endpoint URLs below must match them, or
+      # the stacks come up healthy and every leg refuses with zero citations —
+      # a gate failure that points nowhere. Changing a port here means changing
+      # it in the URLs too.
+      CDF_ARANGO_PORT: 8530
+      CDF_POSTGRES_PORT: 5433
+      CDF_ONTOP_PORT: 18090
+      CDF_CLICKHOUSE_HTTP_PORT: 8123
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -61,7 +71,7 @@ jobs:
         run: make up PY=python
       - name: Seed deterministic graph fixtures
         env:
-          ARANGO_URL: http://127.0.0.1:8530
+          ARANGO_URL: http://127.0.0.1:${{ env.CDF_ARANGO_PORT }}
           ARANGO_DB: cmf
           ARANGO_USER: root
           ARANGO_PASSWORD: cdf
@@ -70,25 +80,25 @@ jobs:
           sleep 15
       - name: Three-engine live adapter tests
         env:
-          ARANGO_URL: http://127.0.0.1:8530
+          ARANGO_URL: http://127.0.0.1:${{ env.CDF_ARANGO_PORT }}
           ARANGO_DB: cmf
           ARANGO_USER: root
           ARANGO_PASSWORD: cdf
-          ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:8090/sparql
-          ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:8090/ontop/reformulate
-          CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:8123/analytics
+          ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:${{ env.CDF_ONTOP_PORT }}/sparql
+          ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:${{ env.CDF_ONTOP_PORT }}/ontop/reformulate
+          CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:${{ env.CDF_CLICKHOUSE_HTTP_PORT }}/analytics
         run: |
           pytest tests/test_arango_live.py tests/test_ontop_live.py \
             tests/test_clickhouse_live.py -q
       - name: Local-source golden gate
         env:
-          ARANGO_URL: http://127.0.0.1:8530
+          ARANGO_URL: http://127.0.0.1:${{ env.CDF_ARANGO_PORT }}
           ARANGO_DB: cmf
           ARANGO_USER: root
           ARANGO_PASSWORD: cdf
-          ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:8090/sparql
-          ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:8090/ontop/reformulate
-          CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:8123/analytics
+          ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:${{ env.CDF_ONTOP_PORT }}/sparql
+          ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:${{ env.CDF_ONTOP_PORT }}/ontop/reformulate
+          CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:${{ env.CDF_CLICKHOUSE_HTTP_PORT }}/analytics
           CDF_CSI_DIR: deploy/csi
           CDF_R2RML_DIR: deploy/r2rml
           CDF_PREPARED_QUESTIONS: deploy/questions.json
@@ -127,12 +137,21 @@ jobs:
       SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
       SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
       SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      # Same pin as live-local, and the same rule: these ports are what
+      # `make up` publishes, and the URLs below must match them. A job-level
+      # `env:` block cannot reference its own keys (the env context is only
+      # available at step level), so the numbers are repeated here rather than
+      # interpolated — keep the two halves in sync.
+      CDF_ARANGO_PORT: 8530
+      CDF_POSTGRES_PORT: 5433
+      CDF_ONTOP_PORT: 18090
+      CDF_CLICKHOUSE_HTTP_PORT: 8123
       ARANGO_URL: http://127.0.0.1:8530
       ARANGO_DB: cmf
       ARANGO_USER: root
       ARANGO_PASSWORD: cdf
-      ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:8090/sparql
-      ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:8090/ontop/reformulate
+      ONTOP_SPARQL_ENDPOINT: http://127.0.0.1:18090/sparql
+      ONTOP_REFORMULATE_ENDPOINT: http://127.0.0.1:18090/ontop/reformulate
       CLICKHOUSE_DSN: clickhouse://cdf:cdf@127.0.0.1:8123/analytics
       CDF_CSI_DIR: deploy/csi
       CDF_R2RML_DIR: deploy/r2rml
