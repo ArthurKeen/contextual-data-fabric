@@ -54,7 +54,7 @@ flowchart TB
     subgraph pg["PostgreSQL :5433 — the RELATIONAL source (CRM)"]
         PGT["5 tables (CRM · DocuSign)<br/>accounts, contacts, contracts,<br/>opportunities, nps_surveys"]
     end
-    subgraph ontop["Ontop :8090 — Virtual Knowledge Graph"]
+    subgraph ontop["Ontop :18090 — Virtual Knowledge Graph"]
         ONT["SPARQL → SQL over R2RML<br/>(no data copied)"]
     end
     subgraph snow["Snowflake — live cloud source (TELEMETRY)"]
