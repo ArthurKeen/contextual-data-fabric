@@ -43,10 +43,10 @@ _load_dotenv(Path(os.environ.get("CDF_ENV_FILE", str(_REPO / ".env"))))
 
 os.environ.setdefault("CDF_CSI_DIR", str(_REPO / "deploy" / "csi"))
 os.environ.setdefault("CDF_PREPARED_QUESTIONS", str(_REPO / "deploy" / "questions.json"))
-os.environ.setdefault("ONTOP_SPARQL_ENDPOINT", "http://localhost:8090/sparql")
+os.environ.setdefault("ONTOP_SPARQL_ENDPOINT", "http://localhost:18090/sparql")
 os.environ.setdefault(
     "ONTOP_REFORMULATE_ENDPOINT",
-    "http://localhost:8090/ontop/reformulate",
+    "http://localhost:18090/ontop/reformulate",
 )
 os.environ.setdefault("ARANGO_URL", "http://localhost:8530")
 os.environ.setdefault("ARANGO_DB", "cmf")
