@@ -156,3 +156,18 @@ def test_ci_endpoint_urls_use_the_pinned_ports(job: str) -> None:
             checked += 1
 
     assert checked, f"CI job {job!r} sets none of {sorted(CI_ENDPOINT_PORT_VARS)}"
+
+
+def test_demo_server_fallback_endpoints_match_makefile_default() -> None:
+    """A bare `python deploy/demo/server.py` (no DEMO_ENV) falls back to the
+    module's `setdefault` endpoints — the fourth copy of the constant. A stale
+    port there renders a healthy-looking UI over a silently dead Postgres leg,
+    the same disguise as the other three incidents."""
+    ontop = _makefile_port_defaults()["CDF_ONTOP_PORT"]
+    server = (REPO_ROOT / "deploy" / "demo" / "server.py").read_text(encoding="utf-8")
+    ports = re.findall(r"http://localhost:(\d+)/(?:sparql|ontop/reformulate)", server)
+    assert ports, "no Ontop fallback endpoints found in deploy/demo/server.py"
+    assert set(ports) == {ontop}, (
+        f"deploy/demo/server.py falls back to Ontop port(s) {sorted(set(ports))}; "
+        f"the Makefile's CDF_ONTOP_PORT default is {ontop}"
+    )
