@@ -1,0 +1,3 @@
+# Authoritative arango-solutions main as reviewed 2026-08-06.
+# Keep this full SHA synchronized with CI and the CC-9 dependency-pin test.
+arango-sparql-py[nl,analyzer] @ git+https://github.com/arango-solutions/arango-sparql-py.git@603db8efeb5cd40e570d53964247ca65a80e739b
