@@ -121,6 +121,27 @@ def test_editor_pairs_braces_and_quotes() -> None:
     assert ".sqed-match" in PAGE_SOURCE and ".sqed-unmatch" in PAGE_SOURCE
 
 
+def test_editor_quote_handling_is_parity_aware() -> None:
+    # Inside an open string a quote CLOSES it — exactly one, never a pair
+    # (typing the closer back into `"signal ;` must not yield `"signal"" ;`).
+    assert "function inString" in EDITOR_SOURCE
+    assert "e.key === '\"' && inString(v, s)" in EDITOR_SOURCE
+    # The quote pair at the caret is marked like braces are.
+    assert "function scanQuote" in EDITOR_SOURCE
+    # An unterminated string is painted red to the end of the line, not silent.
+    assert "sqed-open-str" in EDITOR_SOURCE
+    assert ".sqed-open-str" in PAGE_SOURCE
+
+
+def test_editor_offers_the_namespace_and_never_doubles_the_closing_angle() -> None:
+    # Deleting the '#' inside <urn:…:concept#> must offer the bare namespace
+    # back (exclusively, on a PREFIX line) …
+    assert "'namespace · PREFIX base'" in EDITOR_SOURCE
+    # … and accepting an IRI completion just before an existing '>' consumes
+    # it instead of producing '>>'.
+    assert "it.insert.endsWith('>') && ta.value[end] === '>'" in EDITOR_SOURCE
+
+
 def test_generated_sparql_is_formatted_on_fill() -> None:
     assert "function formatSparql" in EDITOR_SOURCE
     assert "function setSparqlEditorValue" in EDITOR_SOURCE

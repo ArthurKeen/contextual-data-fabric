@@ -185,6 +185,8 @@ PAGE = """<!doctype html>
   .sqed-src-postgresql { color:var(--pg); } .sqed-src-arango { color:var(--ar); }
   .sqed-src-snowflake { color:var(--sf); } .sqed-src-clickhouse { color:var(--ch); }
   .sqed-unknown { color:var(--refuse); text-decoration:underline wavy var(--refuse); }
+  .sqed-open-str { background:color-mix(in srgb,var(--refuse) 14%,transparent);
+    text-decoration:underline wavy var(--refuse); }
   .sqed-match { background:color-mix(in srgb,var(--accent) 22%,transparent); border-radius:2px; }
   .sqed-unmatch { background:color-mix(in srgb,var(--refuse) 30%,transparent); border-radius:2px; }
   .sqed-menu { position:absolute; z-index:30; min-width:240px; max-width:380px; max-height:220px;
