@@ -90,7 +90,10 @@ def index() -> str:
         PAGE.replace("__SPARQL__", DEFAULT_SPARQL)
         .replace("__QUESTIONS__", questions)
         .replace("__EDITOR_JS__", EDITOR_JS)
-        .replace("__VOCAB__", _json.dumps({"classes": vocab}))
+        .replace(
+            "__VOCAB__",
+            _json.dumps({"base": _SERVICE.catalog.concept_base, "classes": vocab}),
+        )
     )
 
 
@@ -182,6 +185,8 @@ PAGE = """<!doctype html>
   .sqed-src-postgresql { color:var(--pg); } .sqed-src-arango { color:var(--ar); }
   .sqed-src-snowflake { color:var(--sf); } .sqed-src-clickhouse { color:var(--ch); }
   .sqed-unknown { color:var(--refuse); text-decoration:underline wavy var(--refuse); }
+  .sqed-match { background:color-mix(in srgb,var(--accent) 22%,transparent); border-radius:2px; }
+  .sqed-unmatch { background:color-mix(in srgb,var(--refuse) 30%,transparent); border-radius:2px; }
   .sqed-menu { position:absolute; z-index:30; min-width:240px; max-width:380px; max-height:220px;
     overflow-y:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px;
     box-shadow:0 8px 24px rgba(0,0,0,.15); }
@@ -239,8 +244,14 @@ PAGE = """<!doctype html>
       SPARQL it became; edit it and Run to take the power path.</p>
     <textarea id="q" style="margin-top:8px">__SPARQL__</textarea>
     <p class="meta" style="margin:6px 2px 0">Completion: <b>Tab</b>/<b>Enter</b> accepts, <b>Ctrl-Space</b> opens —
-      classes and properties come from the live catalog; a red-underlined concept is one no source maps.</p>
-    <div class="row" style="margin-top:8px"><button id="run" onclick="run()">Run SPARQL</button></div>
+      classes and properties come from the live catalog, in both <code>c:Name</code> and full
+      <code>&lt;urn:…#Name&gt;</code> spellings; a red-underlined concept is one no source maps.
+      Braces and quotes auto-close; the pair at the caret is marked.</p>
+    <div class="row" style="margin-top:8px">
+      <button id="run" onclick="run()">Run SPARQL</button>
+      <button id="fmt" style="background:transparent;color:var(--muted);border:1px solid var(--line)"
+              onclick="setSparqlEditorValue('q', document.getElementById('q').value)">Format</button>
+    </div>
     <div id="advbody"></div>
   </details>
 
@@ -395,7 +406,7 @@ function render(d, out) {
   // ---- Provenance panel (the single expander between question and answer):
   //      the editable conceptual-query box reflects what actually ran, and
   //      the decomposition + transpiled queries render beneath it. ----
-  if (d.conceptual_sparql) document.getElementById('q').value = d.conceptual_sparql;
+  if (d.conceptual_sparql) setSparqlEditorValue('q', d.conceptual_sparql);
   const body = document.getElementById('advbody');
   body.innerHTML = '';
 

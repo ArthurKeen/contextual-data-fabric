@@ -87,7 +87,7 @@ def test_conceptual_query_editor_is_wired_into_the_page() -> None:
     assert "__EDITOR_JS__" in PAGE_SOURCE
     assert "initSparqlEditor('q', __VOCAB__);" in PAGE_SOURCE
     assert 'replace("__EDITOR_JS__", EDITOR_JS)' in PAGE_SOURCE
-    assert '_json.dumps({"classes": vocab})' in PAGE_SOURCE
+    assert '"classes": vocab' in PAGE_SOURCE
     assert '<textarea id="q"' in PAGE_SOURCE
 
 
@@ -100,6 +100,34 @@ def test_editor_completion_is_catalog_scoped_and_syntax_directed() -> None:
     # A concept no source maps is painted as an error — the refuse-over-guess
     # contract, visible while typing.
     assert "sqed-unknown" in EDITOR_SOURCE
+
+
+def test_editor_understands_full_iri_concept_spelling() -> None:
+    # <urn:…:concept#Name> tokenizes, tints, and completes like c:Name; the
+    # base comes from the injected vocabulary, not a hardcoded string.
+    assert "vocab.base" in EDITOR_SOURCE
+    assert "const iriForm" in EDITOR_SOURCE
+    assert "'<' + BASE + name + '>'" in EDITOR_SOURCE
+    assert '"base": _SERVICE.catalog.concept_base' in PAGE_SOURCE
+
+
+def test_editor_pairs_braces_and_quotes() -> None:
+    assert "function handlePairing" in EDITOR_SOURCE
+    assert "function braceMatch" in EDITOR_SOURCE
+    # auto-close, skip-over, wrap-selection, and backspace-removes-both
+    assert "setRangeText(e.key + PAIR[e.key]" in EDITOR_SOURCE
+    assert "skip over" in EDITOR_SOURCE
+    assert "'sqed-match'" in EDITOR_SOURCE and "'sqed-unmatch'" in EDITOR_SOURCE
+    assert ".sqed-match" in PAGE_SOURCE and ".sqed-unmatch" in PAGE_SOURCE
+
+
+def test_generated_sparql_is_formatted_on_fill() -> None:
+    assert "function formatSparql" in EDITOR_SOURCE
+    assert "function setSparqlEditorValue" in EDITOR_SOURCE
+    # the ask flow fills the editor through the formatter, and there is a
+    # manual Format button for hand-pasted queries
+    assert "setSparqlEditorValue('q', d.conceptual_sparql);" in PAGE_SOURCE
+    assert 'id="fmt"' in PAGE_SOURCE
 
 
 @pytest.mark.parametrize(
