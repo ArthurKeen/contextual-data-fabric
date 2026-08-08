@@ -121,6 +121,12 @@ def test_editor_pairs_braces_and_quotes() -> None:
     assert ".sqed-match" in PAGE_SOURCE and ".sqed-unmatch" in PAGE_SOURCE
 
 
+def test_variable_suggestions_filter_on_the_typed_prefix() -> None:
+    # `?nam` must offer only the query's variables starting with `?nam` —
+    # every other candidate kind already filtered lexically; vars must too.
+    assert ".filter((v) => v.startsWith(tok.text))" in EDITOR_SOURCE
+
+
 def test_editor_quote_handling_is_parity_aware() -> None:
     # Inside an open string a quote CLOSES it — exactly one, never a pair
     # (typing the closer back into `"signal ;` must not yield `"signal"" ;`).
