@@ -478,7 +478,22 @@ The bakeoff must use the same:
 
 The quarterly review tracks Denodo, Starburst/Trino, Dremio, Databricks,
 Snowflake, Stardog, Ontotext GraphDB, Palantir Foundry/AIP, Timbr, Cambridge
-Semantics Anzo, and Ontop.
+Semantics Anzo, Ontop, and — as the **materializing entity-fabric
+archetype** — Zscaler Data Fabric for Security (Avalor).
+
+Zscaler is tracked as a *contrast class*, not a same-workload competitor: its
+fabric copies source data into a central entity store (ingest → format →
+enrich → resolve/dedupe → group) and is the strongest public write-up of that
+approach — relevant to dimensions 6 (its lineage stops at the pipeline; no
+answer-level cite-or-refuse), 7 (continuous entity resolution at ingest is
+ahead of our deterministic-join posture), and 8 (mature RBAC/lineage claims).
+The CDF's default posture is the opposite (zero-copy federation; the ontology
+moves, the data does not), but materialization is in the toolkit: r2g is the
+ETL path when copying a leg is the right call. Today r2g materializes
+per-source; assembling **multiple disparate sources into one materialized
+fabric is not yet plumbed**, so no score credit is claimed for it —
+materialize-vs-federate is a per-source deployment choice, not an
+architectural identity.
 
 Public capability evidence was reviewed on 2026-08-05 from:
 
@@ -522,6 +537,11 @@ Public capability evidence was reviewed on 2026-08-05 from:
   https://w3c.github.io/rdf-tests/sparql/sparql11/,
   https://www.w3.org/TR/rdb2rdf-test-cases/, and
   https://www.w3.org/TR/prov-o/
+- Zscaler Data Fabric for Security: "Data Fabric For Security — What it Is,
+  and Why it Uniquely Addresses the Security Data Challenge" (vendor white
+  paper, ©2024; received from the prospect 2026-08-09, on file — public
+  copies via https://www.zscaler.com/resources/white-papers). Reviewed
+  2026-08-09; vendor evidence per the rule below.
 
 Vendor benchmarks are treated as vendor evidence unless independently audited.
 Connector counts exclude aliases where the public documentation makes that
