@@ -134,6 +134,17 @@ def _specs(python: str, *, live: bool) -> tuple[CheckSpec, ...]:
             ),
             output_kind="ck25-json",
         ),
+        CheckSpec(
+            "ck25_live_evidence",
+            (
+                python,
+                "-m",
+                "cdf.eval.ck25_eval",
+                "--validate-evidence",
+                "docs/evidence/ck25-gpt-4o-mini-3x.json",
+            ),
+            output_kind="ck25-json",
+        ),
     ]
     if live:
         specs.append(CheckSpec("live_golden", ("make", "gate", f"PY={python}")))

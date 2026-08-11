@@ -12,7 +12,17 @@ services:
       ARANGO_ROOT_PASSWORD: cdf
     ports:
       # Host port is overridable: this machine tends to have several ArangoDBs.
-      - "${CDF_ARANGO_PORT:-8529}:8529"
+      # Default matches the Makefile's CDF_ARANGO_PORT so `docker compose up`
+      # and `make up` land on the same port — they drifted once, and the gate
+      # failed with 32 opaque "refused, zero citations" mismatches.
+      - "${CDF_ARANGO_PORT:-8530}:8529"
+    volumes:
+      # Named, so the seed survives a recreate. The arangodb image declares
+      # these paths as VOLUME: without names, every `up` that changes the
+      # container spec (a port, an env var) silently orphans the data into an
+      # anonymous volume and the stack comes back empty.
+      - cdf-arango-data:/var/lib/arangodb3
+      - cdf-arango-apps:/var/lib/arangodb3-apps
     healthcheck:
       # 127.0.0.1, not localhost: in-container localhost resolves to ::1 and
       # arangod listens on IPv4 only, so the localhost form always fails.
@@ -20,3 +30,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+
+volumes:
+  cdf-arango-data:
+  cdf-arango-apps:
