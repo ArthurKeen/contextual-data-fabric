@@ -65,6 +65,9 @@
         ],
         "properties": [
           {
+            "name": "contactRole"
+          },
+          {
             "name": "id"
           },
           {
@@ -93,9 +96,6 @@
           },
           {
             "name": "isPrimary"
-          },
-          {
-            "name": "contactRole"
           },
           {
             "name": "title"
@@ -212,21 +212,13 @@
             "name": "currentAcvUsd"
           },
           {
-            "name": "currentProductTier",
-            "sampleValues": [
-              "ArangoGraph",
-              "Enterprise"
-            ]
+            "name": "currentProductTier"
           },
           {
             "name": "deploymentDate"
           },
           {
-            "name": "healthBand",
-            "sampleValues": [
-              "healthy",
-              "watch"
-            ]
+            "name": "healthBand"
           },
           {
             "name": "healthScore"
@@ -250,15 +242,38 @@
             "name": "seatsSold"
           },
           {
-            "name": "segment",
-            "sampleValues": [
-              "Enterprise"
-            ]
+            "name": "segment"
           }
         ]
       }
     ],
-    "relationships": []
+    "relationships": [
+      {
+        "type": "contactsToAccounts",
+        "fromEntity": "Contact",
+        "toEntity": "Account"
+      },
+      {
+        "type": "contractsToAccounts",
+        "fromEntity": "Contract",
+        "toEntity": "Account"
+      },
+      {
+        "type": "npsSurveysToAccounts",
+        "fromEntity": "NpsSurvey",
+        "toEntity": "Account"
+      },
+      {
+        "type": "opportunitiesToAccounts",
+        "fromEntity": "Opportunity",
+        "toEntity": "Account"
+      },
+      {
+        "type": "opportunitiesToContracts",
+        "fromEntity": "Opportunity",
+        "toEntity": "Contract"
+      }
+    ]
   },
   "arangoPhysicalMapping": {
     "entities": {
@@ -320,6 +335,9 @@
         "style": "COLLECTION",
         "collectionName": "contacts",
         "properties": {
+          "contactRole": {
+            "field": "contactRole"
+          },
           "id": {
             "field": "id"
           },
@@ -349,9 +367,6 @@
           },
           "isPrimary": {
             "field": "is_primary"
-          },
-          "contactRole": {
-            "field": "role"
           },
           "title": {
             "field": "title"
@@ -497,7 +512,87 @@
         }
       }
     },
-    "relationships": {}
+    "relationships": {
+      "contactsToAccounts": {
+        "style": "DEDICATED_COLLECTION",
+        "edgeCollectionName": "contacts_to_accounts"
+      },
+      "contractsToAccounts": {
+        "style": "DEDICATED_COLLECTION",
+        "edgeCollectionName": "contracts_to_accounts"
+      },
+      "npsSurveysToAccounts": {
+        "style": "DEDICATED_COLLECTION",
+        "edgeCollectionName": "nps_surveys_to_accounts"
+      },
+      "opportunitiesToAccounts": {
+        "style": "DEDICATED_COLLECTION",
+        "edgeCollectionName": "opportunities_to_accounts"
+      },
+      "opportunitiesToContracts": {
+        "style": "DEDICATED_COLLECTION",
+        "edgeCollectionName": "opportunities_to_contracts"
+      }
+    }
+  },
+  "provenance": {
+    "producer": "r2g",
+    "producerVersion": "0.2.0",
+    "direction": "forward",
+    "source": {
+      "kind": "postgresql",
+      "ref": "crm",
+      "fingerprint": null
+    },
+    "generatedAt": "2026-08-21T19:39:54.527462+00:00",
+    "labelCollisions": [
+      {
+        "label": "accountId",
+        "entities": [
+          "Account",
+          "Contact",
+          "Contract",
+          "NpsSurvey",
+          "Opportunity"
+        ],
+        "resolution": "reported"
+      },
+      {
+        "label": "contractId",
+        "entities": [
+          "Contract",
+          "Opportunity"
+        ],
+        "resolution": "reported"
+      },
+      {
+        "label": "id",
+        "entities": [
+          "Account",
+          "Contact",
+          "Contract",
+          "NpsSurvey",
+          "Opportunity"
+        ],
+        "resolution": "reported"
+      },
+      {
+        "label": "productScope",
+        "entities": [
+          "Contract",
+          "Opportunity"
+        ],
+        "resolution": "reported"
+      },
+      {
+        "label": "renewalDate",
+        "entities": [
+          "Contract",
+          "Opportunity"
+        ],
+        "resolution": "reported"
+      }
+    ]
   },
   "statistics": {
     "version": "1",
@@ -536,16 +631,5 @@
         }
       }
     }
-  },
-  "provenance": {
-    "producer": "r2g",
-    "producerVersion": "0.2.0",
-    "direction": "forward",
-    "source": {
-      "kind": "postgresql",
-      "ref": "crm",
-      "fingerprint": null
-    },
-    "generatedAt": "2026-07-22T22:12:21.693927+00:00"
   }
 }

@@ -55,7 +55,37 @@ collections:
     exclude_fields: []
     include_fields: null
     field_expressions: []
-edges: []
+# Edges derive from the FKs declared in deploy/mappings/crm-keys.overlay.json (the
+# live schema declares none — RSA's inference misses natural-key references;
+# see the overlay's header). usage_metrics_to_accounts is DELIBERATELY OMITTED:
+# usage_metrics is not mapped in this source (UsageMetric is owned by Snowflake,
+# WP-S3), so an edge referencing it would resurrect the dual-owner problem.
+edges:
+- edge_collection: contacts_to_accounts
+  from_collection: contacts
+  to_collection: accounts
+  from_field: account_id
+  to_field: account_id
+- edge_collection: contracts_to_accounts
+  from_collection: contracts
+  to_collection: accounts
+  from_field: account_id
+  to_field: account_id
+- edge_collection: nps_surveys_to_accounts
+  from_collection: nps_surveys
+  to_collection: accounts
+  from_field: account_id
+  to_field: account_id
+- edge_collection: opportunities_to_accounts
+  from_collection: opportunities
+  to_collection: accounts
+  from_field: account_id
+  to_field: account_id
+- edge_collection: opportunities_to_contracts
+  from_collection: opportunities
+  to_collection: contracts
+  from_field: contract_id
+  to_field: contract_id
 type_overrides: {}
 key_separator: _
 naming_convention: null
