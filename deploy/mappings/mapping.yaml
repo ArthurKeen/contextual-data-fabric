@@ -89,3 +89,36 @@ edges:
 type_overrides: {}
 key_separator: _
 naming_convention: null
+# P6.7 declared cross-source join key: accountId is the federation spine
+# (hub = accounts.account_id in this source; also bound in snowflake/clickhouse/
+# arango CSIs). Declaring it exempts the bare label from qualify-renaming
+# (r2g 126bdbe) and emits conceptualModel.joinKeys first-class. NOTE: we still
+# export with --label-policy warn — the OTHER collisions (renewalDate,
+# productScope, contractId on Contract+Opportunity) are curated SEMANTIC
+# collisions (deliberate carry-over, allowlisted in
+# deploy/catalog/label-collisions-allow.json) that qualify would rename,
+# breaking the prepared questions and every consumer.
+shared_keys:
+- key: account_id
+  concept: accountId
+  hub_kind: entity
+  hub_source: postgresql:crm
+  hub_table: accounts
+  hub_column: account_id
+  confidence: 1.0
+  bindings:
+  - source: postgresql:crm
+    table: accounts
+    column: account_id
+  - source: postgresql:crm
+    table: contacts
+    column: account_id
+  - source: postgresql:crm
+    table: contracts
+    column: account_id
+  - source: postgresql:crm
+    table: nps_surveys
+    column: account_id
+  - source: postgresql:crm
+    table: opportunities
+    column: account_id

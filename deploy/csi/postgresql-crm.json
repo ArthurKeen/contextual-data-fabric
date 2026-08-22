@@ -273,6 +273,58 @@
         "fromEntity": "Opportunity",
         "toEntity": "Contract"
       }
+    ],
+    "joinKeys": [
+      {
+        "key": "account_id",
+        "concept": "accountId",
+        "hub": {
+          "kind": "entity",
+          "concept": "accountId",
+          "source": "postgresql:crm",
+          "table": "accounts",
+          "column": "account_id"
+        },
+        "bindings": [
+          {
+            "source": "postgresql:crm",
+            "table": "accounts",
+            "column": "account_id",
+            "entity": "Account",
+            "field": "account_id"
+          },
+          {
+            "source": "postgresql:crm",
+            "table": "contacts",
+            "column": "account_id",
+            "entity": "Contact",
+            "field": "account_id"
+          },
+          {
+            "source": "postgresql:crm",
+            "table": "contracts",
+            "column": "account_id",
+            "entity": "Contract",
+            "field": "account_id"
+          },
+          {
+            "source": "postgresql:crm",
+            "table": "nps_surveys",
+            "column": "account_id",
+            "entity": "NpsSurvey",
+            "field": "account_id"
+          },
+          {
+            "source": "postgresql:crm",
+            "table": "opportunities",
+            "column": "account_id",
+            "entity": "Opportunity",
+            "field": "account_id"
+          }
+        ],
+        "confidence": 1.0,
+        "method": ""
+      }
     ]
   },
   "arangoPhysicalMapping": {
@@ -544,7 +596,7 @@
       "ref": "crm",
       "fingerprint": null
     },
-    "generatedAt": "2026-08-21T19:39:54.527462+00:00",
+    "generatedAt": "2026-08-22T00:00:18.436066+00:00",
     "labelCollisions": [
       {
         "label": "accountId",
@@ -555,7 +607,8 @@
           "NpsSurvey",
           "Opportunity"
         ],
-        "resolution": "reported"
+        "resolution": "join_key",
+        "detail": "declared cross-source join key (P6.7) \u2014 kept bare on every entity so the federation join spine survives; the shared label is intentional, not an ambiguity"
       },
       {
         "label": "contractId",
