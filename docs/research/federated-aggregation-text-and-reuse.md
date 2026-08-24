@@ -300,6 +300,15 @@ reserved predicate IRI inside a plain triple pattern, so the standard grammar is
 
 ## Topic 3 — Partial-result reuse / data-algebra caching (the Algebraix question)
 
+> **Provenance statement.** Everything in this section derives exclusively from
+> **public sources**: Gary Sherman's published book (*The Algebra of Data*),
+> the published patent record, and the independent academic/open-source
+> literature cited per claim below. No non-public Algebraix Data material was
+> used, referenced, or available in preparing it, and the fabric's reuse design
+> (the L0–L3 ladder in §3.5) is specified against the open-literature
+> techniques — answering-queries-using-views, semantic caching, view matching —
+> which predate or are independent of the Algebraix patent family.
+
 ### 3.1 Open-literature foundations (all predate Algebraix's 2006 priority date or are independent)
 
 - **Answering queries using views** — Halevy's survey (VLDB Journal 10(4), 2001) organizes the
