@@ -1,0 +1,13 @@
+{
+  "name": "g20 aggregation — single-leg GROUP BY ships verbatim to the arango leg (signal docs per source)",
+  "sparql": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?src (COUNT(?d) AS ?n) WHERE { ?d a c:Document ; c:source ?src ; c:role \"signal\" } GROUP BY ?src",
+  "expect": {
+    "status": "grounded",
+    "anchor_kind": "arango",
+    "sources_touched": ["arango:cmf"],
+    "bindings": [
+      {"src": "email", "n": 6},
+      {"src": "slack", "n": 7}
+    ]
+  }
+}
