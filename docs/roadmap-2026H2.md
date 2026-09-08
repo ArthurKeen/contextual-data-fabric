@@ -268,17 +268,17 @@ Postgres · five hardening issue lists filed upstream.
 Three people, three durable lanes, one rule: **every PR is reviewed by a
 non-author**, so each lane below is an ownership default, not a silo.
 
-**Arthur — architecture, estate, customer.**
+**Solutions Architect (SA) — architecture, estate, customer.**
 Specs and ADRs (PRD gatekeeper; ADR-0006 owner); the Forge generator core in
-r2g and the WS-A hardening of r2g/RSA/ASA/AOE (his repos); AOE A-box work;
+r2g and the WS-A hardening of r2g/RSA/ASA/AOE; AOE A-box work;
 releases + CC-9 pins across the estate; mirror/ops; RD-5 prospect interviews
 and RD-2 owner-consent design; demos.
 
-**PJ — NL accuracy, evaluation, question governance.**
+**Solutions Engineer (SE) — NL accuracy, evaluation, question governance.**
 The NL lane end-to-end (arango-query-core, nl2sparql, cypher-py, the
 fabric's NL front-end) including the documented-null follow-ups (selective
 predicate surfacing); owner of `use-cases.md` and question locking; the
-Forge's question/golden composition (his shape catalog is the D-4
+Forge's question/golden composition (the SE's shape catalog is the D-4
 dependency) and the NL synthetic corpora it unlocks; CK25/eval program and
 judge quality; primary reviewer for engine-behavior PRs.
 
