@@ -263,7 +263,67 @@ Postgres · five hardening issue lists filed upstream.
 - **CNL** — parked per the exploration doc; the forge's question generation
   overlaps its synthetic-corpus use and keeps the option warm.
 
-## 4. Risks
+## 4. Division of labor (proposed 2026-09-08 — ratify at the 09-09 review)
+
+Three people, three durable lanes, one rule: **every PR is reviewed by a
+non-author**, so each lane below is an ownership default, not a silo.
+
+**Solutions Architect (SA) — architecture, estate, customer.**
+Specs and ADRs (PRD gatekeeper; ADR-0006 owner); the Forge generator core in
+r2g and the WS-A hardening of r2g/RSA/ASA/AOE; AOE A-box work;
+releases + CC-9 pins across the estate; mirror/ops; RD-5 prospect interviews
+and RD-2 owner-consent design; demos.
+
+**Solutions Engineer (SE) — NL accuracy, evaluation, question governance.**
+The NL lane end-to-end (arango-query-core, nl2sparql, cypher-py, the
+fabric's NL front-end) including the documented-null follow-ups (selective
+predicate surfacing); owner of `use-cases.md` and question locking; the
+Forge's question/golden composition (the SE's shape catalog is the D-4
+dependency) and the NL synthetic corpora it unlocks; CK25/eval program and
+judge quality; primary reviewer for engine-behavior PRs.
+
+**Intern — well-gated, pattern-following work with visible wins.**
+The identified starter set (reconcile against the task list already drafted
+outside this repo — fold it into GitHub issues at the review):
+- **RD-4b reference corpus**: Northwind through the full
+  extract→map→federate→answer loop, then Chinook/Sakila — self-contained,
+  gate-verifiable, touches the whole pipeline read-only.
+- **RD-7 user docs**: the operator-docs skeleton (install → connect →
+  curate → ask → read an envelope), grown each sprint from what they just
+  learned onboarding — the intern IS the target audience.
+- **Forge dialect plugins** (after the skeleton lands): each new dialect
+  follows the Postgres pattern behind one seam — classic
+  second-verse-same-as-the-first work with a roundtrip test as the bar.
+- **WS-A regression tests**: every feeder-repo fix gets its regression test;
+  writing those against filed issues teaches the estate fast.
+Rules from RD-8 apply before their first code PR: branch protection
+everywhere, the SOP read end-to-end, first PR is a docs or test PR.
+
+**Forge ownership, end to end** (added after SE review of this PR flagged
+the gap): generator core and dialect seam in r2g — SA builds, Intern extends
+per dialect. The unowned middle was M15 orchestration, and it splits along
+ADR-0006 D-4's own line:
+
+- **SA owns the orchestrator** (`deploy/forge/` + `cdf.eval`): the shape
+  sampler, descriptor emission, partition-map/expected-catalog computation,
+  and `make forge-suite` + CI wiring. Scenario descriptors (the YAML) are
+  *generated, versioned artifacts* of that machinery — recorded ownership
+  ("which system ended up owning what") is the partition map the orchestrator
+  writes, not a ledger anyone keeps by hand.
+- **SE owns the coverage policy**: which shape families get generated and in
+  what order (the roadmap-named 2–6 leg / hub-heavy / chain families),
+  the question + answer-key composition over each shape, and sign-off on
+  any descriptor that enters CI as a golden — so nothing becomes a passing
+  test without the evaluation lane's judgment.
+- Hand-tuned one-off descriptors (a specific regression shape) may be
+  authored by anyone under SE's policy; non-author review applies as
+  everywhere else.
+
+Standing duties that rotate rather than belong: demo readiness
+(`pre-demo-gate` before any customer showing), triaging the shared-memory
+capture queue, and the day-7 sprint checkpoint write-up.
+
+## 5. Risks
 
 1. **Forge scope creep** — it can become a product. It is a *testing* module
    (M9/M10 class, not sold); ADR-0006 must say so and S3's gate keeps it harnessed
