@@ -299,6 +299,26 @@ outside this repo — fold it into GitHub issues at the review):
 Rules from RD-8 apply before their first code PR: branch protection
 everywhere, the SOP read end-to-end, first PR is a docs or test PR.
 
+**Forge ownership, end to end** (added after SE review of this PR flagged
+the gap): generator core and dialect seam in r2g — SA builds, Intern extends
+per dialect. The unowned middle was M15 orchestration, and it splits along
+ADR-0006 D-4's own line:
+
+- **SA owns the orchestrator** (`deploy/forge/` + `cdf.eval`): the shape
+  sampler, descriptor emission, partition-map/expected-catalog computation,
+  and `make forge-suite` + CI wiring. Scenario descriptors (the YAML) are
+  *generated, versioned artifacts* of that machinery — recorded ownership
+  ("which system ended up owning what") is the partition map the orchestrator
+  writes, not a ledger anyone keeps by hand.
+- **SE owns the coverage policy**: which shape families get generated and in
+  what order (the roadmap-named 2–6 leg / hub-heavy / chain families),
+  the question + answer-key composition over each shape, and sign-off on
+  any descriptor that enters CI as a golden — so nothing becomes a passing
+  test without the evaluation lane's judgment.
+- Hand-tuned one-off descriptors (a specific regression shape) may be
+  authored by anyone under SE's policy; non-author review applies as
+  everywhere else.
+
 Standing duties that rotate rather than belong: demo readiness
 (`pre-demo-gate` before any customer showing), triaging the shared-memory
 capture queue, and the day-7 sprint checkpoint write-up.
