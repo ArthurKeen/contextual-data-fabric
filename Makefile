@@ -23,6 +23,9 @@ export CDF_UI_PORT       ?= 8099
 # Corpus scale knob (S1/S4): dependent rows x N with join-spine integrity.
 # The gate refuses factors != 1; use it for `make seed scale-baseline` runs.
 export CDF_SCALE_FACTOR  ?= 1
+# The SOP's unit-coverage floor (>80%), enforced by `make test` and CI's
+# check job alike; the project sits at ~86% when this was wired (issue #14).
+COV_FLOOR ?= 80
 export CDF_CLICKHOUSE_HTTP_PORT ?= 8123
 
 # The owned SPARQL->AQL library defaults to the reviewed CC-9 pin. Developers
@@ -126,7 +129,7 @@ authorization-golden:
 test: catalog-probe catalog-integrity authorization-golden
 	.venv/bin/ruff check src tests deploy
 	.venv/bin/mypy src
-	$(PY) -m pytest tests -q
+	$(PY) -m pytest tests -q --cov=cdf --cov-report=term --cov-fail-under=$(COV_FLOOR)
 
 # Repo topology (decided 2026-09-06): arango-solutions is PRIMARY — pull from
 # it first, review every PR there. ArthurKeen is the synced SECONDARY (origin

@@ -38,7 +38,15 @@ jobs:
         run: make authorization-golden PY=python
       - run: ruff check src tests deploy
       - run: mypy src
-      - run: pytest tests -q
+      # The SOP's coverage bar (>80% unit coverage), measured not aspirational
+      # (issue #14): the job fails below COV_FLOOR and the number lands in the
+      # job summary so reviewers see it without digging.
+      - run: pytest tests -q --cov=cdf --cov-report=term --cov-fail-under=80
+      - name: Coverage in the job summary
+        if: always()
+        run: |
+          echo "### Unit coverage (floor 80%)" >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" || true
       - name: Validate tracked CK25 evidence
         run: python -m cdf.eval.ck25_eval --validate-evidence docs/evidence/ck25-gpt-4o-mini-3x.json
 
