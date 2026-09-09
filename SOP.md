@@ -203,8 +203,11 @@ Worth knowing early:
   mirror.
 - **The test bar** (every code PR):
   - **Unit coverage > 80%** on the code you touched — measured, not
-    estimated (`make test` reports it once the coverage gate lands;
-    until then run `pytest --cov` locally).
+    estimated: `make test` runs the suite with `--cov-fail-under=80`
+    (override the floor with `COV_FLOOR=…` locally), CI's `check` job
+    enforces the same floor and prints the per-module table in the job
+    summary. The floor is project-wide today; if it proves too blunt,
+    issue #14 tracks ratcheting to per-PR touched-lines coverage.
   - **Full database round-trips**: behavior that touches a source engine is
     tested against the real engine (the Docker stacks / hosted Snowflake),
     not only mocks — the `live-local` CI job runs these on every PR.
