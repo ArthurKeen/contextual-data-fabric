@@ -160,7 +160,8 @@ cited answer must be able to tell which applied.
     (last resort: it forfeits the aggregation pushdown ADR-0005 grants only to
     Ontop and Arango).
   Until the `asserted` change merges upstream, CDF carries a fork build of the
-  Ontop image under CC-9 pin discipline.
+  Ontop image under CC-9 pin discipline. Seams, maintainer position, design and
+  upstream plan: `docs/research/ontop-per-user-identity.md`.
 - **FR-6 (later):** **ClickHouse.** One ClickHouse user per principal in open
   source, or Cloud Enterprise JWT with a roles claim. The checklist must warn
   that users without a matching row policy read all rows by default.
