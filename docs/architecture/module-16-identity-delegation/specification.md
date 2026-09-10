@@ -112,6 +112,13 @@ cited answer must be able to tell which applied.
   derived from the principal. Refuse any `asserted` or `delegated` leg whose
   principal is anonymous. The envelope marks the leg `asserted` and names the
   subject. This is the PuppyGraph pattern with honest labelling.
+  **Guard (PJ, 2026-09-10):** the connector registry today refuses a
+  non-identity-aware executor only when the mode equals `delegated`, and five
+  other sites compare against the two literals. Adding `asserted` therefore
+  inverts every guard to *refuse anything that is not `service`* unless the
+  executor declares support for that level, so an unaware executor fails closed
+  instead of silently running the leg as service (amendment point 2). The
+  certification list catches this first; the guard is the backstop.
 - **FR-3 (P3.7):** **Snowflake External OAuth broker.** An RFC 8693 client
   against the customer's IdP that exchanges the edge token for a Snowflake
   access token whose mapped claim resolves to the user and whose scope is
@@ -124,12 +131,36 @@ cited answer must be able to tell which applied.
   at `/oidc/v1/token` with `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`
   under an account-wide federation policy whose `subject_claim` equals the
   Databricks username. Service leg uses OAuth M2M; PATs are not offered.
-- **FR-5 (P4):** **PostgreSQL delegated leg.** Ontop's shared JDBC pool has
-  no per-user hook, so delegation requires a native Postgres executor (the
-  `add-source-kind` template) that opens or borrows a connection as a role with
-  membership in every user role and issues `SET ROLE <user_role>` per leg,
-  letting RLS key off `current_user`. PG18 `oauth` with an operator-supplied
-  validator module is the alternative path; the checklist names both.
+- **FR-5 (P3.7 for `asserted`, P4 for `delegated`):** **PostgreSQL through
+  Ontop, at every level.** Ontop remains the Postgres rewriter and executor
+  (ADR-0001, amended 2026-09-10); per-user identity is delivered by changes in
+  Ontop, contributed upstream. Ontop already carries HTTP headers into its
+  `QueryContext` (`getUsername()`, roles, groups; Ontop PR #753) and its
+  maintainer has asked for impersonation to be built on that object (Ontop
+  discussion #884).
+  - **`asserted` (P3.7):** extend Ontop's `JDBCStatementInitializer` (the
+    Postgres subclass already sets fetch size per statement) to issue
+    `SET ROLE "<role>"` derived from `QueryContext.getUsername()` on borrow and
+    `RESET ROLE` on close, behind a config key. Postgres RLS then keys off
+    `current_user` on the shared pool. Preconditions: the service role holds
+    membership (with `SET`) in every user role; Ontop is reachable only from
+    CDF; CDF sets the `x-user` header from the verified principal. Postgres's
+    own log still shows the session user, which is why the envelope says
+    `asserted`. This is the same pooling-safe answer for both `asserted` and
+    the role-per-query case PJ raised.
+  - **`delegated` (P4):** an identity-keyed `JDBCConnectionPool` in Ontop that
+    opens connections as the user (password passthrough, PG18 `oauth` bearer
+    with an operator-supplied validator, or delegated Kerberos), designed with
+    Ontopic in #884 rather than alone.
+  - **Fallbacks, named so nobody rediscovers them:** lenses-only filtering with
+    `ontop_user()` (zero code, but policy duplicated into lenses); Ontop
+    reformulates and CDF executes (demoted: the reformulation endpoint is
+    dev-mode only and the SQL needs post-processing to match SPARQL results,
+    per the maintainer); a native Postgres executor via `add-source-kind`
+    (last resort: it forfeits the aggregation pushdown ADR-0005 grants only to
+    Ontop and Arango).
+  Until the `asserted` change merges upstream, CDF carries a fork build of the
+  Ontop image under CC-9 pin discipline.
 - **FR-6 (later):** **ClickHouse.** One ClickHouse user per principal in open
   source, or Cloud Enterprise JWT with a roles claim. The checklist must warn
   that users without a matching row policy read all rows by default.
@@ -209,8 +240,10 @@ green beside it.
    a tier.
 2. **Demo STS.** Customers bring an IdP; demos need one. Keycloak in the
    compose stack, or an injected offline broker only?
-3. **Postgres route.** Native executor with `SET ROLE` (more code, works on
-   any Postgres) versus PG18 `oauth` (needs a validator module, PG18 only).
+3. ~~**Postgres route.**~~ Resolved 2026-09-10: Ontop stays; `asserted` via the
+   statement-initializer change, `delegated` via an identity-keyed pool in
+   Ontop (#884). See FR-5 and ADR-0001's amendment. Remaining sub-question:
+   who owns the upstream PR and the interim fork build.
 4. **Reconciliation with M8.** When the ontology policy and the source policy
    disagree, which wins and how is the disagreement surfaced? Denodo and
    Immuta treat this as a product feature; M8 open question 3 should become a
