@@ -40,6 +40,8 @@ contextual-data-fabric/
         specification.md
       module-10-evaluation/
         specification.md                 ← added v0.2 (PRD §10.1)
+      module-16-identity-delegation/
+        specification.md                 ← added 2026-09-09 (PRD §10.13, ADR-0004 amendment)
       module-05-federated-query-engine/adr/
         ADR-0003-authoritative-catalog-manifest.md ← implemented M11 contract
       _repo-enhancements/                ← requirement specs for EXISTING repos
@@ -67,6 +69,7 @@ Two headline building blocks from the [[contextual-data-fabric-prd|PRD]] — the
 | **M9** | **Demo Harness** | Thin agent UI to run seed questions end-to-end (reuse the customer-360 Vercel pattern). Not sold. | — |
 | **M10** | **Evaluation & Golden Set** | Live/fixture goldens, NL and CK25 evidence, resolution precision, optimizer oracle, interface parity, performance baseline, catalog integrity, authorization, and the unified evidence runner. Not sold. | — |
 | **M11** | **Authoritative Fabric Catalog** | Implemented, content-hashed manifest over sources, concepts, mappings, statistics, join keys, entitlements, auth modes, and runtime-resolution bindings. | Both |
+| **M16** | **Identity Delegation & Source Trust** | Per-source trust level (`service` / `asserted` / `delegated`), one broker per source kind (Snowflake External OAuth first), token-lifetime admission, entitlement-scoped caches, operator provisioning checklists, and certification goldens. Fills the "operator integration" gap ADR-0004 left between M1, M5 and M8. | Query |
 
 ---
 
@@ -87,6 +90,7 @@ Each module builds on one or more existing repos (see `_repo-enhancements/` for 
 | M9 Demo Harness | customer-context | `customer-context-expose-modules` |
 | M10 Evaluation | customer-context (corpus/questions), ontology-extractor (judge patterns) | — |
 | M11 Catalog | CSI/R2RML inputs, RSA adapter, M1/M4/M5/M8 consumers | ADR-0003; future graph-backed control plane |
+| M16 Identity Delegation | M1 credentials, M5 admission/executors, M8 decisions, M11 auth modes, M12 cache keys; customer IdP/STS, Snowflake security integrations, Databricks federation policies | ADR-0004 amendment 2026-09-09; `docs/research/data-source-identity-mechanisms.md` |
 
 ---
 
@@ -107,6 +111,7 @@ Ladders to the [[contextual-data-fabric-prd|PRD §6]] phases.
 | M9 Demo | Browser workflow, metrics, provenance, mandatory gate | Production UX is out of scope |
 | M10 Evaluation | Unified evidence runner and current internal corpora | Public signed benchmarks and controlled bakeoff |
 | M11 Catalog | Authoritative content-hashed manifest and integrity gate | Graph-backed control plane and OpenLineage export |
+| M16 Identity Delegation | `service` mode and fail-closed `delegated` seams (via ADR-0004) | `asserted` level, Snowflake External OAuth broker, per-source checklists and goldens (P3.7); Databricks and native-Postgres brokers (P4) |
 
 ---
 
@@ -147,6 +152,8 @@ Requirement specs telling each **existing** repo what it must add to serve this 
    `arango-sparql-py` mirrors, cut clean release tags, and pin a released AER;
    run CC-9 evidence before each bump.
 2. **Production identity and policy topology:** provision and exercise
-   OpenFGA/IdP/STS plus source-native delegation, RLS, and masking.
+   OpenFGA/IdP/STS plus source-native delegation, RLS, and masking — now
+   owned by **M16**; first increment is P3.7 (Snowflake External OAuth broker
+   and the `asserted` level).
 3. **Public evidence package:** freeze signed workloads and raw result artifacts,
    then run controlled correctness, performance, NL, ER, and governance bakeoffs.
