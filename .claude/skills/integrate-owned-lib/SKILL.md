@@ -17,8 +17,8 @@ checked first. This skill's whole point is the check that would have caught it.
 Owned libs live in **two GitHub orgs**: `ArthurKeen/*` (nominal upstream, dev-first) and
 `arango-solutions/*` (the team mirror). They **drift, and the drift inverts** — a teammate may
 develop many commits on the arango-solutions mirror while `ArthurKeen` falls behind. Slugs differ
-across orgs (`arango-schema-mapper`↔`arango-schema-extractor`, `arango-cypher-py`↔`arango-cypher`,
-`r2g-arango` both). See [[repo-mirror-topology]] and the `~/code/bin/arango-mirror` tool.
+across orgs for one repo (`arango-cypher-py`↔`arango-cypher`); `arango-schema-analyzer` and
+`r2g-arango` share their name on both since the 2026-09-14 rename of the ASA org repo. See [[repo-mirror-topology]] and the `~/code/bin/arango-mirror` tool.
 
 **Exception (2026-09-06): `contextual-data-fabric` itself inverted** — arango-solutions is its PRIMARY and ArthurKeen the synced secondary; PRs go to the org. The generic note above still holds for the owned libraries until each repo decides otherwise.
 
