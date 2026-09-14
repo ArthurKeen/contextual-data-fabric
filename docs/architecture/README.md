@@ -61,7 +61,7 @@ Two headline building blocks from the [[contextual-data-fabric-prd|PRD]] — the
 | # | Module | Responsibility | Building block |
 |---|--------|----------------|----------------|
 | **M1** | **Connectors** | Source adapters + **metadata-sampling** connectors (Postgres, Snowflake, Databricks, unstructured-in-Arango). Provide schema/metadata to extraction and live query access to the query engine. | Both |
-| **M2** | **Ontology Extraction** | Structured (schemas/catalogs) + unstructured (docs) → **per-source ontologies**. Wraps **r2g** + the **ontology extractor**. | Onto Extract |
+| **M2** | **Ontology Extraction** | Structured (schemas/catalogs) + unstructured (docs) → **per-source ontologies**. Structured path as built: **r2g → RSA → CSI v1 + R2RML** (relational) and **ASA → reverse CSI** (Arango hub); the **ontology extractor** (AOE) is the unstructured producer. CDF reads their artifacts and imports none of them. | Onto Extract |
 | **M3** | **Ontology Alignment** | Per-source ontologies → **master ontology**: diff/deltas → accept/reject → iterative refinement; belief management, time-travel, change control, curation (agent or human). | Onto Extract |
 | **M4** | **Mapping Layer** | **Functional mappings** — CSI v1 as the catalog/mapping hub, R2RML for SQL legs, and MappingBundle for AQL. The mapping drives the query. | Both |
 | **M5** | **Federated Query Engine** | English → resolve concepts → **decompose** → per-source query gen (SQL pushdown / AQL / agent) → execute → **reassemble**. Loosely-coupled + assembled; LLM + deterministic. | Query |
@@ -83,7 +83,7 @@ Each module builds on one or more existing repos (see `_repo-enhancements/` for 
 | Module | Builds on repo(s) | Repo enhancement required |
 |--------|-------------------|---------------------------|
 | M1 Connectors | schema-analyzers, r2g, customer-context | `schema-analyzers-metadata-sampling` |
-| M2 Ontology Extraction | r2g, ontology-extractor (AOE) | `ontology-extractor-structured` |
+| M2 Ontology Extraction | r2g (+ RSA, core dep), ASA (reverse CSI), ontology-extractor (AOE, unstructured) | `r2g-federated-query`; `ontology-extractor-structured` is *not* on CDF's path (see M2 §6) |
 | M3 Ontology Alignment | ontology-extractor (AOE) | `ontology-extractor-structured` (alignment/belief APIs) |
 | M4 Mapping Layer | r2g (CSI/R2RML export) | `r2g-federated-query` |
 | M5 Federated Query Engine | r2g, **arango-sparql-py**, **arango-cypher-py**, **arangodb-schema-analyzer (CSI v1)**, Ontop (buy-vs-build), new code (federation layer) | `r2g-federated-query`; ADR-0001 + M5 implementation plan |
@@ -105,7 +105,7 @@ Ladders to the [[contextual-data-fabric-prd|PRD §6]] phases.
 | Module | Implemented through P3 | Remaining evidence or scope |
 |--------|------------------------|-----------------------------|
 | M1 Connectors | Postgres/Ontop, Snowflake, ClickHouse, ArangoDB; secret resolution and rotation | Additional source kinds; production delegated identities |
-| M2 Extraction | Checked-in CSI inputs and optional RSA→CSI adapter | Full cross-repository automated extraction proof |
+| M2 Extraction | r2g-produced relational CSI + R2RML and ASA-produced reverse CSI checked in under `deploy/`; optional RSA→CSI adapter | Full cross-repository automated extraction proof; reconciling the two structured→ontology derivations (AOE reads CSI; type detection on ASA) |
 | M3 Alignment | Small authoritative concept ownership model | Public alignment/reasoning/temporal benchmark |
 | M4 Mapping | CSI v1, R2RML, and MappingBundle runtime contracts | Broader transform/conformance suite |
 | M5 Query Engine | Deterministic multi-source planning, bind joins, admission, virtual and assembled execution | Broader SPARQL expressiveness and public comparative workload |
