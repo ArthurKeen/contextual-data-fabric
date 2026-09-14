@@ -3,4 +3,9 @@
 # judge fix) merged with caller postconditions + PUBLISHED arango-query-core
 # >=0.2.0 (ArthurKeen/arango-sparql-py#11; full suite 1666 green). Same SHA on
 # both remotes; keep synchronized with CI and the CC-9 dependency-pin test.
-arango-sparql-py[nl,analyzer] @ git+https://github.com/ArthurKeen/arango-sparql-py.git@4ef6db1f829f8f7bfa61f5e948071c9d9f54ca33
+# 2026-09-14: bumped to the analyzer-band raise (arango-solutions/arango-sparql-py#4,
+# merged 4ef8429): [analyzer] now admits arangodb-schema-analyzer >=0.12.1,<0.14.0, so
+# the 0.13 line carrying the bitemporal provenance the reverse-CSI export forwards is
+# installable; coordinated with arango-cypher-py's identical band (PRD §12.1 invariant).
+# Mirror synced to the same SHA before this bump.
+arango-sparql-py[nl,analyzer] @ git+https://github.com/ArthurKeen/arango-sparql-py.git@4ef8429541ee358f4eed91cb1eaa0cdfd38ff2f2
