@@ -175,7 +175,7 @@ Concrete and staffable now:
 5. **Forge walking skeleton:** ontology→Postgres DDL + naive synthesis + load +
    **roundtrip test green through real RSA/r2g** for the demo ontology. *(≈1 week.)*
 6. **WS-A round 1:** per-repo hardening issue lists filed (table above), tagged
-   releases + CC-9 pins for RSA/ASA/r2g as consumed today.
+   releases + CC-9 pins for RSA/ASA/r2g as consumed today. *(2026-09-15: RSA 0.8.0, ASA 0.14.0 and r2g 0.4.1 are cut and on PyPI and recorded in the CC-9 table; `arango-sparql-py` still has no release, so its pin stays a git SHA.)*
 
 **Exit gate:** gate 20/20 live · capability-named refusal demo · 100× baseline
 numbers recorded · ADR-0006 accepted · `introspect(generate(O)) ≡ O` green for

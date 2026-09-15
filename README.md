@@ -118,7 +118,7 @@ calls finish. See the [deployment secret runbook](deploy/README.md#production-co
 ```mermaid
 flowchart TB
     U(["User / Agent<br/>(natural-language question)"])
-    U --> NLE["NL → conceptual query<br/>(LLM decomposer — arango-cypher-py NL engine)"]
+    U --> NLE["NL → conceptual query<br/>(LLM decomposer — src/cdf/query/nl.py on arango-query-core)"]
 
     subgraph HUB["ArangoDB hub — the brain (no bulk source data)"]
         ONT[("Master ontology +<br/>functional mappings (CSI v1)")]
@@ -155,7 +155,7 @@ broader automated extraction, alignment, human-review, and temporal belief-
 revision flow below spans owned repositories and remains the North Star; it is
 not claimed as an end-to-end implementation in this checkout.
 
-Each source's **schema** is analyzed into a **source ontology**: relational schemas via `relational-schema-analyzer` (tables, keys, FKs → concepts/properties), existing ArangoDB graphs via `arangodb-schema-analyzer`, and unstructured corpora via AOE's LLM extraction pipeline — all scoped by the **competency questions** in [use-cases.md](docs/use-cases.md) (extract what the questions need, never boil the ocean). The per-source ontologies are then **aligned** (M3, AOE §6.17): embedding retrieval proposes cross-source correspondences, multi-signal scoring auto-resolves the clear cases, an LLM adjudicates only the borderline band, and a human confirms the last ~2%. The result is the **master ontology** — `customer account` ≡ `client account` ≡ `account`, with equivalence axioms materialized — plus the **functional mappings** — **CSI v1**, the forward-direction interchange **r2g** produces (`r2g export-csi`), pairing the conceptual model with its ArangoDB physical mapping, exported as **R2RML** for the relational legs (`r2g export-r2rml`) and shimmed to a **MappingBundle** for AQL — that make the query-time partitioning and translation deterministic. Exported conceptual names follow the CC-12 OWL convention (classes singular PascalCase, properties lowerCamel — `Account`/`accountId`, not `accounts`/`account_name`), while logical tables and columns stay physical. The ontology is temporal-versioned: source changes cascade through belief revision rather than rebuilding.
+Each source's **schema** is analyzed into a **source ontology**: relational schemas via **r2g**, which introspects through `relational-schema-analyzer` (tables, keys, FKs → concepts/properties) and emits CSI v1 + R2RML, existing ArangoDB graphs via `arangodb-schema-analyzer`, and unstructured corpora via AOE's LLM extraction pipeline — all scoped by the **competency questions** in [use-cases.md](docs/use-cases.md) (extract what the questions need, never boil the ocean). The per-source ontologies are then **aligned** (M3, AOE §6.17): embedding retrieval proposes cross-source correspondences, multi-signal scoring auto-resolves the clear cases, an LLM adjudicates only the borderline band, and a human confirms the last ~2%. The result is the **master ontology** — `customer account` ≡ `client account` ≡ `account`, with equivalence axioms materialized — plus the **functional mappings** — **CSI v1**, the forward-direction interchange **r2g** produces (`r2g export-csi`), pairing the conceptual model with its ArangoDB physical mapping, exported as **R2RML** for the relational legs (`r2g export-r2rml`) and shimmed to a **MappingBundle** for AQL — that make the query-time partitioning and translation deterministic. Exported conceptual names follow the CC-12 OWL convention (classes singular PascalCase, properties lowerCamel — `Account`/`accountId`, not `accounts`/`account_name`), while logical tables and columns stay physical. The ontology is temporal-versioned: source changes cascade through belief revision rather than rebuilding.
 
 Three practicalities that matter at enterprise scale:
 
@@ -174,7 +174,7 @@ flowchart TB
 
     CQ["Use cases as competency questions<br/>(docs/use-cases.md — scope the extraction)"]
 
-    PG -->|"schema, keys, samples"| RSA["relational-schema-analyzer"]
+    PG -->|"schema, keys, samples"| RSA["r2g<br/>(introspects via relational-schema-analyzer)"]
     SNOW -->|"catalog / schema"| RSA
     AG -->|"collections, edges"| ASA["arangodb-schema-analyzer"]
     DOCS -->|"LLM extraction (AOE)"| AOEX["AOE extraction pipeline"]
@@ -183,8 +183,8 @@ flowchart TB
     CQ -.-> ASA
     CQ -.-> AOEX
 
-    RSA -->|"conceptual schema bundle"| O1["Source ontology<br/>(relational)"]
-    ASA -->|"conceptual schema bundle"| O2["Source ontology<br/>(graph)"]
+    RSA -->|"CSI v1 + R2RML"| O1["Source ontology<br/>(relational)"]
+    ASA -->|"reverse CSI v1<br/>(deploy/arango/export_csi.py)"| O2["Source ontology<br/>(graph)"]
     AOEX -->|"OWL/SHACL"| O3["Source ontology<br/>(unstructured)"]
 
     O1 --> AL

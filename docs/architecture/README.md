@@ -86,7 +86,7 @@ Each module builds on one or more existing repos (see `_repo-enhancements/` for 
 | M2 Ontology Extraction | r2g (+ RSA, core dep), ASA (reverse CSI), ontology-extractor (AOE, unstructured) | `r2g-federated-query`; `ontology-extractor-structured` is *not* on CDF's path (see M2 §6) |
 | M3 Ontology Alignment | ontology-extractor (AOE) | `ontology-extractor-structured` (alignment/belief APIs) |
 | M4 Mapping Layer | r2g (CSI/R2RML export) | `r2g-federated-query` |
-| M5 Federated Query Engine | r2g, **arango-sparql-py**, **arango-cypher-py**, **arangodb-schema-analyzer (CSI v1)**, Ontop (buy-vs-build), new code (federation layer) | `r2g-federated-query`; ADR-0001 + M5 implementation plan |
+| M5 Federated Query Engine | r2g (CSI v1 + R2RML), **arango-sparql-py** (git-SHA pin), **arangodb-schema-analyzer (CSI v1)**, Ontop (adopted — ADR-0001 #2, amended 2026-09-10), new code (federation layer) | `r2g-federated-query`; ADR-0001 + M5 implementation plan |
 | M6 Entity Resolution | arango-entity-resolution (AER) | `aer-semantic-federated` |
 | M7 Grounding & Provenance | customer-context | `customer-context-expose-modules` |
 | M8 Governance / OBAC | M11 catalog, mapping layer, optional OpenFGA/IdP/STS | Production service provisioning and source-native policy evidence |
@@ -105,7 +105,7 @@ Ladders to the [[contextual-data-fabric-prd|PRD §6]] phases.
 | Module | Implemented through P3 | Remaining evidence or scope |
 |--------|------------------------|-----------------------------|
 | M1 Connectors | Postgres/Ontop, Snowflake, ClickHouse, ArangoDB; secret resolution and rotation | Additional source kinds; production delegated identities |
-| M2 Extraction | r2g-produced relational CSI + R2RML and ASA-produced reverse CSI checked in under `deploy/`; optional RSA→CSI adapter | Full cross-repository automated extraction proof; reconciling the two structured→ontology derivations (AOE reads CSI; type detection on ASA) |
+| M2 Extraction | r2g-produced relational CSI + R2RML and ASA-produced reverse CSI checked in under `deploy/`; optional RSA→CSI adapter | Full cross-repository automated extraction proof; retiring AOE's own LPG type detector now that AOE imports CSI and ASA 0.14.0 owns type detection (both landed 2026-09-14); a drift detector between the two structured→ontology derivations |
 | M3 Alignment | Small authoritative concept ownership model | Public alignment/reasoning/temporal benchmark |
 | M4 Mapping | CSI v1, R2RML, and MappingBundle runtime contracts | Broader transform/conformance suite |
 | M5 Query Engine | Deterministic multi-source planning, bind joins, admission, virtual and assembled execution | Broader SPARQL expressiveness and public comparative workload |
@@ -123,16 +123,22 @@ Ladders to the [[contextual-data-fabric-prd|PRD §6]] phases.
 ## Building-block version pins (CC-9)
 
 The executable sources of truth are `pyproject.toml`, `Makefile`, the container
-Compose files, and CI—not this prose table. Current integration state:
+Compose files, and CI—this table records the reviewed state so PRD §10.9 has one
+place to point at. **Reviewed 2026-09-15.** Current integration state:
 
 | Block | Current integration |
 |-------|---------------------|
 | Postgres / Ontop | `postgres:16`; `ontop/ontop:5.5.0` |
 | ArangoDB | `arangodb:3.12` |
 | ClickHouse | `clickhouse/clickhouse-server:24.8` |
-| `arango-sparql-py` | CI and default demo installation share the reviewed full SHA in `deploy/pins/arango-sparql-py.txt` (`arango-solutions` main at review time). Editable siblings require explicit `CDF_USE_LOCAL_SIBLINGS=1`. |
-| `arango-schema-analyzer` | Resolved through the pinned `arango-sparql-py[nl,analyzer]` dependency set. |
+| `arango-sparql-py` | **Not on PyPI** (CC-9: unpublished blocks pin by commit). CI and the default demo installation share the reviewed full SHA in `deploy/pins/arango-sparql-py.txt` — `4ef8429` since #25 (2026-09-14), which declares the analyzer band `>=0.12.1,<0.14.0`; `arango-sparql-py` main moved to `e6a9d15` (band `<0.15.0`) on 2026-09-15 and is the next bump. Editable siblings require explicit `CDF_USE_LOCAL_SIBLINGS=1`. |
+| `arangodb-schema-analyzer` (repo `arango-schema-analyzer`) | Two consumers in CDF: transitively through `arango-sparql-py[analyzer]`, and directly in `deploy/arango/export_csi.py` (reverse CSI). Resolved by the pinned sparql-py's band: **0.13.0 installed** (bitemporal stamping); **0.14.0 on PyPI** (type-detection convergence) becomes installable after the sparql-py bump above. |
+| `relational-schema-analyzer` (RSA) | **Not a CDF runtime dependency.** Reached only through r2g at artifact-build time. 0.8.0 on PyPI (bitemporal stamping); r2g 0.4.1 requires `>=0.8.0,<0.9.0`. |
+| `r2g` (`r2g-arango`) | **Not a CDF runtime dependency.** Produces every relational CSI v1 + R2RML under `deploy/csi/` (`provenance.producer: r2g`). 0.4.1 on PyPI: forwards RSA's bitemporal stamps; loads the CSI schema from the analyzer. |
+| `arango-ontoextract` (AOE) | **Not consumed by CDF** (its structured→ontology path is AOE's own; see M2 §6). 1.9.0; imports CSI v1 since 2026-09-14. Recorded so the matrix names every block PRD §10.9 lists. |
+| `arango-cypher-py` | **Not a CDF dependency** — never declared, installed or imported (verified 2026-09-15). Listed to stop the question recurring; its analyzer band is kept aligned with `arango-sparql-py`'s. |
 | AER | No runtime package pin. CDF exposes a guarded resolver protocol; a clean released AER integration is pending. |
+| `customer-context` | Consumed as a cloned repo at a recorded commit for corpus/evidence generation, not as a package; see `docs/evidence/`. |
 | CK25 harness evidence | Generated against `arango-sparql-py@623aa24`; the checkout was dirty, while benchmark paths were clean. This is evidence provenance, not the runtime pin. |
 | Python dependencies | Version ranges are declared in `pyproject.toml`; no lock file currently certifies a full transitive environment. |
 
@@ -153,9 +159,11 @@ Requirement specs telling each **existing** repo what it must add to serve this 
 
 ## Active decisions and integration gaps
 
-1. **Owned dependency reproducibility:** reconcile the two
-   `arango-sparql-py` mirrors, cut clean release tags, and pin a released AER;
-   run CC-9 evidence before each bump.
+1. **Owned dependency reproducibility:** ~~reconcile the two `arango-sparql-py`
+   mirrors~~ (done 2026-09-05), ~~cut clean release tags~~ (RSA 0.8.0, ASA 0.14.0,
+   r2g 0.4.1 cut and on PyPI as of 2026-09-15; recorded in the pin table above),
+   cut `arango-sparql-py`'s **first PyPI release** so CDF can move from a git SHA to a
+   version band (CC-10), and pin a released AER; run CC-9 evidence before each bump.
 2. **Production identity and policy topology:** provision and exercise
    OpenFGA/IdP/STS plus source-native delegation, RLS, and masking — now
    owned by **M16**; first increment is P3.7 (Snowflake External OAuth broker
