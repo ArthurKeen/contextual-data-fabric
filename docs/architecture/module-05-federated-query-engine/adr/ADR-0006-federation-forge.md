@@ -2,7 +2,7 @@
 title: "ADR-0006 — The Federation Forge: generated federations with ground truth attached"
 adr: 0006
 module: 05-federated-query-engine
-status: proposed
+status: accepted
 date: 2026-09-05
 deciders: ["Arthur Keen", "PJ (review)"]
 related:
@@ -178,7 +178,7 @@ Forge honest (roadmap risk #4).
 
 ## Consequences
 
-- **S1 exit:** this ADR accepted + the walking skeleton green — one ontology →
+- **S1 exit:** this ADR accepted + the walking skeleton green — *met: accepted 2026-09-08 once PJ's review was absorbed (54e16f0); skeleton green 2026-09-15 (r2g #1: `forge.py`, `r2g forge generate`, live roundtrip through both analyzers; r2g main CI green)* — one ontology →
   Postgres DDL + naive synthesis + load + `introspect(generate(O)) ≡ O`
   through real RSA/r2g. **S2:** the other three dialects. **S3:**
   partitioner + auto-generated goldens, first 10-shape suite in CI. **S4/S7:**
