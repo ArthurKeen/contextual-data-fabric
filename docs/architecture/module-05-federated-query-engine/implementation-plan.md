@@ -9,7 +9,7 @@ version: 0.3
 owner: PJ
 build_gatekeeper: Arthur Keen
 depends_on_modules: ["04-mapping-layer", "01-connectors", "06-entity-resolution", "07-grounding-provenance"]
-depends_on_repos: ["r2g", "arango-sparql-py", "arango-cypher-py", "arangodb-schema-analyzer", "relational-schema-analyzer", "customer-context"]
+depends_on_repos: ["r2g", "arango-sparql-py", "arango-query-core", "arangodb-schema-analyzer", "relational-schema-analyzer", "customer-context"]
 related:
   - "[[contextual-data-fabric/docs/architecture/module-05-federated-query-engine/specification|M5 spec]]"
   - "[[contextual-data-fabric/docs/architecture/module-05-federated-query-engine/adr/ADR-0001-conceptual-query-language|ADR-0001]]"
@@ -141,7 +141,7 @@ WPs → **PJ**; NL-engine reuse → **shared**. **Dep** = hard prerequisite.
 | WP | Work | Repo | Owner | Dep | Trace |
 | :-- | :-- | :-- | :-- | :-- | :-- |
 | **D1** ✅ | **DONE (thin P1 seam)** — schema-card prompt, SPARQL extraction, planner validation/repair, refusal, and provider metering | arango-sparql-py / CDF | shared | A3, C1/B1 | ADR #1; FR-6 |
-| **D2** ✅ | **DONE (2026-08-05)** — versioned NL corpus, deterministic/fixture-capable evaluator, lexical few-shot retrieval, decomposition/source/join/refusal/path scoring, and policy-filtered prompt context | arango-cypher-py → CDF | shared | D1 | FR-6; PRD §10.1 |
+| **D2** ✅ | **DONE (2026-08-05)** — versioned NL corpus, deterministic/fixture-capable evaluator, lexical few-shot retrieval, decomposition/source/join/refusal/path scoring, and policy-filtered prompt context | CDF (reimplemented in `src/cdf/eval/` — `nl_corpus.py`, `nl_eval.py`, `ck25_eval.py`; `arango-cypher-py`'s harness was the design source, not a dependency) | shared | D1 | FR-6; PRD §10.1 |
 
 ### E. Federation engine (the net-new heart of M5)
 | WP | Work | Repo | Owner | Dep | Trace |

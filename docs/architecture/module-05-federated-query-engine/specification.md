@@ -9,7 +9,7 @@ version: 0.1
 owner: PJ
 building_block: Query
 depends_on_modules: ["04-mapping-layer", "01-connectors", "06-entity-resolution", "07-grounding-provenance"]
-depends_on_repos: ["r2g", "arango-sparql-py", "arango-cypher-py", "arangodb-schema-analyzer", "relational-schema-analyzer", "customer-context"]
+depends_on_repos: ["r2g", "arango-sparql-py", "arango-query-core", "arangodb-schema-analyzer", "relational-schema-analyzer", "customer-context"]
 requires_repo_enhancements: ["r2g-federated-query"]
 phase_intro: 1
 related:
@@ -54,7 +54,7 @@ This is the runtime heart of the Query building block. Given a natural-language 
 ## 4. Functional requirements
 - **FR-1 (P1):** Resolve a question to ontology concepts and produce a **query plan** naming the sources to hit and the join keys. The plan's conceptual query is expressed in a **small typed graph-pattern IR over the ontology that serializes to SPARQL** ([[adr/ADR-0001-conceptual-query-language|ADR-0001]]); **decomposition = partition this query graph by the source each concept/property maps to.**
 - **FR-2 (P1):** Generate and execute **SQL pushdown** against one relational DB (Postgres) using M4 mappings — filters pushed down; no bulk pull into Arango. **The relational leg SHOULD use a Virtual Knowledge Graph engine (Ontop) driven by R2RML mappings (r2g P12.1) — SPARQL→SQL rewriting with no materialization is off-the-shelf and already covers all our relational sources (ADR-0001, §Research). Bespoke SQL generation (r2g P12.2) is a retired fallback — the adopt-vs-build decision in ADR-0001 RESOLVED to adopt Ontop (Apache-2.0 OSS, free).**
-- **FR-3 (P1):** Generate and execute **AQL** against the Arango unstructured graph for the same question. **SPARQL→AQL is provided by the *owned* [`arango-sparql-py`](https://github.com/ArthurKeen/arango-sparql-py) transpiler (ADR-0001) — and the remaining work is DONE (2026-07-15): evaluation correctness is CI-gated (WP-C1) and the `translate_partition` federation entry point shipped (WP-C2; canonical keys, `seed_bindings` pushdown, `as_of`; contract: `arango-sparql-py/docs/architecture/proposals/federation-entry-point.md`). `arango-cypher-py`'s role is now the NL engine (D1), not a transpiler fallback.**
+- **FR-3 (P1):** Generate and execute **AQL** against the Arango unstructured graph for the same question. **SPARQL→AQL is provided by the *owned* [`arango-sparql-py`](https://github.com/ArthurKeen/arango-sparql-py) transpiler (ADR-0001) — and the remaining work is DONE (2026-07-15): evaluation correctness is CI-gated (WP-C1) and the `translate_partition` federation entry point shipped (WP-C2; canonical keys, `seed_bindings` pushdown, `as_of`; contract: `arango-sparql-py/docs/architecture/proposals/federation-entry-point.md`). The NL front-end (D1) was built in-repo — `src/cdf/query/nl.py`, harvesting `arango-sparql-py`'s `nl2sparql` client over the shared `arango-query-core` substrate — with `arango-cypher-py`'s NL pipeline as its design source only; CDF has never depended on `arango-cypher-py` (no declaration, pin, or import) and the P1 Cypher→AQL fallback is withdrawn (implementation plan §Risks 1).**
 - **FR-4 (P1):** **Reassemble** structured + unstructured results into one answer, joined via the canonical entity hub.
 - **FR-5 (P1):** Emit a complete **retrieval path** (actual SQL + AQL + source objects) for M7 to cite; refuse (via M7) if any leg is uncitable.
 - **FR-6 (P1):** **LLM planner** path (quick-and-dirty decomposition) with the plan surfaced for inspection.
@@ -243,7 +243,7 @@ deployment dependencies, not CDF-provisioned features.
 
 ## 6. Dependencies
 - **Modules:** M4 (mappings), M1 (connectors), M6 (canonical hub), M7 (grounding).
-- **Repos (per ADR-0001 + the implementation plan):** **r2g** — the **[[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|federated-query enhancement]]**, reframed: P12.1 forward-CSI+R2RML is the durable contract; P12.2 pushdown SQL is the P1 stopgap vs Ontop. **`arango-sparql-py`** (SPARQL→AQL, owned — finish eval gate + federation entry). **`arango-cypher-py`** (NL→IR engine to harvest; P1 Arango-leg fallback). **`arangodb-schema-analyzer`** (CSI v1 hub). **Ontop** (relational VKG engine, **adopted — Apache-2.0 OSS, free**; PRD §9.10). Reuses agent/query patterns from `customer-context`.
+- **Repos (per ADR-0001 + the implementation plan):** **r2g** — the **[[contextual-data-fabric/docs/architecture/_repo-enhancements/r2g-federated-query|federated-query enhancement]]**, reframed: P12.1 forward-CSI+R2RML is the durable contract; P12.2 pushdown SQL is the P1 stopgap vs Ontop. **`arango-sparql-py`** (SPARQL→AQL, owned — eval gate + federation entry landed 2026-07-15, WPs C1/C2). **`arango-query-core`** (shared conceptual-model/NL substrate under `arango-sparql-py`'s `nl2sparql`, which `src/cdf/query/nl.py` harvests; installed transitively via the `arango-sparql-py` pin). *Not a dependency:* `arango-cypher-py` — CDF has never declared, pinned, or imported it; the P1 Cypher→AQL Arango-leg fallback was withdrawn when C1/C2 landed ([[implementation-plan|implementation plan]] §Risks 1). Its NL→conceptual-query pipeline is credited as the design source of CDF's NL engine, nothing more. **`arangodb-schema-analyzer`** (CSI v1 hub). **Ontop** (relational VKG engine, **adopted — Apache-2.0 OSS, free**; PRD §9.10). Reuses agent/query patterns from `customer-context`.
 
 ## 7. Phase mapping
 - **P1:** loosely-coupled, one relational DB (Postgres) + Arango unstructured graph, LLM planner, full retrieval path.
@@ -263,6 +263,12 @@ deployment dependencies, not CDF-provisioned features.
   Arango leg (`arango-sparql-py`). Cypher is the more mature transpiler + owns
   the best NL engine but has no relational leg — so **harvest
   `arango-cypher-py`'s IR-agnostic NL engine to generate SPARQL** (~5 seams).
+  **Outcome (D1 shipped; noted 2026-09-15):** the harvest was done by
+  reimplementation, not by importing the package — `src/cdf/query/nl.py` reuses
+  `arango-sparql-py`'s `nl2sparql` client (over the shared `arango-query-core`
+  substrate) and grounds the prompt in the
+  authorized catalog projection; `arango-cypher-py` is cited as prior art in
+  that module's docstring and is not installed.
 - **RESOLVED (ADR-0001, code-read) — mapping alignment via `CSI v1` hub.**
   Adopt the existing `CSI v1` interchange (`arango-schema-analyzer`) and build:
   (1) r2g→forward-CSI, (2) CSI→R2RML (Ontop), (3) CSI→MappingBundle (AQL

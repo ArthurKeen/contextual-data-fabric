@@ -85,7 +85,7 @@ Decision drivers (from the PRD + North Star):
     the LLM emits conceptual Cypher and never sees the physical mapping).
 - **The owned analyzer/transpiler stack (the decisive context the first web
   pass missed).** Both AQL transpilers map from a conceptual model via
-  **`arango-schema-mapper` (= `arangodb-schema-analyzer`)** — the **Arango-side
+  **`arangodb-schema-analyzer`** (repo `arango-schema-analyzer`; formerly `arango-schema-mapper`) — the **Arango-side
   sibling of `relational-schema-analyzer` (RSA)**, emitting the *same
   tool-contract bundle*. So the stack is coherent and already owned: **two
   analyzers** (relational RSA + Arango `arangodb-schema-analyzer`) → **one
@@ -105,7 +105,7 @@ Decision drivers (from the PRD + North Star):
 |---|---|---|---|---|---|---|
 | **(a) SPARQL IR + OBDA** | ★★★ (OWL 2 QL) | ★★★ (R2RML) | Ontop *(adopt — Apache-2.0 OSS)* / **arango-sparql-py** *(own, v0.1)* | ★★ (SERVICE) | relational ★★★ / Arango ★★ (eval coverage WIP) | **Recommended canonical IR — both legs owned/available** |
 | **(b) Small typed graph-pattern IR → serializes to SPARQL** | ★★★ | ★★★ | via (a) | ★★★ (our planner) | small build over (a) | **Chosen IR *shape* under (a)** |
-| **(c) Cypher (openCypher) IR** | ★ (no OWL reasoning) | ★★ (schema-mapper) | ✗ standard Cypher→SQL / **arango-cypher-py** *(own, v0.2, +NL engine)* | ★★ | Arango ★★★ / relational ✗ | **Live alternative — most mature *today*; weak relational leg** |
+| **(c) Cypher (openCypher) IR** | ★ (no OWL reasoning) | ★★ (schema-analyzer) | ✗ standard Cypher→SQL / **arango-cypher-py** *(own, v0.2, +NL engine)* | ★★ | Arango ★★★ / relational ✗ | **Live alternative — most mature *today*; weak relational leg** |
 | (d) GraphQL federation | ✗ | ★★ (resolver=code) | — | ★★★ | ★★★ | Reject as IR; fine as *external* API |
 | (e) Relational-algebra virtualization (Calcite) | ✗ | ★★ | ★★★ | ★★★ (cost-based) | ★★★ | Reject as IR; candidate for P3 planner |
 | (f) TypeDB/TypeQL | ★★★ (+reasoning) | ★★ | ✗ | ★ | ★ (lock-in) | Reject (ecosystem lock-in) |
@@ -201,7 +201,10 @@ biggest open decisions:
   (`arango-schema-analyzer/schema_analyzer/csi/`) —
   `{conceptualModel, arangoPhysicalMapping, provenance{direction}}` — *designed*
   as the cross-tool hub and **explicitly naming r2g as the forward producer**,
-  but only the reverse (Arango) side emits it today. RSA and the Arango analyzer
+  but only the reverse (Arango) side emits it today *[2026-09-15: no longer so —
+  r2g 0.4.1 is a shipping forward producer (`export-csi`, `export-r2rml`) and
+  every relational CSI under `deploy/csi/` carries `provenance.producer: r2g`;
+  ASA emits the reverse side]*. RSA and the Arango analyzer
   share the `{conceptualSchema, physicalMapping, metadata}` envelope but
   deliberately diverge in `physicalMapping` (RSA `tableName`/FK vs Arango
   `collectionName`/edge). **r2g is the only component that knows both** (source
@@ -238,11 +241,13 @@ biggest open decisions:
       r2g P12.1's real content).
    3. **CSI → `MappingBundle`/OWL-Turtle** for the AQL transpilers (mechanical
       shim; both are `{entities,relationships}` with COLLECTION/edge styles).
-   4. **Fix the `phys:` namespace mismatch** — `arango-sparql-py` accepts
+   4. ~~**Fix the `phys:` namespace mismatch**~~ — `arango-sparql-py` accepts
       `https://arango.solutions/phys#` while the analyzers **and**
       `arango-cypher-py` emit `http://arangodb.com/schema/physical#`; align the
       accepted list (cheap) or add a rewrite. *(Real bug: analyzer-emitted
-      Turtle is not consumable by `arango-sparql-py` today.)*
+      Turtle is not consumable by `arango-sparql-py` today.)* **CLOSED
+      2026-07-15** — M5 implementation plan WP A2 (`arango-sparql-py`
+      `64027b6`): the analyzer `phys:` namespace is accepted as canonical.
 4. **Federation layer is first-class M5 work (net-new regardless of IR):** the
    partition planner, canonical-key join (on AER entities), and provenance/as-of
    surfacing exist in neither transpiler — scope them as M5 build, not a

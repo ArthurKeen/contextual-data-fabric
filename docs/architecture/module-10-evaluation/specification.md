@@ -6,7 +6,7 @@ type:
   - module-spec
 status: draft
 version: 0.1
-owner: TBD (proposed: PJ authors harness, Arthur reviews expected answers)
+owner: "TBD (proposed: PJ authors harness, Arthur reviews expected answers)"
 building_block: "—"
 depends_on_modules: ["05-federated-query-engine", "07-grounding-provenance"]
 depends_on_repos: ["customer-context", "ontology-extractor"]
@@ -25,7 +25,7 @@ related:
 ## 1. Purpose & responsibility
 Own the correctness bar for federated answers. A grounded, cited answer can still be *wrong* (bad decomposition, wrong join, missed source); citations prove traceability, not correctness. This module holds the golden set, the runner, and the regression gate — so LLM-planner changes, mapping edits, and ontology revisions can't silently degrade answers. It is internal tooling (like M9, not sold).
 
-**Methodology alignment (v0.3):** the golden set is the fabric-level instance of the **competency-question (CQ) program AOE has committed as PRD §6.19** (ORSD-style requirements spec; CQs human-authored/LLM-assisted; each CQ formalized to a test query; coverage validated and gap-fed back). Adopt the same model end-to-end: the seed questions are the CQs, this module's runner is the CQ coverage validator at federation level, and AOE's FR-19.5/19.8 coverage reports gate the *ontology* while M10 gates the *answers*. The runner itself should reuse `arango-cypher-py`'s proven eval harness + regression gate (M5 plan WPs D2/F1) rather than building new scaffolding.
+**Methodology alignment (v0.3):** the golden set is the fabric-level instance of the **competency-question (CQ) program AOE has committed as PRD §6.19** (ORSD-style requirements spec; CQs human-authored/LLM-assisted; each CQ formalized to a test query; coverage validated and gap-fed back). Adopt the same model end-to-end: the seed questions are the CQs, this module's runner is the CQ coverage validator at federation level, and AOE's FR-19.5/19.8 coverage reports gate the *ontology* while M10 gates the *answers*. The runner was built in-repo (`src/cdf/eval/` — `golden.py`, `nl_corpus.py`, `nl_eval.py`, `ck25_eval.py`; M5 plan WPs D2/F1, D2 landed 2026-08-05) rather than by importing another package; `arango-cypher-py`'s eval harness was the design lineage, not a dependency.
 
 ## 2. Scope
 **In scope:** the golden-set format (question, expected answer facts, expected sources, expected join entity, expected citation shape); a runner that executes each question through M5→M7 and scores the result; decomposition scoring (did the plan hit the right sources/join keys); regression gating for planner/mapping changes; per-run reports.
@@ -50,7 +50,7 @@ Deterministic where possible (fixed seeds/temperature-0 for LLM legs, recorded f
 
 ## 6. Dependencies
 - **Modules:** M5 (execution), M7 (envelope to score), M9 (optional report rendering).
-- **Repos:** `customer-context` (the demo questions + corpus the P1 set is authored against); `ontology-extractor`/AOE (judge patterns for FR-5; the §6.19 CQ/ORSD model + coverage reports); `arango-cypher-py` (the eval harness + regression gate to reuse — M5 plan D2/F1).
+- **Repos:** `customer-context` (the demo questions + corpus the P1 set is authored against); `ontology-extractor`/AOE (judge patterns for FR-5; the §6.19 CQ/ORSD model + coverage reports). The eval harness + regression gate are CDF's own (`src/cdf/eval/`, M5 plan D2/F1); CDF does not depend on `arango-cypher-py`.
 
 ## 7. Phase mapping
 - **P1:** golden set for the seed questions + runner + refusal case (FR-1–FR-3).
