@@ -9,8 +9,8 @@ version: 0.1
 owner: Arthur Keen
 building_block: Onto Extract
 depends_on_modules: ["01-connectors"]
-depends_on_repos: ["r2g", "ontology-extractor"]
-requires_repo_enhancements: ["ontology-extractor-structured"]
+depends_on_repos: ["r2g", "relational-schema-analyzer", "arangodb-schema-analyzer", "ontology-extractor"]
+requires_repo_enhancements: []
 phase_intro: 1
 related:
   - "[[contextual-data-fabric-prd]]"
@@ -61,5 +61,5 @@ Oracle-free / grounded to the source; OSI/YAML output; conceptual schemas (agent
 ## 9. Open questions
 - ~~Does the ontology extractor already ingest structured metadata, or does r2g fully own structured→ontology?~~ **Answered (v0.2), corrected (2026-09-14):** both exist independently. **CDF runs r2g → RSA**; AOE's structured path is a parallel derivation CDF never calls. The gate is lifted, but the two-derivations drift is now the open item below.
 - ~~Which path B1 demos with: RSA bundle → AOE mapping vs r2g Phase 10 derivation.~~ **Settled by what shipped:** r2g → RSA → CSI/R2RML (every relational CSI in `deploy/csi/` is r2g-produced).
-- **Two structured→ontology derivations, no drift detector.** RSA's conceptual model (via r2g, the one CDF uses) and AOE's table→`owl:Class` mapping (over RSA's `PhysicalSchema`) can disagree on naming (CC-12) and on inferred relationships. Plan: AOE reads CSI (paper step 3) so curation happens over the same artifact CDF consumes, and type detection converges on ASA (step 4). Until then, treat any AOE-curated ontology as *not* the one the fabric queries.
+- **Two structured→ontology derivations, no drift detector.** RSA's conceptual model (via r2g, the one CDF uses) and AOE's table→`owl:Class` mapping (over RSA's `PhysicalSchema`) can disagree on naming (CC-12) and on inferred relationships. **Progress (2026-09-14):** paper steps 3–4 are done upstream — AOE imports CSI v1 as an ontology (`app/services/csi_import.py`; `POST /api/v1/ontology/schema/csi/preview` and `/import`; MCP tools), so curation can happen over the same artifact CDF consumes, and ASA 0.14.0 converged LPG type detection. **Still open:** (a) retire AOE's own structured type detector in favour of the ASA-derived one, and (b) a drift detector that compares the two structured→ontology derivations for the same source. Until both land, treat any AOE-curated ontology as *not* the one the fabric queries.
 - ~~Extraction scoping mechanism~~ **Answered (v0.3) by AOE PRD §6.19:** use cases are formalized as **competency questions** (ORSD-style, human-authored/LLM-assisted); the CQ term set scopes extraction (FR-19.4) and CQ test queries validate coverage afterward (FR-19.5) — the same spec drives M10's golden set.
