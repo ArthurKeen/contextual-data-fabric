@@ -73,7 +73,7 @@ The fabric is only as strong as its feeders, and every recent sprint shipped a
 |---|---|---|
 | **RSA** | FK inference misses natural-key references (CRM overlay is the workaround) | inference targets declared-unique natural keys; overlay stays as curator override |
 | **ASA** | relationships only from edge collections (issue asa#27, declared-refs overlay is the workaround); case-sensitive gaps | `apply_key_overlay`-style declared-references API + attribute-reference inference |
-| **r2g** | `migrate-config` resurrects deliberate exclusions + strips curator comments; case-sensitive `singularize` | migration respects exclusions, preserves comments; upstream the singularize fix |
+| **r2g** | `migrate-config` resurrects deliberate exclusions + strips curator comments; ~~case-sensitive `singularize`~~ (fixed upstream 2026-09-15, r2g #2: `USAGE_METRICS` → `UsageMetric`; unreleased on 0.4.1) | migration respects exclusions, preserves comments; ~~upstream the singularize fix~~ → cut r2g 0.4.2, regenerate `deploy/snowflake/mapping.yaml` + `deploy/csi/snowflake-telemetry.json`, and drop the forced-lowercase `usage_metrics` collection name |
 | **AOE** | alignment (M3) APIs unexposed to the fabric; release-gated flow only | expose alignment/belief APIs per the repo-enhancement spec; wire the fabric's Q-11 policy vocabulary when ArGOS FR-5 lands |
 | **query libs** | pin discipline manual; NL eval level 2 | tagged releases consumed by pin (CC-9), eval-gated bumps |
 
