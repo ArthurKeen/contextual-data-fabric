@@ -54,9 +54,11 @@ related:
 > **Update 2026-09-15 (bands raised; one attribution corrected).** The 2026-09-12 form
 > of step 0 is closed: `arango-cypher-py` and `arango-sparql-py` both admit ASA 0.13
 > (`>=0.12.1,<0.14.0`, raised together on 2026-09-14 under the band invariant both PRDs
-> now record) and `r2g` 0.4.1 admits RSA 0.8.0 (`>=0.8.0,<0.9.0`). It has re-opened a
-> third time: **ASA 0.14.0** (the step-4 type-detection release) is on PyPI and outside
-> both transpilers' bands. Separately, a re-check of the CDF tree by the cypher-py side
+> now record) and `r2g` 0.4.1 admits RSA 0.8.0 (`>=0.8.0,<0.9.0`). It re-opened a third
+> time the same day — **ASA 0.14.0** (the step-4 type-detection release) reached PyPI
+> outside both transpilers' bands — and **closed the same day**: both raised together to
+> `>=0.12.1,<0.15.0` (cypher-py `b5ec248`, sparql-py `e6a9d15`), each verified against
+> 0.14.0 before merge. Separately, a re-check of the CDF tree by the cypher-py side
 > found that **CDF never declared, installed or imported `arango-cypher-py`**; the
 > 2026-09-06 downgrade was caused by `arango-sparql-py`'s *own* `<0.10` ceiling at the
 > SHA CDF pinned, not by a cypher-py/sparql-py conflict inside CDF. §1, §3, §3.1, §5, §9
@@ -97,7 +99,8 @@ itself never installs cypher-py (**corrected 2026-09-15**, §3.1). **Resolved 20
 (cypher-py raised its band, commit `a196e74`, citing this paper's step 0); **re-opened
 2026-09-12** when ASA 0.13.0 and RSA 0.8.0 shipped outside every consumer's band;
 **closed 2026-09-14** (both transpilers `>=0.12.1,<0.14.0`, r2g 0.4.1 `>=0.8.0,<0.9.0`);
-**re-opened 2026-09-15** by ASA 0.14.0. See §3.1.
+**re-opened and closed 2026-09-15** by ASA 0.14.0 (both transpilers `>=0.12.1,<0.15.0`).
+See §3.1.
 
 Six concrete breaks stop the motivating scenario — *a human curates their relational
 extraction in AOE, and CDF answers questions over the curated result*:
@@ -105,7 +108,7 @@ extraction in AOE, and CDF answers questions over the curated result*:
 0. **Analyzer pin bands that lag the analyzers.** Observed, not predicted: one
    downgrade incident (2026-09-06) and two rounds of releases the consumers excluded.
    *(Verified — §3.1.)* **Resolved 2026-09-11; re-opened 2026-09-12; closed 2026-09-14;
-   re-opened 2026-09-15 by ASA 0.14.0** (§3.1). Corrected 2026-09-15: the two
+   re-opened and closed 2026-09-15 by ASA 0.14.0** (§3.1). Corrected 2026-09-15: the two
    transpilers were never co-installed inside CDF.
 1. **Version drift.** r2g requires RSA `>=0.7.2,<0.8.0`; AOE pins `>=0.2` and has
    **0.2.0** installed. Five minor versions apart. *(Verified.)*
@@ -248,15 +251,15 @@ flowchart TD
   AOE["arango-ontoextract <b>1.9.0</b>"]
   CYP["arango-cypher-py <b>0.2.0</b>"]
   SPQ["arango-sparql-py <b>0.1.0</b>"]
-  AER["arango-entity-resolution"]
+  AER["arango-entity-resolution<br/><b>3.8.0</b> on PyPI"]
   CDF["contextual-data-fabric"]
   ARGOS["ArGOS<br/>context · policy · provenance"]
 
-  R2G -->|"0.8.0 – 0.9 ✔ (0.4.1)"| RSA
+  R2G -->|"0.8.0 – 0.9 ✔<br/>(since 0.4.1)"| RSA
   AOE -->|"0.8.0 – 0.9 ✔ (since 2026-09-14)"| RSA
-  AOE --> AER
-  CYP -->|"0.12.1 – 0.14 ✔ co-installs<br/>⛔ excludes ASA 0.14.0"| ASA
-  SPQ -->|"0.12.1 – 0.14 ✔ co-installs<br/>⛔ excludes ASA 0.14.0"| ASA
+  AOE -->|"pins >=0.1 — has 3.5.1<br/>(no ceiling; three minors behind)"| AER
+  CYP -->|"0.12.1 – 0.15 ✔ admits 0.14.0<br/>(since 2026-09-15)"| ASA
+  SPQ -->|"0.12.1 – 0.15 ✔ admits 0.14.0<br/>(since 2026-09-15)"| ASA
   CDF -->|"git-SHA pin (deploy/pins)"| SPQ
   CDF -->|"direct import:<br/>deploy/arango/export_csi.py"| ASA
   CDF -->|"artifacts, not imports<br/>CSI v1 + R2RML"| R2G
@@ -268,7 +271,9 @@ flowchart TD
 
   classDef warn stroke:#c60,color:#c60,stroke-width:2px
   classDef broken stroke:#b00,color:#b00,stroke-width:2px
-  class AOE,CYP,SPQ,R2G warn
+  %% warn = something still open on the node: AOE (own LPG detector not yet retired),
+  %% CYP/SPQ (never released to PyPI; cypher-py detector not yet retired). r2g cleared 2026-09-15.
+  class AOE,CYP,SPQ warn
 ```
 
 ### 3.1 Analyzer pin bands that lag the analyzers — one incident, three re-openings
@@ -292,22 +297,32 @@ flowchart TD
 As written on 2026-09-10, the two ASA-consuming transpilers pinned **mutually exclusive**
 ASA ranges:
 
-| Consumer | ASA range (2026-09-10) | 2026-09-12 | 2026-09-14 | vs ASA 0.14.0 (2026-09-15) |
+| Consumer | ASA range (2026-09-10) | 2026-09-12 | 2026-09-14 | 2026-09-15 |
 |---|---|---|---|---|
-| `arango-cypher-py` 0.2.0 | `>=0.9.0,<0.10.0` | `>=0.12.1,<0.13.0` (`a196e74`, 2026-09-11) | `>=0.12.1,<0.14.0` (`617178a`) | ⛔ excluded |
-| `arango-sparql-py` 0.1.0 | `>=0.12.1,<0.13.0` | unchanged | `>=0.12.1,<0.14.0` (`df4f397`) | ⛔ excluded |
-| `r2g` (RSA band) | `>=0.7.2,<0.8.0` | unchanged | `>=0.8.0,<0.9.0` (0.4.1) | ✔ admits RSA 0.8.0 |
+| `arango-cypher-py` 0.2.0 | `>=0.9.0,<0.10.0` | `>=0.12.1,<0.13.0` (`a196e74`, 2026-09-11) | `>=0.12.1,<0.14.0` (`617178a`) | `>=0.12.1,<0.15.0` (`b5ec248`) ✔ admits 0.14.0 |
+| `arango-sparql-py` 0.1.0 | `>=0.12.1,<0.13.0` | unchanged | `>=0.12.1,<0.14.0` (`df4f397`) | `>=0.12.1,<0.15.0` (`e6a9d15`) ✔ admits 0.14.0 |
+| `r2g` (RSA band) | `>=0.7.2,<0.8.0` | unchanged | `>=0.8.0,<0.9.0` (0.4.1) ✔ admits RSA 0.8.0 | unchanged |
 
 **Resolved 2026-09-11:** cypher-py raised its band, citing this paper's step 0, and both
 now co-install on ASA 0.12.x. **Superseded 2026-09-12:** ASA released **0.13.0** — the
 bitemporal release this paper commissioned — and both consumers exclude it. RSA did the
 same: **0.8.0** shipped while r2g still requires `>=0.7.2,<0.8.0`. **Closed 2026-09-14:**
 both transpilers raised together to `>=0.12.1,<0.14.0` and r2g 0.4.1 admits RSA 0.8.0,
-so the step-7 stamps are installable everywhere. **Re-opened 2026-09-15:** ASA **0.14.0**
-(step 4, type-detection convergence) is the latest on PyPI and outside both transpilers'
-bands; by the band invariant the next raise lands in both repositories together. The
-pattern is now the finding: every analyzer minor re-opens step 0 until bands track the
-*contract* rather than the minor. The original text follows for the record.
+so the step-7 stamps are installable everywhere. **Re-opened and closed 2026-09-15:** ASA
+**0.14.0** (step 4, type-detection convergence) reached PyPI outside both transpilers'
+bands; under the band invariant both raised together to `>=0.12.1,<0.15.0` the same day,
+each fast suite run against 0.14.0 first. The pattern is now the finding: every analyzer
+minor re-opens step 0 until bands track the *contract* rather than the minor — three
+re-openings in five days. The original text follows for the record.
+
+A related structural note: `arango-sparql-py` and `arango-cypher-py` have **never been
+released to PyPI** (both still carry their initial version number; sparql-py's only tag is
+`v0.1.0`), which is why CDF consumes sparql-py by git SHA under the CC-9 rule "blocks not
+yet on PyPI pin by commit until they version". Every sparql-py change CDF wants is
+therefore a pin-bump PR in CDF (e.g. CDF PR #25) rather than a version-range that already
+admits it — the same lag, one level up. Cutting a sparql-py release and moving CDF to a
+version range is the CC-10 packaging work the CDF PRD deferred to P2; this section is the
+evidence that the deferral has a running cost.
 
 There is no ASA version satisfying both. ~~CDF references both across
 `src/cdf/adapters/`, `src/cdf/catalog/capabilities.py` and `src/cdf/eval/`~~ *(withdrawn
@@ -433,7 +448,7 @@ HITL curation and temporal ripple-tracing all fall out of the same mechanism.
 
 | # | Break | Evidence | Consequence |
 |---|---|---|---|
-| 0 | **Analyzer bands lag the analyzers** | sparql-py's own `<0.10` ceiling downgraded CDF's analyzer (`b3f42f5`); cypher-py `<0.10` vs sparql-py `>=0.12.1` unsatisfiable in any shared venv (CDF was not one — corrected 2026-09-15) | Broke CDF `make seed` 2026-09-06. Resolved 2026-09-11; re-opened 2026-09-12 (ASA 0.13.0, RSA 0.8.0 excluded); closed 2026-09-14 (both transpilers `<0.14.0`, r2g 0.4.1); **re-opened 2026-09-15 by ASA 0.14.0** (§3.1) |
+| 0 | **Analyzer bands lag the analyzers** | sparql-py's own `<0.10` ceiling downgraded CDF's analyzer (`b3f42f5`); cypher-py `<0.10` vs sparql-py `>=0.12.1` unsatisfiable in any shared venv (CDF was not one — corrected 2026-09-15) | Broke CDF `make seed` 2026-09-06. Resolved 2026-09-11; re-opened 2026-09-12 (ASA 0.13.0, RSA 0.8.0 excluded); closed 2026-09-14 (both transpilers `<0.14.0`, r2g 0.4.1); re-opened and closed 2026-09-15 by ASA 0.14.0 (both `<0.15.0`) — three re-openings in five days (§3.1) |
 | 1 | Version drift | r2g `>=0.7.2,<0.8.0`; AOE `>=0.2`, installed 0.2.0 | Objects cannot be exchanged even if both used RSA |
 | 2 | Format gap | 0 CSI/R2RML references in `arango-ontoextract/backend/app` | AOE can neither read r2g's output nor write CDF's input |
 | 3 | Mapping fidelity | provenance is `source_db`/`source_collection`/`source_host` only; property URIs are `ns[f"{table}.{column}"]` (`relational_schema_extraction.py:159`) | First curator rename severs the column link, unrecoverably |
@@ -658,7 +673,7 @@ Ordered so each step is independently useful and the risky work comes last.
 
 | # | Step | Unlocks | Effort |
 |---|---|---|---|
-| **0** | **Resolve the ASA pin conflict.** ~~Raise `arango-cypher-py` to the 0.12 band so it and `arango-sparql-py` can co-install.~~ **Done 2026-09-11** (`a196e74`). ~~**Re-opened 2026-09-12 in a new form:** raise `arango-cypher-py` and `arango-sparql-py` to admit ASA **0.13.0** and `r2g` to admit RSA **0.8.0**, or none of the step-7 stamps reach CDF.~~ **Done 2026-09-14** (cypher-py `617178a`, sparql-py `df4f397`, r2g 0.4.1). **Re-opened 2026-09-15:** ASA **0.14.0** (step 4) is outside both transpilers' `<0.14.0` bands; raise both together to `<0.15.0`. Bands should track the analyzers' *contract* version, not their minor version — both transpilers now document an "analyzer-band invariant" for exactly this reason, and this third re-opening is the argument for it. | unbreaks CDF `make seed` (done); lets the bitemporal releases be installed (done); lets the converged type detector reach cypher-py and sparql-py (open) | small |
+| **0** | **Resolve the ASA pin conflict.** ~~Raise `arango-cypher-py` to the 0.12 band so it and `arango-sparql-py` can co-install.~~ **Done 2026-09-11** (`a196e74`). ~~**Re-opened 2026-09-12 in a new form:** raise `arango-cypher-py` and `arango-sparql-py` to admit ASA **0.13.0** and `r2g` to admit RSA **0.8.0**, or none of the step-7 stamps reach CDF.~~ **Done 2026-09-14** (cypher-py `617178a`, sparql-py `df4f397`, r2g 0.4.1). **Re-opened and closed 2026-09-15:** ASA **0.14.0** (step 4) shipped outside both transpilers' `<0.14.0` bands; both raised together to `<0.15.0` (cypher-py `b5ec248`, sparql-py `e6a9d15`). Bands should track the analyzers' *contract* version, not their minor version — both transpilers now document an "analyzer-band invariant" for exactly this reason, and three re-openings in five days are the argument for it. **Still open at the CDF level:** CDF's sparql-py pin (`deploy/pins`) must move to `e6a9d15` or later before CDF's own venv can take ASA 0.14.0 (CDF PR #25 moves it to `4ef8429`, the `<0.14.0` band). | unbreaks CDF `make seed` (done); lets the bitemporal releases be installed (done); lets the converged type detector reach cypher-py and sparql-py (done); reach CDF's venv (pin bump pending) | small |
 | 1 | **Align RSA versions.** Move AOE to the r2g range (now `>=0.8.0,<0.9.0`); re-run the relationship benchmark to confirm no regression. **Done 2026-09-14** (`arango-ontoextract` `deps/rsa-0.8-band`; backend unit suite 2960 green on RSA 0.8.0; benchmark re-run still to do). | removes break 1; makes any later sharing possible | small |
 | 2 | **De-vendor the CSI schema.** r2g consumes ASA's schema rather than a copy. **Still open, and now demonstrated:** on 2026-09-12 both copies were hand-edited in lockstep for the bitemporal keys (§4.1). While here, widen the shared `validTimeSource` enum to RSA's five values so `r2g export-csi` stops rejecting catalog-dated schemas, and add r2g tests for `catalog` / `event` / `file` (only `fingerprint-continuity` is exercised). | removes a silent drift vector; unblocks relational valid time in CSI | small |
 | 3 | **AOE reads CSI v1.** Import an r2g/ASA/RSA artifact as an ontology. **Done 2026-09-14** (`arango-ontoextract` `feat/csi-import`: service + API + MCP tool; records collection, mapping style, the analyzer's `LABEL` discriminator, property→field as `aoe:sourceField`, join keys, and the bitemporal stamps; does not re-detect types). | AOE can *see* what the fabric sees | medium |
@@ -843,8 +858,8 @@ remain the *publication* format even if CSI becomes the *interchange* format.
 
 | Claim | Location |
 |---|---|
-| ASA pin — cypher-py | `~/code/arango-cypher-py/pyproject.toml:57` (`>=0.12.1,<0.14.0` since `617178a`, 2026-09-14; `>=0.12.1,<0.13.0` since `a196e74`, 2026-09-11; was `>=0.9.0,<0.10.0`) |
-| ASA pin — sparql-py | `~/code/arango-sparql-py/pyproject.toml:44` (`>=0.12.1,<0.14.0` since `df4f397`, 2026-09-14; was `>=0.9.0,<0.10.0` at `e4f64f5`, the SHA CDF pinned when the incident fired) |
+| ASA pin — cypher-py | `~/code/arango-cypher-py/pyproject.toml` (`>=0.12.1,<0.15.0` since `b5ec248`, 2026-09-15; `<0.14.0` since `617178a`, 2026-09-14; `>=0.12.1,<0.13.0` since `a196e74`, 2026-09-11; was `>=0.9.0,<0.10.0`) |
+| ASA pin — sparql-py | `~/code/arango-sparql-py/pyproject.toml` (`>=0.12.1,<0.15.0` since `e6a9d15`, 2026-09-15; `<0.14.0` since `df4f397`, 2026-09-14; was `>=0.9.0,<0.10.0` at `e4f64f5`, the SHA CDF pinned when the incident fired) |
 | The observed downgrade incident | CDF commit `b3f42f5` (2026-09-06, "analyzer-ceiling pin fix": `deploy/pins/arango-sparql-py.txt` `e4f64f5` → `4ef6db1`); `~/code/arango-sparql-py/pyproject.toml:38-41` |
 | CDF does **not** use cypher-py (corrected 2026-09-15) | `pyproject.toml` dependencies (rdflib only, sparql-py via `deploy/pins/`); `grep -r arango_cypher src/` → one docstring in `src/cdf/query/nl.py`; `git log -S arango_cypher` empty |
 | CDF imports ASA directly | `deploy/arango/export_csi.py:26-27` (`schema_analyzer.csi`, `schema_analyzer.tool`) |
