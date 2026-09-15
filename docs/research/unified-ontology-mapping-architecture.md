@@ -276,6 +276,15 @@ flowchart TD
   class AOE,CYP,SPQ warn
 ```
 
+**Legend.** Solid arrows are declared dependencies with their version band; the dotted
+arrows are artifact hand-offs or planned SDK adoption. **Orange boxes** mark a node with
+something still open on it: `arango-ontoextract` still runs its own LPG type detector
+(retirement in favour of ASA's CSI answer is step 4's remaining half); `arango-sparql-py`
+and `arango-cypher-py` have never been released to PyPI, so consumers pin them by git
+SHA (§3.1), and cypher-py's own detector is also due for retirement. Plain boxes have
+nothing open against them in this paper. *(Legend added 2026-09-15; r2g was orange until
+its 0.4.1 band raise.)*
+
 ### 3.1 Analyzer pin bands that lag the analyzers — one incident, three re-openings
 
 > **Correction (2026-09-15).** The original text below says CDF "depends on both"
