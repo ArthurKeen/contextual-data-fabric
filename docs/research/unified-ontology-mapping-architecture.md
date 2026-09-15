@@ -251,13 +251,13 @@ flowchart TD
   AOE["arango-ontoextract <b>1.9.0</b>"]
   CYP["arango-cypher-py <b>0.2.0</b>"]
   SPQ["arango-sparql-py <b>0.1.0</b>"]
-  AER["arango-entity-resolution"]
+  AER["arango-entity-resolution<br/><b>3.8.0</b> on PyPI"]
   CDF["contextual-data-fabric"]
   ARGOS["ArGOS<br/>context · policy · provenance"]
 
-  R2G -->|"0.8.0 – 0.9 ✔ (0.4.1)"| RSA
+  R2G -->|"0.8.0 – 0.9 ✔<br/>(since 0.4.1)"| RSA
   AOE -->|"0.8.0 – 0.9 ✔ (since 2026-09-14)"| RSA
-  AOE --> AER
+  AOE -->|"pins >=0.1 — has 3.5.1<br/>(no ceiling; three minors behind)"| AER
   CYP -->|"0.12.1 – 0.15 ✔ admits 0.14.0<br/>(since 2026-09-15)"| ASA
   SPQ -->|"0.12.1 – 0.15 ✔ admits 0.14.0<br/>(since 2026-09-15)"| ASA
   CDF -->|"git-SHA pin (deploy/pins)"| SPQ
@@ -271,7 +271,9 @@ flowchart TD
 
   classDef warn stroke:#c60,color:#c60,stroke-width:2px
   classDef broken stroke:#b00,color:#b00,stroke-width:2px
-  class AOE,CYP,SPQ,R2G warn
+  %% warn = something still open on the node: AOE (own LPG detector not yet retired),
+  %% CYP/SPQ (never released to PyPI; cypher-py detector not yet retired). r2g cleared 2026-09-15.
+  class AOE,CYP,SPQ warn
 ```
 
 ### 3.1 Analyzer pin bands that lag the analyzers — one incident, three re-openings
