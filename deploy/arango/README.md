@@ -30,7 +30,9 @@ ARANGO_URL=http://localhost:8529 ARANGO_DB=cmf ARANGO_PASSWORD=cdf \
 
 ## Using your own graph
 
-Produce the `CSI` for your ArangoDB with `arango-schema-analyzer` (reverse CSI),
+Produce the `CSI` for your ArangoDB with `arangodb-schema-analyzer` (the
+`arango-schema-analyzer` repo; reverse CSI — `deploy/arango/export_csi.py` is the
+entry point CDF itself uses),
 or hand it the same forward CSI r2g emitted for the migration. Pass it to
 `ArangoExecutor(csi=..., db=...)`; the concept IRIs stay under
 `urn:arango-sparql:concept#`, so the graph leg and the Ontop relational leg share

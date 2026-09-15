@@ -12,9 +12,9 @@ Most of the fabric's machinery runs **before** the demo, producing artifacts. Th
 
 | Tool | Runs as | Produces |
 |------|---------|----------|
-| **RSA** (`relational-schema-analyzer`) | pip CLI/library, local | Postgres metadata bundle (`{conceptualSchema, physicalMapping, metadata}`) |
+| **RSA** (`relational-schema-analyzer` 0.8.0) | pip library, invoked **by r2g** (not standalone) | Postgres physical schema + conceptual bundle, bitemporally stamped; consumed by r2g |
 | **AOE** (`arango-ontoextract`) | its own 3-service stack (`make infra` + backend + frontend), local, **only while deriving/curating** | Source ontologies (OWL/SHACL) + the human-confirm curation step (B2); exports TTL/JSON-LD |
-| **r2g** (Phase 12a) | pip CLI/library, local | Versioned mapping artifact (P12.1) consumed at runtime by M5 |
+| **r2g** (0.4.1) | pip CLI/library, local | **CSI v1 + R2RML** (`export-csi`, `export-r2rml`) checked in under `deploy/`, consumed at runtime by M4/M5 |
 | **customer-context `ingestion/`** | Python pipeline, local, one-shot | The unstructured graph in ArangoDB (chunks, embeddings, entities, canonical hub via AER) |
 | Hand-built master ontology (B2) | authored in AOE workspace or YAML | The master + mappings, loaded into ArangoDB as collections |
 | **`arango-solutions-mcp-server`** | MCP server (stdio/HTTP), local, during development | Agent (Claude Code) access to the hub while building — inspect collections, validate AQL, run hybrid-search experiments. **Not on the demo-time path** (raw AQL bypasses the ontology — PRD §10.2); it is also the host pattern for the fabric's own semantic MCP tools in P2. |

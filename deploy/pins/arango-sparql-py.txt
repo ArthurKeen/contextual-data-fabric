@@ -6,6 +6,9 @@
 # 2026-09-14: bumped to the analyzer-band raise (arango-solutions/arango-sparql-py#4,
 # merged 4ef8429): [analyzer] now admits arangodb-schema-analyzer >=0.12.1,<0.14.0, so
 # the 0.13 line carrying the bitemporal provenance the reverse-CSI export forwards is
-# installable; coordinated with arango-cypher-py's identical band (PRD §12.1 invariant).
+# installable; coordinated with arango-cypher-py's identical band (arango-sparql-py
+# PRD §12.1 band invariant — cypher-py itself is not a CDF dependency).
 # Mirror synced to the same SHA before this bump.
+# 2026-09-15: arango-sparql-py main moved to e6a9d15 (band >=0.12.1,<0.15.0, admits
+# analyzer 0.14.0). Not bumped yet; bump when CDF wants 0.14.0's type detection.
 arango-sparql-py[nl,analyzer] @ git+https://github.com/ArthurKeen/arango-sparql-py.git@4ef8429541ee358f4eed91cb1eaa0cdfd38ff2f2

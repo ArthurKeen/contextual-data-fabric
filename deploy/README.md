@@ -82,7 +82,7 @@ flowchart TB
     RSA["r2g → CSI + R2RML"] -.->|build time| ONT
     RSA -.->|build time| SNT
     RSA -.->|build time| CHT
-    ANA["arango-schema-analyzer → reverse CSI"] -.->|build time| E
+    ANA["arangodb-schema-analyzer → reverse CSI<br/>(deploy/arango/export_csi.py)"] -.->|build time| E
 ```
 
 **The join:** the relational leg returns `account_id`; the engine pushes those
