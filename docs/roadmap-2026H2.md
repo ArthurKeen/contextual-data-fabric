@@ -162,7 +162,7 @@ Concrete and staffable now:
 
 1. **Snowflake restored** (decision + execution: billing on the expired trial or a
    fresh account; `setup.sql` + loader re-run) → the 5 excluded goldens return;
-   gate back to 20/20 live. *(½ day once decided.)*
+   gate back to 20/20 live. *(½ day once decided.)* **Done 2026-09-15:** the account was never lost — it authenticates by key pair — and `make gate` against the full live stack returned **20 cases, all green**, including g5 (Postgres ⋈ Snowflake ⋈ ArangoDB) and g11.
 2. **Capability registry v1** (ADR-0005 D4): `capabilities` block in the manifest,
    probe-verified at onboarding; planner refusals name capabilities, not engine
    kinds. Small, already specified. *(≈3 days.)*
