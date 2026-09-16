@@ -165,10 +165,10 @@ Concrete and staffable now:
    gate back to 20/20 live. *(½ day once decided.)* **Done 2026-09-15:** the account was never lost — it authenticates by key pair — and `make gate` against the full live stack returned **20 cases, all green**, including g5 (Postgres ⋈ Snowflake ⋈ ArangoDB) and g11.
 2. **Capability registry v1** (ADR-0005 D4): `capabilities` block in the manifest,
    probe-verified at onboarding; planner refusals name capabilities, not engine
-   kinds. Small, already specified. *(≈3 days.)* **Done 2026-09-15** (#37): `capabilities` blocks in the manifest for all four sources, `cdf-catalog probe` verifies them at onboarding (CC-14), planner refusals name the capability and the sources that declare it; the Forge suite (#34) exercises both admission branches on every kind through the registry.
+   kinds. Small, already specified. *(≈3 days.)* **Done 2026-09-15** (ArthurKeen/contextual-data-fabric#37 — a mirror-numbered PR from before the 2026-09-06 topology switch): `capabilities` blocks in the manifest for all four sources, `cdf-catalog probe` verifies them at onboarding (CC-14), planner refusals name the capability and the sources that declare it; the Forge suite (#34) exercises both admission branches on every kind through the registry.
 3. **Scale knob v0:** scale-factor parameter on the existing corpus loaders
    (10×/100× row multiplication with key integrity); record `performance-baseline`
-   at 1×/10×/100× — the first scale datapoints on the existing harness. *(≈3 days.)* **Done 2026-09-15** (#39, #40): `CDF_SCALE_FACTOR` on the loaders with join-spine integrity; `docs/evidence/scale-baseline-{1,10,100}x.json` recorded live — 12.72M rows, ~7.2 s p50 at 100×.
+   at 1×/10×/100× — the first scale datapoints on the existing harness. *(≈3 days.)* **Done 2026-09-15** (mirror PRs ArthurKeen/contextual-data-fabric#39 and #40): `CDF_SCALE_FACTOR` on the loaders with join-spine integrity; `docs/evidence/scale-baseline-{1,10,100}x.json` recorded live — 12.72M rows, ~7.2 s p50 at 100×.
 4. **ADR-0006 — the Federation Forge**: generator contract, roundtrip property,
    shape descriptor format (ontology + partition map + denorm log + expected
    catalog/goldens), dialect plugin seam, r2g-vs-CDF split. *(≈4 days incl. review.)* **Done 2026-09-08** (#32, `54e16f0`): accepted after PJ's review; D-1 amended to v2 on 2026-09-16 (declared capabilities, #34).
