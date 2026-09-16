@@ -14,8 +14,8 @@ related:
 
 # ADR-0006 — The Federation Forge (M15)
 
-**Status:** proposed — commissioned by roadmap WS-B (idea recorded 2026-08-31);
-acceptance target is the S1 roadmap review. **Scope guard up front:** the Forge
+**Status:** accepted 2026-09-08 after PJ's review — commissioned by roadmap WS-B
+(idea recorded 2026-08-31). **Scope guard up front:** the Forge
 is a *testing-class* module (M9/M10 class). It is never sold, never on a live
 path, and ships no service endpoints. The S3 gate keeps it harnessed to the
 test suite (roadmap risk #1).
