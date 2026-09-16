@@ -5,7 +5,7 @@ type:
   - research
   - integration-analysis
 date: 2026-09-16
-status: draft — for review (PJ, Arthur; reviewer: Kevin)
+status: "draft — for review (PJ, Arthur; reviewer: Kevin)"
 related:
   - "docs/contextual-data-fabric-prd.md (§6 cross-cutting 'OSI compliance surfaced', §10.12 CC-12, §12 RD-1/RD-3)"
   - "docs/architecture/module-04-mapping-layer/specification.md (FR-6 OSI export/import)"
