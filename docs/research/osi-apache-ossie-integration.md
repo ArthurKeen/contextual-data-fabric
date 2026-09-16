@@ -5,9 +5,10 @@ type:
   - research
   - integration-analysis
 date: 2026-09-16
-version: "0.2 — review revision (same day)"
+version: "0.3 — review revision + executive overview (same day)"
 status: "draft — for review (PJ, Arthur; reviewer: Kevin)"
 related:
+  - "docs/research/osi-apache-ossie-standard-profile.md (companion — the standard's evidence, split from §2)"
   - "docs/contextual-data-fabric-prd.md (§6 cross-cutting 'OSI compliance surfaced', §10.12 CC-12, §12 RD-1/RD-3)"
   - "docs/research/unified-ontology-mapping-architecture.md (§8 target architecture — the diagram §6 below is superimposed on; §8.1 CSI v1.1 extensions)"
   - "docs/architecture/module-04-mapping-layer/specification.md (FR-6 OSI export/import, FR-7 mapping versioning)"
@@ -18,6 +19,57 @@ related:
 ---
 
 # Open Semantic Interchange (Apache Ossie) in the fabric
+
+## Executive overview
+
+**The problem.** Every enterprise we sell into already defines its business
+metrics — active seats, renewal risk, total query volume — inside warehouse
+semantic layers and BI tools, and every tool defines them differently. The
+fabric answers questions over an ontology but has **no notion of a metric**:
+asked "total query volume by edition for Meridian," it must either re-invent
+the definition or refuse. The customer's certified definitions sit in
+Snowflake, Databricks, dbt and Tableau, and today we cannot read them or
+hand ours back.
+
+**Why Ossie.** Apache Ossie (formerly Open Semantic Interchange) is the
+vendor-neutral format that 50+ vendors — Snowflake, Databricks, dbt,
+Salesforce, Denodo, Starburst among them — now use to exchange exactly these
+definitions. Snowflake already emits it from any semantic view with one
+function call (in preview). Adopting it means we **consume the customer's
+governed definitions instead of asking them to re-author in ours**, and we
+can publish our ontology back into the tools they already pay for. It is a
+second versioned artifact crossing boundaries the estate already has, not a
+re-platforming.
+
+**What we recommend.** Three moves, in this order, plus one enabling fix:
+
+1. **Harvest** — read customers' metric definitions through the connector we
+   already ship (today it discards them).
+2. **Govern** — add a *certified metric* to the fabric catalog: one owner,
+   a declared grain, a steward's certification, and a definition version
+   cited in every answer, so a metric answer shows its work like every
+   other answer does.
+3. **Export** — publish our ontology and metrics as Ossie so Cortex Analyst,
+   Tableau, Power BI and customer agents consume them unchanged.
+
+The enabling fix is to let the natural-language front-end use the
+aggregation the engine already supports. The three moves fit the current
+roadmap through January; the deeper engine work follows in H1 2027. Nothing
+lands on the critical path of the sprint gates already committed.
+
+**Results we will see.** A CSM asks a plain-English question and receives
+the customer's own certified number — the same one their warehouse shows —
+with the definition and its certifier cited. Onboarding a customer with an
+existing semantic layer starts from their definitions, not a blank ontology.
+Our ontology becomes visible inside the customer's BI tools. And Arango
+takes the seat on the graph-and-ontology question that no one else at the
+Ossie table represents.
+
+**What to know before saying yes.** The spec is a draft in Apache
+incubation; we pin the version we consume and carry our additions as
+extensions where the standard is unsettled. The one leg holding harvestable
+metrics today cannot aggregate; the recommended path around it uses
+Snowflake's own semantic views rather than new engine code.
 
 > **The ask (Arthur, 2026-09-15):** research OSI integration into CDF against
 > eight questions — 3.1 effect on NL→SPARQL, 3.2 how OSI definitions enter CDF
@@ -38,9 +90,11 @@ related:
 > `catalog/capabilities.py`, `grounding.py`, `deploy/catalog/manifest.json`,
 > `deploy/questions.json`, the NL corpus and goldens). Claims resting on
 > press or blog coverage are marked `[secondary]`; proposed-but-unadopted
-> spec fields are marked `[proposed]`.
+> spec fields are marked `[proposed]`. The standard itself is profiled in
+> the companion [standard profile](osi-apache-ossie-standard-profile.md).
 >
-> **Revision note (v0.2, same day).** A self-review found two overstated
+> **Revision note (v0.3, same day).** Executive overview added at Arthur's
+> request. **v0.2:** A self-review found two overstated
 > claims and five omissions in v0.1. Corrected: aggregation *is* reachable
 > through NL via the deterministic route (two of ten prepared questions
 > aggregate) — the gap is in the LLM generation path (§5.1); the Snowflake
@@ -115,105 +169,41 @@ an `as_of`; Ossie has only `is_time`; the fabric has CC-4 as-of semantics and
 bitemporal CSI stamps) and **governance** (metrics are objects M8 does not
 know; §5.7).
 
-## 2. What OSI is today (state of the standard, 2026-09-16)
+## 2. What OSI is today — in brief
 
-**Identity.** Open Semantic Interchange was announced by Snowflake on
-2025-09-23 with Salesforce, BlackRock, dbt Labs, RelationalAI and others
-(17 participants at launch) `[secondary — Snowflake press release, SiliconANGLE]`.
-The repository was created 2025-11-18; the site announced "the OSI
-specification is live" on 2026-04-28 (the only tag is `osi-0.1.1-rc1`). On
-**2026-06-22 the project entered the Apache Incubator as "Apache Ossie"**
-(champion JB Onofré; mentors Onofré, Karau, Chen, Spitzer). The README says
-"Apache Ossie was formerly known as Open Semantic Interchange (OSI)"; the
-rename avoided the acronym collision with the Open Source Initiative
-`[secondary]`. The site lists 50+ members — warehouses (Snowflake, Databricks,
-Oracle, Firebolt), semantic layers and BI (dbt, Cube, AtScale, Salesforce,
-ThoughtSpot, Sigma, GoodData, Omni, Hex, Metabase, Qlik), catalogs (Collibra,
-Alation, Atlan, DataHub, Informatica, Select Star), **federation vendors
-(Denodo, Starburst, Dremio)**, and RelationalAI. Repo: 2,140 stars, pushed
-the day of this reading. Arango is not a member.
+The evidence sits in the companion
+[standard profile](osi-apache-ossie-standard-profile.md); the facts the rest
+of this paper leans on are:
 
-**Two layers, two specs.** The expression-language proposal states it
-directly: Ossie has an **ontology layer** ("maps more closely to modelling
-languages like OWL, (Py)Rel from RelationalAI, and Legend from Goldman
-Sachs") above a **logical layer** ("maps closely to traditional BI semantic
-models").
-
-*Logical layer — `core-spec/spec.md`, version `0.2.0.dev0`, marked DRAFT
-("schema may change before 0.2.0 is released").*
-
-| Object | Key fields | Notes |
-|---|---|---|
-| `semantic_model` | `name`, `description`, `ai_context`, `datasets[]`, `relationships[]`, `metrics[]`, `custom_extensions[]` | top-level container; **no first-class filters** (discussion #5) |
-| `datasets[]` | `name`, `source` (opaque `db.schema.table` or query), `primary_key[]`, `unique_keys[][]`, `fields[]`, `ai_context` | one logical table |
-| `fields[]` | `name`, `expression.dialects[{dialect, expression}]`, `datatype` (String…DateTimeTz, Opaque), `dimension.is_time`, `label`, `ai_context` | scalar SQL per dialect; **no column types beyond the logical enum** |
-| `metrics[]` | `name`, `expression.dialects[]`, `datatype`, `description`, `ai_context` | aggregate SQL per dialect; **no grain, no filters, no dataset reference** (all open in the metrics working group) |
-| `relationships[]` | `name`, `from`, `to`, `from_columns[]`, `to_columns[]` | **implicitly many-to-one**, `to` side is the keyed side |
-| `ai_context` | string, or `{instructions, synonyms[], examples[]}` | the LLM-facing slot |
-| `custom_extensions[]` | `{vendor_name, data: <JSON string>}` | well-known vendors: `COMMON`, `SNOWFLAKE`, `SALESFORCE`, `DBT`, `DATABRICKS`, `GOODDATA`, `HONEYDEW`, `WISDOM`, `SIGMA` |
-
-Expressions are **SQL pass-through with dialect tags** (`ANSI_SQL`,
-`SNOWFLAKE`, `DATABRICKS`, `BIGQUERY`, `MDX`, `DAX`, `TABLEAU`, `MAQL`,
-`SIGMA`, `THOUGHTSPOT`). The working group's *Expression Language* proposal
-("Proposed Final"; leads from Snowflake with dbt, Databricks, Salesforce,
-AtScale, Cube, RelationalAI, Starburst, Denodo, Malloy, ThoughtSpot,
-Lightdash at the table) defines a portable subset — `Ossie_SQL_2026`, based
-on ANSI SQL:2003 Core — that compliant implementations MUST support:
-arithmetic/comparison/logical operators, `CASE`, `IN` lists (no subqueries),
-`LIKE`, core aggregates (SUM/COUNT/MIN/MAX/AVG), statistical and percentile
-aggregates, approximate aggregates (recommended), date/time and string
-functions; **not** `SELECT/FROM/JOIN/GROUP BY/WHERE`, subqueries, CTEs or set
-operators ("handled by the semantic layer"). It also publishes a
-**decomposability table** — Distributive (SUM, COUNT, MIN, MAX), Algebraic
-(AVG, STDDEV, VARIANCE), Holistic (MEDIAN, PERCENTILE, COUNT DISTINCT),
-Sketch-based (APPROX_*) — which is the same partition ADR-0005 D1/D3 uses.
-
-*Ontology layer — `ontology/ontology.md` + `ontology.json`, version
-`0.2.0.dev0` dated 2026-05-29 ("Basic support for ontologies and logical
-schema mappings").* An ORM-flavoured, fact-oriented model (the RelationalAI
-lineage is visible; the proposer of discussion #22 is an RAI committer):
-
-| Construct | Fields | Reads as |
-|---|---|---|
-| concept | `concept`, `type: EntityType \| ValueType`, `extends[]`, `identify_by[]`, `derived_by[]`, `requires[]`, `relationships[]`, **`uri`** | class / datatype; `uri` "full URI or QName resolved against the ontology-level `prefixes` map" |
-| relationship | `name`, `roles[{concept, name}]`, `multiplicity: ManyToOne \| OneToOne`, `derived_by[]`, `requires[]`, `verbalizes[]` (required) | n-ary fact type; identified as `Concept.name`; dot-join navigation |
-| `derived_by` | ANSI SQL expressions, **recursion allowed** (`Person.ancestor_of.parent_of(descendant)`) | derived relationship or derived concept (view/rule) |
-| `requires` | expressions over roles | constraints (SHACL-shaped) |
-| `ontology_mappings` → `concept_mappings[]` | `object_mappings[{expression \| referent_mappings}]`, `link_mappings[{object_mapping, relationship, children}]` | **a mapping layer from logical datasets/fields to concepts** — R2RML-shaped (object mapping ≈ subject template; link-mapping tree ≈ predicate-object maps) |
-
-**What is *not* in Ossie (verified against the spec and schema, not
-inferred).** No RDF/OWL serialization (only the `uri`/`prefixes` hook in the
-ontology schema); no per-object provenance, owner, version or certification
-(discussions #13, #31, **#53 "Certified and Certifying Authority" — open,
-zero replies**); no entitlement or PII markers (#55, #58, #59, #87 open); no
-graph, document or stream sources (**#68**: maintainer points to an ontology
-working group "adding graph and ontology representation"; streams "not
-currently prioritizing"); no query language or reference engine (a *future*
-working group); `verified_queries` not in the core (**#82**, open —
-objections: they go stale, they belong to an evals pipeline, required
-groupings are a property of the metric not a hint); metric grain, filters,
-metric-to-dataset references and explicit cardinality all still under
-discussion (#5, #12, #18, #19, #29, #50).
-
-**Tooling that exists.** `python/` (Pydantic v2 models — the shared
-foundation of the converters), `validation/validate.py` (JSON-schema,
-unique names, references, SQL syntax), `core-spec/ossie-schema.json`, a Go
-CLI, and converters: **dbt** (bidirectional, `semantic_manifest.json`),
-**Databricks Unity Catalog metric views** (bidirectional; import stashes
-MV-only features in `custom_extensions[DATABRICKS]` so `MV → Ossie → MV` is
-lossless; export drops relationships/extensions with a warning),
-**Snowflake** (Ossie → Cortex Analyst YAML only — but Snowflake itself ships
-the reverse, §5.4), GoodData (bi), Microsoft Power BI/Fabric TMSL (bi),
-Salesforce, Polaris (export), OrionBelt, Honeydew, Omni, Sigma, NVIDIA GSF,
-Wisdom, and **`converters/ontology`**: `palantir_to_ossie` plus converters
-between the core model and the ontology-spec YAML.
-
-**Adoption caveats that bind us.** The incubator `DISCLAIMER` asks adopters
-to "conduct a thorough licensing review"; the spec says production
-deployment of the pre-release is discouraged; issue #102 asks for semantic
-versioning of the JSON schema because none exists yet. Every artifact we
-read or write must carry the version string and be parsed behind a seam
-under **CC-9 pin discipline** — the same posture the OKF report took.
+- **Identity.** Announced by Snowflake 2025-09-23 with 17 participants;
+  spec "live" 2026-04-28 (tag `osi-0.1.1-rc1`); entered the **Apache
+  Incubator on 2026-06-22 as Apache Ossie**. 50+ members including
+  warehouses, BI and semantic-layer vendors, catalogs, the federation
+  vendors Denodo, Starburst and Dremio, and RelationalAI. Arango is not one.
+- **Two layers.** A **logical layer** (`semantic_model` → `datasets`,
+  `fields`, `metrics`, `relationships`, `ai_context`, `custom_extensions`;
+  SQL pass-through per dialect; core spec `0.2.0.dev0`, DRAFT) and an
+  **ontology layer** (`ontology/ontology.md`, `0.2.0.dev0`, 2026-05-29:
+  ORM-style concepts and n-ary relationships with `derived_by`, `requires`,
+  `verbalizes`, a `uri`/`prefixes` hook, and R2RML-shaped
+  `ontology_mappings` from datasets to concepts).
+- **Expression language.** `Ossie_SQL_2026` ("Proposed Final"): an ANSI
+  SQL:2003 Core subset for metrics, fields and filters — no
+  `SELECT/FROM/JOIN/GROUP BY/WHERE` — with a **decomposability table**
+  (distributive / algebraic / holistic / sketch) identical to ADR-0005's.
+- **Relationships** are implicitly many-to-one with the `to` side keyed —
+  the declared-unique one-side ADR-0005 D1 requires.
+- **Absent by design or not yet:** RDF/OWL serialization, per-object
+  provenance/owner/version/**certification** (#53 open, no replies),
+  entitlement or PII markers, metric grain and filters, graph or document
+  sources (#68), a query language, `verified_queries` (#82).
+- **Tooling.** Pydantic models, a JSON-schema validator, converters for
+  dbt and Databricks (bidirectional), Snowflake (export only — Snowflake
+  ships the import side itself, §5.4), Power BI, GoodData, Palantir
+  ontologies, and more.
+- **Caveats that bind us.** Incubator licensing disclaimer; pre-release
+  schema may change; no schema versioning yet — parse behind one seam under
+  CC-9 pin discipline.
 
 ## 3. Where the estate already touches OSI (code read, with corrections)
 
