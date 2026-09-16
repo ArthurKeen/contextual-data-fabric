@@ -30,8 +30,8 @@ jobs:
       # snowflake-connector-python: the pool/retry unit tests exercise the real
       # connector's error classes (mock-fidelity); without it they importorskip.
       - run: |
-          pip install -e ".[test,service,mcp,auth,assembly]" ruff mypy \
-            snowflake-connector-python -r deploy/pins/arango-sparql-py.txt
+          pip install -e ".[test,service,mcp,auth,assembly,forge]" ruff mypy \
+            snowflake-connector-python -r deploy/pins/arango-sparql-py.txt -r deploy/pins/r2g-arango.txt
       - name: Offline catalog integrity
         run: make catalog-integrity PY=python
       - name: Offline authorization golden
@@ -42,6 +42,28 @@ jobs:
       # (issue #14): the job fails below COV_FLOOR and the number lands in the
       # job summary so reviewers see it without digging.
       - run: pytest tests -q --cov=cdf --cov-report=term --cov-fail-under=80
+      - name: Federation Forge suite (fixture mode, ADR-0006 / M15)
+        # Sample the roadmap's shape families, prove byte-identical regeneration,
+        # and run every generated golden through the real planner/executor/
+        # grounding with fixture executors. Goldens are unsigned until the SE
+        # lane records sign-off; a failure here is a fabric regression, not a
+        # golden-policy decision. Regenerates INTO the committed suite (same
+        # flags as `make forge-suite`) so the next step can compare.
+        run: python -m cdf.eval.forge suite --shapes 10 --seed 421 --out deploy/forge/shapes --check-determinism --run
+      - name: Committed Forge suite matches the code that made it
+        # deploy/forge/shapes is a versioned artifact of generator + seed. A pin
+        # bump that changes generated names (r2g 0.4.2 carries the singularizer
+        # fix) must show up here, not drift silently (PR #34 review, item 1).
+        # `git status --porcelain` also catches shapes that appear or vanish,
+        # which `git diff --exit-code` alone would miss.
+        run: |
+          drift="$(git status --porcelain -- deploy/forge/shapes)"
+          if [ -n "$drift" ]; then
+            echo "::error::deploy/forge/shapes differs from a fresh emit — run 'make forge-suite' and commit the result"
+            echo "$drift"
+            git --no-pager diff --stat -- deploy/forge/shapes
+            exit 1
+          fi
       - name: Coverage in the job summary
         if: always()
         run: |
@@ -74,7 +96,7 @@ jobs:
       - name: Install engine + live-leg libraries
         run: |
           pip install -e ".[test,service,mcp,auth]" python-arango clickhouse-connect \
-            snowflake-connector-python ruff mypy -r deploy/pins/arango-sparql-py.txt
+            snowflake-connector-python ruff mypy -r deploy/pins/arango-sparql-py.txt -r deploy/pins/r2g-arango.txt
       - name: Bring up all local source stacks
         run: make up PY=python
       - name: Seed deterministic graph fixtures
@@ -175,7 +197,7 @@ jobs:
       - name: Install engine + all live-leg libraries
         run: |
           pip install -e ".[test,service,mcp,auth]" python-arango clickhouse-connect \
-            snowflake-connector-python ruff mypy -r deploy/pins/arango-sparql-py.txt
+            snowflake-connector-python ruff mypy -r deploy/pins/arango-sparql-py.txt -r deploy/pins/r2g-arango.txt
       - name: Require and materialize Snowflake key-pair credentials
         env:
           SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
