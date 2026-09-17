@@ -7,8 +7,8 @@ date: 2026-09-17
 deciders: ["Arthur Keen"]
 related:
   - "[[ADR-0003-authoritative-catalog-manifest|ADR-0003]] (the manifest this ADR keeps authoritative)"
-  - "[[ADR-0004-identity-planes-and-policy-enforcement|ADR-0004]] (the sibling seam, Q-11)"
-  - "docs/contextual-data-fabric-product-strategy-prd.md §4.2 Q2 (M11, catalog as hub), §5 M14"
+  - "[[ADR-0004-identity-planes-and-policy-enforcement|ADR-0004]] (identity planes — the sibling seam Q-11 reconciles against)"
+  - "docs/contextual-data-fabric-product-strategy-prd.md §4.2 Q2 (M11, catalog as hub); §5 M14 re-scope — source of the never-block constraint adopted in D0"
   - "ArGOS PRD §9 Q-10, FR-1, FR-3 (`~/code/argos/PRD.md`); ArGOS ROADMAP R0 gate-opener"
   - "docs/research/unified-ontology-mapping-architecture.md §10 Q-1 (publish-by-reference precedent)"
 ---
@@ -55,6 +55,17 @@ and it needs the same for targets and databases the fabric never federates
 (ontology stores, AOE and r2g working databases).
 
 ## Decision
+
+### D0 — Standing rule for the registry seam: the query path never waits on the portfolio plane
+
+The product PRD's M14 re-scope (§5) records, for the Q-11 policy seam, that
+"the fabric's data-plane decisions never block on a portfolio-plane call";
+ArGOS PRD §9 Q-11 carries the same sentence as a CDF-side constraint. It is
+not in ADR-0004, which covers identity planes and enforcement points. **This
+ADR adopts it as a standing rule for the source-registry seam as well:** no
+planning, execution or grounding decision of the fabric may depend on a call
+to ArGOS being available or answered. It is the first test every option below
+is held to.
 
 **Option (b). The catalog manifest remains the authoritative, reproducible
 description of what the fabric federates. ArGOS registers manifest
@@ -137,9 +148,9 @@ not their editor.
 ## Why not (a)
 
 - **It puts the portfolio plane on the query path.** The planner would read a
-  projection whose truth lives in ArGOS, or read ArGOS itself. ADR-0004's
-  standing rule is that fabric data-plane decisions never block on a
-  portfolio-plane call; (a) violates it structurally.
+  projection whose truth lives in ArGOS, or read ArGOS itself — the fabric's
+  data plane would depend on a portfolio-plane call, which D0 forbids and
+  which (a) violates structurally, not incidentally.
 - **It loses the property CDF asked to keep.** Registry state is not in git;
   a manifest generated from it is reproducible only if the registry is, and
   `catalog-integrity` would be diffing a build artifact against a moving
