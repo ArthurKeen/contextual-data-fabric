@@ -1,0 +1,26 @@
+# Retired claims — statements that stopped being true.
+#
+# When you stamp something Done that retires a sentence elsewhere, rewrite that
+# sentence AND add its distinctive phrase here. tests/test_docs_consistency.py
+# fails if a pattern reappears anywhere under docs/ (docs/archive excluded),
+# README.md or SOP.md — so a retired claim cannot be re-pasted from an old
+# plan, and an append-only "Done" stamp cannot leave its contradiction standing.
+# Patterns are Python regexes matched per line. Keep them specific to the
+# CLAIM (the wrong statement), not to the topic — history may still be told.
+# A line that deliberately quotes a retired claim (a retrospective, a plan
+# recorded as wrong) ends with `<!-- quotes-retired-claim -->` and is exempt;
+# the marker is invisible when the markdown renders.
+version: 1
+claims:
+  - pattern: "Snowflake-excluded"
+    retired: 2026-09-15
+    why: "make gate runs 20/20 live including g5 and g11."
+  - pattern: "declared-excluded until resolved"
+    retired: 2026-09-15
+    why: "Roadmap risk 3 (Snowflake account) is resolved."
+  - pattern: "billing on the expired trial"
+    retired: 2026-09-15
+    why: "The planned remediation was never needed; the plan text was retired with S1."
+  - pattern: "acceptance target is the S1 roadmap review"
+    retired: 2026-09-08
+    why: "ADR-0006 was accepted 2026-09-08; its body carried the proposed status until PR #37."

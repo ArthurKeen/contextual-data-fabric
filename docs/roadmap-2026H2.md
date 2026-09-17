@@ -161,7 +161,7 @@ becomes an ArGOS-sequencing decision, not an engineering one.
 
 Concrete and staffable now:
 
-1. **Snowflake restored** — planned as "billing on the expired trial or a fresh
+1. **Snowflake restored** — planned as "billing on the expired trial or a fresh <!-- quotes-retired-claim -->
    account, then re-run `setup.sql` and the loader"; none of that was needed.
    *(½ day.)* **Done 2026-09-15:** the account was never lost — it authenticates by key pair — and `make gate` against the full live stack returned **20 cases, all green**, including g5 (Postgres ⋈ Snowflake ⋈ ArangoDB) and g11.
 2. **Capability registry v1** (ADR-0005 D4): `capabilities` block in the manifest,

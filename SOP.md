@@ -219,6 +219,16 @@ Worth knowing early:
   → `make test` green → `make gate` green (if behavior touched) → PR merged
   → evidence/docs updated if you changed what the system can do — including
   the **embedded docs** for any new user-facing surface (RD-7b/CC-20).
+- **Stamping something Done retires sentences — rewrite them, don't append.**
+  When a roadmap item closes, a status flips, or a number changes: read the
+  whole file, rewrite the plan text, baseline and risk entries the new fact
+  contradicts, change every place a status lives (ADR frontmatter *and* body),
+  and add the retired phrase to `docs/retired-claims.yaml` (a line that
+  deliberately quotes one ends with `<!-- quotes-retired-claim -->`). CI runs
+  `tests/test_docs_consistency.py`, which fails on a retired claim
+  reappearing, an ADR whose two status lines disagree, or a live risk citing a
+  Done item (rule: `.claude/rules/docs-stamp-dont-append.md`; the S1 close-out
+  review is why).
 
 ## 6. Getting help
 
