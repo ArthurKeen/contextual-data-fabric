@@ -223,7 +223,8 @@ Worth knowing early:
   When a roadmap item closes, a status flips, or a number changes: read the
   whole file, rewrite the plan text, baseline and risk entries the new fact
   contradicts, change every place a status lives (ADR frontmatter *and* body),
-  and add the retired phrase to `docs/retired-claims.yaml`. CI runs
+  and add the retired phrase to `docs/retired-claims.yaml` (a line that
+  deliberately quotes one ends with `<!-- quotes-retired-claim -->`). CI runs
   `tests/test_docs_consistency.py`, which fails on a retired claim
   reappearing, an ADR whose two status lines disagree, or a live risk citing a
   Done item (rule: `.claude/rules/docs-stamp-dont-append.md`; the S1 close-out

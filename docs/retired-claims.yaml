@@ -7,11 +7,11 @@
 # plan, and an append-only "Done" stamp cannot leave its contradiction standing.
 # Patterns are Python regexes matched per line. Keep them specific to the
 # CLAIM (the wrong statement), not to the topic — history may still be told.
+# A line that deliberately quotes a retired claim (a retrospective, a plan
+# recorded as wrong) ends with `<!-- quotes-retired-claim -->` and is exempt;
+# the marker is invisible when the markdown renders.
 version: 1
 claims:
-  - pattern: "trial expired"
-    retired: 2026-09-15
-    why: "The Snowflake account never lapsed; it authenticates by key pair. The 5 excluded goldens were a mis-diagnosis."
   - pattern: "Snowflake-excluded"
     retired: 2026-09-15
     why: "make gate runs 20/20 live including g5 and g11."

@@ -17,7 +17,8 @@ the whole file. `tests/test_docs_consistency.py` now catches them in CI.
 | --- | --- |
 | **Rewrite** the sentences the new fact retires — the plan text, the baseline, the risk | Append "**Done:** …" and leave the old sentence standing |
 | **Read the whole file**, then `grep -rn` the docs tree for the retired claim | Read only the section you are stamping |
-| **Add the retired phrase to `docs/retired-claims.yaml`** with the date and why | Trust that nobody will paste the old wording back |
+| **Add the retired phrase to `docs/retired-claims.yaml`** with the date and why — a pattern on the *claim*, never the topic | Trust that nobody will paste the old wording back; ban a subject so history can't be told |
+| **Quote a retired claim on purpose** (a retrospective, a plan recorded as wrong) by ending the line with `<!-- quotes-retired-claim -->` | Paraphrase the historical record into words it never used, just to clear a regex |
 | **Strike or resolve the risk** that cited the item (`~~…~~ — resolved <date>`) | Leave risk entries to age |
 | **Change status in every place it lives** (ADR frontmatter *and* body `**Status:**`) | Flip the frontmatter and stop |
 | **Quote numbers with the measured quantity named**, read from the evidence file's field (`result_rows`, `p50_ms`), and carry its disclosure caveat | Copy a headline sentence and drop its qualifier |

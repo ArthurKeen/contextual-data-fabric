@@ -7,7 +7,8 @@ Three failure modes, one each (PR #37 review, 2026-09-16):
 2. **Append-only "Done" stamps**: a completion note was appended to a roadmap
    item while the baseline, the item's own plan text and a risk entry kept
    asserting the retired fact. ``docs/retired-claims.yaml`` is the ledger of
-   statements that stopped being true; none may reappear.
+   statements that stopped being true; none may reappear — except on a line
+   that deliberately quotes one and says so with ``<!-- quotes-retired-claim -->``.
 3. **Resolved item, live risk**: a roadmap risk that cites a sprint item
    stamped Done must be struck through or say it is resolved.
 """
@@ -28,7 +29,12 @@ ADRS = sorted(DOCS.glob("architecture/**/adr/ADR-*.md"))
 SWEPT = [p for p in DOCS.rglob("*.md") if "archive" not in p.parts] + [
     ROOT / "README.md",
     ROOT / "SOP.md",
+    ROOT / "AGENTS.md",  # repo topology, primary/mirror rule, the two-PRD distinction
+    ROOT / "NORTH_STAR.md",  # standing principles (CLAUDE.md is a symlink to AGENTS.md)
 ]
+#: A line that deliberately QUOTES a retired claim — a retrospective, a lessons-learned
+#: page, a plan recorded as wrong — carries this marker and is exempt from the sweep.
+QUOTE_MARKER = "<!-- quotes-retired-claim -->"
 
 
 def _frontmatter(text: str) -> dict:
@@ -78,6 +84,8 @@ def test_retired_claims_do_not_reappear() -> None:
             if path == LEDGER or not path.exists():
                 continue
             for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if QUOTE_MARKER in line:
+                    continue  # history may still be told — see the ledger header
                 if pattern.search(line):
                     hits.append(
                         f"{path.relative_to(ROOT)}:{lineno}: {entry['pattern']!r} "
