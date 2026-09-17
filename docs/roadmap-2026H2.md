@@ -262,8 +262,9 @@ awaits the 2-week re-cut noted at the top.
 - **P5 delivery modes (CDC, virtualization, controller)** — the continuum needs the
   statistics, capability, and cache substrate S4–S7 build; starting it now would
   stack unproven layers.
-- **GraphQL skin + ArGOS fabric tabs** — sequenced behind ArGOS R1–R3 (its own
-  roadmap); CDF's obligation in this window is versioned contracts (S6).
+- **ArGOS fabric tabs** — sequenced behind ArGOS R1–R3 (its own roadmap); CDF's
+  obligation in this window is versioned contracts (S6). (The GraphQL skin that used to
+  share this line was dropped 2026-09-17 — product PRD §4.3.)
 - **M3 alignment** — unchanged; but note the forge quietly builds its future test
   bed (generated per-source ontologies with known correspondences).
 - **CNL** — parked per the exploration doc; the forge's question generation

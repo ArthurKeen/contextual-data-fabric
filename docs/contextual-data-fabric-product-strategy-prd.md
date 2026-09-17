@@ -105,7 +105,7 @@ Every question on the table, its decision, and where it lands. Details in §4.
 |---|----------|----------------------|-------|
 | Q1 | User access control vs admin schema-sampling | **Two identity planes** + OBAC at the semantic layer; citations are access-checked too | P3 |
 | Q2 | r2g/AOE/RSA/ASA overlap — common metadata DB? | **Yes: the Fabric Catalog, in the hub itself (M11).** Analyzers become feeders under one contract; files become an export format | P3 |
-| Q3 | GraphQL? | **Yes, as a compiled skin over the conceptual IR** — never a second semantic engine | P6 |
+| Q3 | GraphQL? | **No — considered, not planned (2026-09-17).** No requirement asks for it; MCP and NL are the doors. The one idea kept is the "one IR, many dialects" invariant | — |
 | Q4 | Federated query optimization? | **Yes — cost-based, statistics-driven (M12)**; prerequisite is E1 expressiveness (pushdown of filters/aggregates) | P3→P4 |
 | Q5 | Identifying / semi-identifying properties for sophisticated joins? | **Join-intelligence registry** (profiling + sketch-based overlap) + AER crosswalk; join **confidence enters the envelope** | P4 |
 | Q6 | Use specialized store capabilities (FTS, fuzzy, vector)? | **Capability registry + capability-aware routing**; conceptual predicates compile per-source or refuse with reason | P4 |
@@ -186,21 +186,23 @@ Entitlement ──governs──▶ Concept/Property
   registry, Q6 capabilities, Q7 indexes, Q8 delivery modes, Q10 embedding spaces live in
   it). It goes first.
 
-### 4.3 Q3 — GraphQL: yes, as a skin; never a second engine  ⚖ ADR
+### 4.3 Q3 — GraphQL: considered, not planned
 
-The conceptual layer is a typed schema — classes, properties, relationships. That is a
-GraphQL schema waiting to be generated:
+**Decision (Arthur, 2026-09-17): dropped.** Earlier drafts of this document proposed a
+read-only GraphQL API generated from the master ontology (SDL from classes/properties,
+documents compiled to the conceptual IR, entitlement-shaped schemas) at priority P6. It
+was removed because nothing asks for it — no requirement in the requirements PRD, nothing
+in the ArGOS PRD, no locked customer question — and because it would be a second answer
+surface whose refusal, partial-answer, citation and entitlement semantics all need their
+own rendering and goldens (the interface-parity bar), pulling against cite-or-refuse in a
+protocol that expects nulls rather than refusals. The agent surface (MCP, PRD §10.2) and
+natural language remain the two doors.
 
-- **Auto-generate the GraphQL SDL from the master ontology** (concept → type, property →
-  field, relationship → nested field). Entitlements shape the *visible* schema per caller.
-- **Compile whole GraphQL documents to the same conceptual graph-pattern IR** the SPARQL
-  path uses — one planner, one grounding path, one gate. Never resolver-per-field
-  (the N+1 trap); a GraphQL query is a graph pattern and compiles like one.
-- Read-only (the fabric is not a write path); subscriptions become interesting only after
-  CDC (P5) exists to power them.
-- Priority: **P6**, after the engine is worth multiplying. The agent surface (MCP) and NL
-  remain the primary doors; GraphQL is the human-developer door. All three are skins on
-  one IR — this "one IR, many dialects" rule is the architectural invariant to protect.
+**Kept:** the architectural rule the proposal was built on — **one conceptual IR, many
+dialects**: every surface (NL, MCP, SPARQL) compiles to the same graph-pattern IR and
+goes through one planner, one grounding path, one gate. If a customer ever requires a
+typed developer API, reopen this as a requirement, not as a leftover; the design notes
+are in this file's history (v0.1, 2026-07-27).
 
 ### 4.4 Q4 — Federated query optimization (new module M12)
 
@@ -369,7 +371,7 @@ M1–M10 stand. The product adds four, honoring "composable, not monolithic":
 | **M11** | **Fabric Catalog** | The metadata graph in the hub: sources, schemas (versioned), mappings, statistics/profiles/sketches, capabilities, indexes, join keys, embedding spaces, entitlements, delivery modes + watermarks. One write contract for all feeders; OpenLineage export | RSA, ASA, r2g, AOE, hub ArangoDB |
 | **M12** | **Federated Optimizer** | Statistics + cost model, join order/strategy (bind/hash/Bloom-semi-join/broadcast), parallel legs, adaptive re-planning, semantic cache, capability-aware routing, index advisor | M5, M11 |
 | **M13** | **Delivery-Mode Controller** | The federate↔virtualize↔materialize dial: CDC pipelines, topology materialization, watermark bookkeeping, workload-driven allocation (autonomy ladder L1→L3) | M4/M11, hub, CDC connectors |
-| **M14** | **Developer Surfaces** | GraphQL skin (SDL generated from ontology, compiled to the IR — an engine skin, stays here) + the fabric's **consumable UI contracts**: catalog manifest, ontology-map payload, answer envelope, `/federate`, gate status. The admin console itself (onboarding wizard, catalog browser, controller review queue) is **delegated to ArGOS** (`~/code/argos` PRD) as fabric tabs — integration #3 after its FR-10 AOE + r2g | M5, M8, M11, ArGOS |
+| **M14** | **Developer Surfaces** | The fabric's **consumable UI contracts**: catalog manifest, ontology-map payload, answer envelope, `/federate`, gate status. The admin console itself (onboarding wizard, catalog browser, controller review queue) is **delegated to ArGOS** (`~/code/argos` PRD) as fabric tabs — integration #3 after its FR-10 AOE + r2g | M5, M8, M11, ArGOS |
 
 Embedding interop is deliberately **not** a module — it's a discipline spread across
 M11 (space registry), M5/M12 (fusion), M6 (canonical space), M13 (re-embed on
@@ -451,7 +453,7 @@ fuses two different embedding models' results with the rule enforced.
 
 | WP | Work | Answers |
 |----|------|---------|
-| P6.1 | **GraphQL skin** (M14): generated SDL, IR compilation, entitlement-shaped schemas | Q3 |
+| P6.1 | ~~GraphQL skin~~ — dropped 2026-09-17 (§4.3); the slot is left empty so P6.2/P6.3 references stay stable | Q3 |
 | P6.2 | **ArGOS integration** (was: fabric-local admin console): adopt the ArGOS context contract + SDK, expose/harden the M14 contracts, and ship the fabric tabs there — onboarding wizard (the `add-source-*` skills, productized), catalog browser (graduating the P3.6 viewpoint), controller review queue (graduating P5.4's interim flow), gate dashboard | — |
 | P6.3 | **MCP semantic layer GA** (PRD §10.2): `federate()` + introspection tools, multi-tenant OBAC depth (harvest arango-cypher-py's tenant-AST work) | Q1 |
 | P6.4 | **Scale + HA**: stateless engine horizontal scaling, hub as Arango cluster, Helm/packaging, versioned APIs, OTel end-to-end (AOE's observability pattern) | — |
@@ -497,8 +499,7 @@ survives a leg failure (declared partial, not flaky).
    would graduate the CSR/Rust engine.
 5. **ADR-0007 — Embedding-space policy** (§4.10): registry schema, fusion methods,
    canonical-space model choice + revision pinning.
-6. **ADR-0008 — GraphQL-as-skin** (§4.3): SDL generation rules, IR compilation, what is
-   deliberately unsupported (mutations, arbitrary resolvers).
+6. ~~**ADR-0008 — GraphQL-as-skin**~~ — not needed; Q3 dropped 2026-09-17 (§4.3).
 
 ---
 
