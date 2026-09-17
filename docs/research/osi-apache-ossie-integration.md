@@ -342,7 +342,7 @@ metric layer can do on the generation route:
   (Ontop) and g20 (Arango) pin it. The NL corpus (`nl-corpus-v1.json`, 12
   examples) **does** carry two aggregation examples — `agg-accounts-per-tier`
   and `agg-signal-docs-per-source`, both `GROUP BY`, the pair behind the two
-  prepared questions — and the few-shot retriever (`_AuthorizedRetriever`)
+  prepared questions — and the few-shot retriever (`AuthorizedFewShotRetriever`)
   filters only on refusal and authorized sources, never on shape. So the
   generation prompt can say "do not use GROUP BY" and, three lines later,
   present a GROUP BY query as a trusted example. The prompt contradicts
