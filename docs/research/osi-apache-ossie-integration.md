@@ -5,7 +5,7 @@ type:
   - research
   - integration-analysis
 date: 2026-09-16
-version: "0.3 — review revision + executive overview (same day)"
+version: "0.4 — Pooja's review absorbed (2026-09-17)"
 status: "draft — for review (PJ, Arthur; reviewer: Kevin)"
 related:
   - "docs/research/osi-apache-ossie-standard-profile.md (companion — the standard's evidence, split from §2)"
@@ -93,8 +93,12 @@ Snowflake's own semantic views rather than new engine code.
 > spec fields are marked `[proposed]`. The standard itself is profiled in
 > the companion [standard profile](osi-apache-ossie-standard-profile.md).
 >
-> **Revision note (v0.3, same day).** Executive overview added at Arthur's
-> request. **v0.2:** A self-review found two overstated
+> **Revision note (v0.4, 2026-09-17).** Two corrections from Pooja's review:
+> the NL corpus *does* hold two aggregation examples (the author's check read
+> the wrong key), which makes the finding sharper — the prompt forbids what its
+> own few-shot bank shows (§5.1, R4); and the OSI misnomer lives in three
+> files, not two, beside a PRD claim that OSI is "already implemented" (§3.7,
+> §5.8, §10). **v0.3:** executive overview added at Arthur's request. **v0.2:** A self-review found two overstated
 > claims and five omissions in v0.1. Corrected: aggregation *is* reachable
 > through NL via the deterministic route (two of ten prepared questions
 > aggregate) — the gap is in the LLM generation path (§5.1); the Snowflake
@@ -248,9 +252,17 @@ of this paper leans on are:
 6. **Governance has no metric object.** `governance/contracts.py` and
    `pdp.py` know concepts, properties, rows and citations; no aggregate or
    metric appears. Entitlements on metrics would be new (§5.7).
-7. **The name.** PRD §5 and the north-star principle 7 expand OSI as "open
-   semantic inter*face*". It is the Open Semantic Inter*change*, now Apache
-   Ossie.
+7. **The name, and a wrong status claim beside it.** Three files expand OSI
+   as "open semantic inter*face*": PRD §5 (line 94), north-star principle 7,
+   and **M4's mapping-layer spec at FR-6** — the very "OSI-compliant
+   export/import" requirement R8 implements, so fixing only the two overview
+   documents would leave the wrong name in the spec people build against. The
+   PRD sentence also says OSI is "already implemented in the relational
+   analyzer / ontology extractor"; per item 1–2 above it is not — RSA reads
+   an Ossie file as tables and columns and drops its metrics and `ai_context`,
+   r2g has no OSI code, and AOE imports nothing Ossie-shaped. It is the Open
+   Semantic Inter*change*, now Apache Ossie, and today the estate consumes its
+   logical layer only. *(Both points from Pooja's review, 2026-09-17.)*
 8. **Competitors already speak it.** AWS's context-ontology-accelerator
    ships OSI import/export in its metric editor (COA report §4/§6); the
    report's "interop counter-demo" (their ontology, our federation) is the
@@ -328,10 +340,20 @@ metric layer can do on the generation route:
   `_admit_single_leg_aggregation` (issue #14, rung 2) admits a top-level
   `GROUP BY` routed to one aggregation-capable source, and goldens g19
   (Ontop) and g20 (Arango) pin it. The NL corpus (`nl-corpus-v1.json`, 12
-  examples) has **zero** aggregation examples. So an aggregate question that
-  is not one of the two prepared ones cannot reach the engine through
-  generation, although the engine could run it on Postgres or Arango. This
-  gap predates OSI and is the first thing metrics would have to pass through.
+  examples) **does** carry two aggregation examples — `agg-accounts-per-tier`
+  and `agg-signal-docs-per-source`, both `GROUP BY`, the pair behind the two
+  prepared questions — and the few-shot retriever (`_AuthorizedRetriever`)
+  filters only on refusal and authorized sources, never on shape. So the
+  generation prompt can say "do not use GROUP BY" and, three lines later,
+  present a GROUP BY query as a trusted example. The prompt contradicts
+  itself; an aggregate question that is not one of the two prepared ones
+  reaches the engine only if the model ignores the rule it was just given.
+  (v0.3 of this paper said the corpus had *no* aggregation examples — a bug in
+  the author's check, which read a top-level `sparql` key where the corpus
+  nests it under `expected`; caught by Pooja's review.) The gap predates OSI
+  and is the first thing metrics would have to pass through — and the fix is
+  to make the prompt and the retriever agree with the planner, not to add
+  examples that already exist.
 
 **What metrics change — three effects.**
 
@@ -705,10 +727,10 @@ consume; do not build on fields still being renamed.
 
 | When | Slice | Size | Owner (roadmap lanes) | Diagram marker |
 |---|---|---|---|---|
-| **now / S2** | Fix "open semantic interface" → "Open Semantic Interchange (Apache Ossie)" in PRD §5 and north-star principle 7; correct "r2g implements OSI" | minutes | SA | — |
+| **now / S2** | Fix "open semantic interface" → "Open Semantic Interchange (Apache Ossie)" in **all three** places — PRD §5, north-star principle 7, and M4 spec FR-6; rewrite the PRD's "already implemented in the relational analyzer / ontology extractor" to what is true (RSA reads the logical layer and drops metrics + `ai_context`; r2g and AOE have no OSI code); correct "r2g implements OSI" | minutes | SA | — |
 | now / S2 | **RSA upstream issue + fix:** OSI connector keeps `metrics[]` and `ai_context` (pass-through, no interpretation); pin the `ossie` Python package / schema version under CC-9 | ½–1 day | SA (WS-A lane) | R1 |
 | now / S2 | **Harvest spike (evidence, not product):** author one semantic view over `TELEMETRY.USAGE_METRICS`, export with `SYSTEM$READ_OSSIE_YAML_FROM_SEMANTIC_VIEW`, run through RSA, diff against `deploy/csi/snowflake-telemetry.json`; record the loss table; try one `SEMANTIC_VIEW(...)` query through the live account | ½ day + the live Snowflake account | SA / intern | R1, R7 |
-| **S3–S4** | **NL enrichment, OSI-independent:** CSI v1.1 `description`/`synonyms` slots (file with the unified paper's §8.1 list), carried into `build_system_prompt`; lift the aggregation prohibition to match rung 2; add aggregation examples to the corpus; measure with `nl_eval` before/after | 2–3 days | SE (NL lane) | R2, R4 |
+| **S3–S4** | **NL enrichment, OSI-independent:** CSI v1.1 `description`/`synonyms` slots (file with the unified paper's §8.1 list), carried into `build_system_prompt`; make prompt, retriever and planner agree — lift the aggregation prohibition to match rung 2 and let the two existing `agg-*` examples be shown *as* admitted shapes (or exclude them while the prohibition stands); measure with `nl_eval` before/after | 2–3 days | SE (NL lane) | R2, R4 |
 | **S6** (consolidation, "contracts versioned for ArGOS") | **Catalog `Metric` object** with certification, entitlements, `definitionVersion`, collision report; **envelope `definitionVersion` citation**; **Ossie export** of manifest + CSI + metrics (M4 FR-6 — the OKF report's "Lane C" move); ArGOS certification-tab contract | 4–5 days | SA; SE reviews | R3, R6, R8 |
 | **H1-2027** (P4/P5) | Push-down modes: Snowflake executor GROUP BY probe (A), rung-3 metrics (B), `SEMANTIC_VIEW` leg + provisioning via `CREATE_SEMANTIC_VIEW_FROM_OSSIE_YAML` (C); Ossie ontology import into AOE (COA counter-demo); the `ARANGO` graph-metric extension + virtual-graph reading to the ontology working group; template generation over Forge shapes | sprint-sized items, sequenced with M12/M13 | SA + SE | R5, R7 |
 | **quarterly** | Standards watch with OKF and COA: 0.2.0 release, metrics-at-ontology-layer, #82 `verified_queries`, #53 certification, #5 filters, any `AQL`/graph dialect motion | ½ day | rotating | — |
@@ -862,7 +884,12 @@ placed mode A on "Snowflake/ClickHouse/Ontop legs each pick their dialect"
 — those two legs declare `groupBy: false` and their executors refuse
 aggregation. v0.1 listed the capability registry as an S1 prerequisite — it
 is in the manifest. v0.1 omitted metric governance, definition citation,
-time grain, collisions, risks and success measures.
+time grain, collisions, risks and success measures. **v0.3** said the
+corpus had zero aggregation examples — it has two (`agg-accounts-per-tier`,
+`agg-signal-docs-per-source`); the check read `sparql` at the top level where
+the corpus nests it under `expected`. v0.3 also listed two files for the
+misnomer; there are three, and the PRD sentence carries a false "already
+implemented" claim. (Pooja, 2026-09-17.)
 
 ## 10. Recommendations
 
@@ -879,10 +906,12 @@ Numbered to match the markers in §6.
    `timeGrain`, `aggregationClass`, per-dialect expressions, `realizedBy`,
    `entitlements`, `certification.state`, `definitionVersion`; single-owner
    check and metric collision report at admission. *(SA, S6.)*
-4. **R4 — fix the NL generation gap first, independent of OSI.** Lift the
-   aggregation prohibition to match rung 2; add aggregation examples to the
-   corpus; carry R2's slots into the prompt; measure with `nl_eval`. *(SE,
-   S3–S4.)*
+4. **R4 — make the NL prompt stop contradicting itself, independent of OSI.**
+   The corpus already holds two `GROUP BY` examples and the retriever already
+   shows them; the prompt still forbids aggregation the planner admits. Lift
+   the prohibition to match rung 2 so prompt, few-shot bank and planner agree
+   (until then, exclude aggregation examples from a prompt that forbids them);
+   carry R2's slots into the prompt; measure with `nl_eval`. *(SE, S3–S4.)*
 5. **R5 — Ossie ontology import and the working-group contribution.** Import
    an Ossie ontology as a source ontology in AOE behind RD-1 (the COA
    counter-demo); write the `ARANGO` graph-metric extension shape and the
@@ -901,9 +930,10 @@ Numbered to match the markers in §6.
    `custom_extensions[CDF]` carrying what the core cannot; validate with
    `validate.py`; prove it with one Snowflake round trip. *(SA, S6.)*
 
-Plus the two zero-cost items: fix the misnomer and the "r2g implements OSI"
-line in the PRD and north star; put Ossie on the quarterly standards watch
-with OKF and COA.
+Plus the two zero-cost items: fix the misnomer in all three files (PRD §5,
+north star, M4 spec FR-6) together with the PRD's "already implemented" and
+"r2g implements OSI" claims; put Ossie on the quarterly standards watch with
+OKF and COA.
 
 ## 11. Open questions for review
 
