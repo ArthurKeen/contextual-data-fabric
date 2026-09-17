@@ -52,8 +52,9 @@ version: 0.1
 ## 0. Baseline (what is true on 2026-09-01)
 
 Shipped and gated: four-engine federation with E1.5 (filters, OPTIONAL, single-leg
-aggregation), cite-or-refuse envelope + declared partials, 20 goldens (5
-Snowflake-excluded — trial expired), catalog manifest + integrity gate + label
+aggregation), cite-or-refuse envelope + declared partials, 20 goldens (all live as of
+2026-09-15 — Snowflake authenticates by key pair; the 5 Snowflake cases were
+excluded only while that was mis-diagnosed as an expired trial), catalog manifest + integrity gate + label
 curation, governance module (identity planes, entitlements, authorization goldens),
 ontology diagram + presentation directives in the demo, ADR-0001…0005, the
 optimization/aggregation/reuse research corpus, and the ArGOS re-scope (consoles are
@@ -160,26 +161,31 @@ becomes an ArGOS-sequencing decision, not an engineering one.
 
 Concrete and staffable now:
 
-1. **Snowflake restored** (decision + execution: billing on the expired trial or a
-   fresh account; `setup.sql` + loader re-run) → the 5 excluded goldens return;
-   gate back to 20/20 live. *(½ day once decided.)* **Done 2026-09-15:** the account was never lost — it authenticates by key pair — and `make gate` against the full live stack returned **20 cases, all green**, including g5 (Postgres ⋈ Snowflake ⋈ ArangoDB) and g11.
+1. **Snowflake restored** — planned as "billing on the expired trial or a fresh
+   account, then re-run `setup.sql` and the loader"; none of that was needed.
+   *(½ day.)* **Done 2026-09-15:** the account was never lost — it authenticates by key pair — and `make gate` against the full live stack returned **20 cases, all green**, including g5 (Postgres ⋈ Snowflake ⋈ ArangoDB) and g11.
 2. **Capability registry v1** (ADR-0005 D4): `capabilities` block in the manifest,
    probe-verified at onboarding; planner refusals name capabilities, not engine
-   kinds. Small, already specified. *(≈3 days.)*
+   kinds. Small, already specified. *(≈3 days.)* **Done 2026-09-15** (ArthurKeen/contextual-data-fabric#37 — a mirror-numbered PR from before the 2026-09-06 topology switch): `capabilities` blocks in the manifest for all four sources, `cdf-catalog probe` verifies them at onboarding (CC-14), planner refusals name the capability and the sources that declare it; the Forge suite (#34) exercises both admission branches on every kind through the registry.
 3. **Scale knob v0:** scale-factor parameter on the existing corpus loaders
    (10×/100× row multiplication with key integrity); record `performance-baseline`
-   at 1×/10×/100× — the first scale datapoints on the existing harness. *(≈3 days.)*
+   at 1×/10×/100× — the first scale datapoints on the existing harness. *(≈3 days.)* **Done 2026-09-15** (mirror PRs ArthurKeen/contextual-data-fabric#39 and #40): `CDF_SCALE_FACTOR` on the loaders with join-spine integrity; `docs/evidence/scale-baseline-{1,10,100}x.json` recorded live — the three-leg join returning 12.72M result rows (fan-out from 1,272 at 1×) at ~7.2 s p50 at 100×; disclosed evidence, not a scale claim.
 4. **ADR-0006 — the Federation Forge**: generator contract, roundtrip property,
    shape descriptor format (ontology + partition map + denorm log + expected
-   catalog/goldens), dialect plugin seam, r2g-vs-CDF split. *(≈4 days incl. review.)*
+   catalog/goldens), dialect plugin seam, r2g-vs-CDF split. *(≈4 days incl. review.)* **Done 2026-09-08** (#32, `54e16f0`): accepted after PJ's review; D-1 amended to v2 on 2026-09-16 (declared capabilities, #34).
 5. **Forge walking skeleton:** ontology→Postgres DDL + naive synthesis + load +
-   **roundtrip test green through real RSA/r2g** for the demo ontology. *(≈1 week.)*
+   **roundtrip test green through real RSA/r2g** for the demo ontology. *(≈1 week.)* **Done 2026-09-15** (arango-solutions/r2g-arango#1: `forge.py` + `r2g forge generate`, roundtrip through the real connector and forward map); CDF's orchestrator half — sampler, descriptor, oracle, `make forge-suite`, the committed seed-421 suite — merged 2026-09-16 (#34) after PJ's review (drift check, sign-off ledger, declared capabilities, org pins).
 6. **WS-A round 1:** per-repo hardening issue lists filed (table above), tagged
-   releases + CC-9 pins for RSA/ASA/r2g as consumed today. *(2026-09-15: RSA 0.8.0, ASA 0.14.0 and r2g 0.4.1 are cut and on PyPI and recorded in the CC-9 table; `arango-sparql-py` still has no release, so its pin stays a git SHA.)*
+   releases + CC-9 pins for RSA/ASA/r2g as consumed today. *(2026-09-15: RSA 0.8.0, ASA 0.14.0 and r2g 0.4.1 are cut and on PyPI and recorded in the CC-9 table; `arango-sparql-py` still has no release, so its pin stays a git SHA.)* **Done 2026-09-15:** five hardening lists filed on the org repos — arango-solutions/r2g-arango#6, arango-solutions/relational-schema-analyzer#3, arango-solutions/arango-schema-analyzer#8, arango-solutions/arango-ontoextract#16, arango-solutions/arango-sparql-py#8 (covers sparql-py + cypher-py); both git pins now point at the org repos (2026-09-16).
 
 **Exit gate:** gate 20/20 live · capability-named refusal demo · 100× baseline
 numbers recorded · ADR-0006 accepted · `introspect(generate(O)) ≡ O` green for
 Postgres · five hardening issue lists filed upstream.
+
+**S1 closed 2026-09-16 — all six gate items green** (evidence per item above;
+the last to land was the Forge orchestrator, #34, merged 2026-09-16). Per the
+finish-early rule S2 starts immediately; its content block stands, its date box
+awaits the 2-week re-cut noted at the top.
 
 ### S2 · Sep 22 – Oct 10 — “Aggregation rung 3 + Forge roundtrip everywhere”
 - Fold-combine cross-leg aggregation (COUNT/SUM/MIN/MAX/AVG over declared-unique
@@ -331,8 +337,8 @@ capture queue, and the day-7 sprint checkpoint write-up.
 2. **Owner time on feeder repos** — WS-A depends on RSA/ASA/r2g/AOE attention; the
    per-sprint hardening lane is sized at ≤20% and the workaround-stays rule means a
    slipped upstream fix degrades gracefully.
-3. **Snowflake account** — S1 item #1; every Snowflake-touching gate stays
-   declared-excluded until resolved (honest, but eroding).
+3. ~~**Snowflake account**~~ — resolved 2026-09-15: the account authenticates by
+   key pair and the gate runs 20/20 live; no Snowflake case is excluded.
 4. **Synthetic ≠ real** — forge evidence must never *replace* customer-shaped
    validation; the private corpus remains the demo/eval spine, the forge is breadth
    and publishability.
