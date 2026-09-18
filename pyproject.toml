@@ -29,7 +29,12 @@ benchmark = ["PyYAML>=6.0", "pyoxigraph>=0.3.22"]
 forge = ["PyYAML>=6.0"]
 # Forge LIVE mode (deploy into the compose stacks): the engine drivers the
 # deploy step needs — lazy-imported, so fixture mode never pays for them.
-forge-live = ["psycopg[binary]>=3.1", "clickhouse-connect>=0.7", "python-arango>=8.0,<9.0"]
+forge-live = [
+    "psycopg[binary]>=3.1",
+    "clickhouse-connect>=0.7",
+    "python-arango>=8.0,<9.0",
+    "snowflake-connector-python>=3.12",
+]
 
 [project.scripts]
 cdf-mcp = "cdf.mcp_server:main"

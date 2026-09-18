@@ -68,6 +68,7 @@ from r2g.forge import (
 )
 from r2g.forge.core import ROLE_PROPERTY
 
+from cdf.adapters.snowflake import build_snowflake_connect_args
 from cdf.catalog.builder import build_manifest
 from cdf.catalog.capabilities import capabilities_document
 from cdf.catalog.model import FileCatalogLoader
@@ -83,16 +84,72 @@ _IDENT = re.compile(r"[^a-z0-9_]")
 # ── targets ─────────────────────────────────────────────────────────────────
 
 
+#: The Forge's Snowflake footprint (``deploy/snowflake/setup_forge.sql``): its
+#: own database and a deployer role that may create schemas there and nowhere
+#: else. The fabric keeps querying as the read-only ``SNOWFLAKE_ROLE`` (CC-7).
+DEFAULT_SNOWFLAKE_FORGE_DATABASE = "CDF_FORGE"
+DEFAULT_SNOWFLAKE_FORGE_ROLE = "CDF_FORGE"
+
+#: Connector kwargs that are also secret-registry fields for kind ``snowflake``
+#: (``authenticator`` is derived by the fabric at connect time, never stored).
+_SNOWFLAKE_REGISTRY_FIELDS = frozenset(
+    {
+        "account",
+        "user",
+        "password",
+        "private_key_file",
+        "private_key_file_pwd",
+        "warehouse",
+        "database",
+        "role",
+    }
+)
+
+
+def _snowflake_targets(
+    e: Mapping[str, str],
+) -> tuple[dict[str, str] | None, str | None, str | None]:
+    """``(deployer kwargs, query role, reason-if-missing)`` from ``SNOWFLAKE_*``
+    (the fabric's own variables — one set of credentials) plus the Forge's
+    ``CDF_FORGE_SNOWFLAKE_DATABASE`` / ``CDF_FORGE_SNOWFLAKE_ROLE`` overrides."""
+    if not e.get("SNOWFLAKE_ACCOUNT"):
+        return (
+            None,
+            None,
+            "no Snowflake live target on this host (SNOWFLAKE_ACCOUNT unset; snowflake "
+            "systems are skipped, or substituted with --substitute-unavailable) — "
+            "see deploy/snowflake/setup_forge.sql",
+        )
+    try:
+        args = build_snowflake_connect_args(e)
+    except ValueError as exc:
+        return None, None, f"Snowflake credentials incomplete for the snowflake live target: {exc}"
+    args["database"] = e.get("CDF_FORGE_SNOWFLAKE_DATABASE") or DEFAULT_SNOWFLAKE_FORGE_DATABASE
+    args["role"] = e.get("CDF_FORGE_SNOWFLAKE_ROLE") or DEFAULT_SNOWFLAKE_FORGE_ROLE
+    args.pop("schema", None)  # one schema per deployed system, never the fabric's default
+    return args, e.get("SNOWFLAKE_ROLE") or None, None
+
+
 @dataclass(frozen=True)
 class LiveTargets:
     """Where live mode may create databases. Defaults follow the compose stacks
-    and the Makefile's port variables; every value is overridable by env."""
+    and the Makefile's port variables; every value is overridable by env.
+    Snowflake is a real account: configured through the fabric's own
+    ``SNOWFLAKE_*`` variables (``.env``; the ``live-full`` job's secrets)."""
 
     postgres_admin_dsn: str | None = None
     clickhouse_admin_dsn: str | None = None
     arango_url: str | None = None
     arango_user: str = "root"
     arango_password: str = ""
+    snowflake: Mapping[str, str] | None = None
+    """Validated connector kwargs for the Forge's DEPLOYER role — creates one
+    schema per system in :data:`DEFAULT_SNOWFLAKE_FORGE_DATABASE`; ``None`` (with
+    :attr:`snowflake_reason`) when this host has no Snowflake configuration."""
+    snowflake_query_role: str | None = None
+    """The role the FABRIC connects with (``SNOWFLAKE_ROLE``, read-only): what
+    the secret registry carries for a deployed Snowflake system."""
+    snowflake_reason: str | None = None
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> LiveTargets:
@@ -100,6 +157,7 @@ class LiveTargets:
         pg_port = e.get("CDF_POSTGRES_PORT", "5433")
         ch_port = e.get("CDF_CLICKHOUSE_HTTP_PORT", "8123")
         ar_port = e.get("CDF_ARANGO_PORT", "8530")
+        snowflake, query_role, reason = _snowflake_targets(e)
         return cls(
             postgres_admin_dsn=e.get(
                 "CDF_FORGE_PG_DSN", f"postgresql://cdf:cdf@127.0.0.1:{pg_port}/crm"
@@ -110,6 +168,9 @@ class LiveTargets:
             arango_url=e.get("ARANGO_URL", f"http://127.0.0.1:{ar_port}"),
             arango_user=e.get("ARANGO_USER", "root"),
             arango_password=e.get("ARANGO_PASSWORD", "cdf"),
+            snowflake=snowflake,
+            snowflake_query_role=query_role,
+            snowflake_reason=reason,
         )
 
     def missing_reason(self, dialect: str) -> str | None:
@@ -121,7 +182,9 @@ class LiveTargets:
         if dialect == "arango" and self.arango_url:
             return None
         if dialect == "snowflake":
-            return "snowflake live target not wired in this slice (S2 live v1: local engines)"
+            if self.snowflake:
+                return None
+            return self.snowflake_reason or "no Snowflake live target configured (snowflake)"
         return f"no live target configured for dialect {dialect!r}"
 
 
@@ -325,6 +388,59 @@ def deploy_clickhouse(artifacts: ForgeArtifacts, admin_dsn: str, database: str) 
     return dsn
 
 
+def snowflake_schema_name(shape_name: str, system_name: str) -> str:
+    """The Forge's schema for one system: the engine-safe name in Snowflake's
+    unquoted UPPERCASE spelling (``FORGE_TWO_LEG_421_SF1``)."""
+    return database_name(shape_name, system_name).upper()
+
+
+def snowflake_registry_fields(targets: LiveTargets, schema: str) -> dict[str, str]:
+    """What the secret registry carries for a deployed Snowflake system: the
+    same account and authentication the Forge deployed with, the system's
+    schema, and the fabric's read-only query role rather than the deployer role
+    (CC-7: the query path never holds CREATE SCHEMA)."""
+    assert targets.snowflake is not None
+    fields = {k: v for k, v in targets.snowflake.items() if k in _SNOWFLAKE_REGISTRY_FIELDS}
+    fields["schema"] = schema
+    if targets.snowflake_query_role:
+        fields["role"] = targets.snowflake_query_role
+    return fields
+
+
+def deploy_snowflake(
+    artifacts: ForgeArtifacts,
+    targets: LiveTargets,
+    schema: str,
+    *,
+    connect: Callable[..., Any] | None = None,
+) -> dict[str, str]:
+    """One schema per system in the Forge's own database (``CREATE OR REPLACE``
+    — a re-run replaces the previous deployment), then r2g's DDL and loader
+    statement by statement, as its own Snowflake roundtrip does. Returns the
+    registry fields the fabric connects with. ``connect`` is injectable for
+    tests (mirrors ``snowflake.connector.connect``)."""
+    from r2g.forge import split_sql_statements
+
+    assert targets.snowflake is not None
+    if connect is None:
+        import snowflake.connector
+
+        connect = snowflake.connector.connect
+    database = targets.snowflake["database"]
+    conn = connect(**targets.snowflake, login_timeout=60)
+    try:
+        cur = conn.cursor()
+        cur.execute(f"CREATE OR REPLACE SCHEMA {database}.{schema}")
+        cur.execute(f"USE SCHEMA {database}.{schema}")
+        for statement in split_sql_statements(artifacts.ddl) + split_sql_statements(
+            artifacts.load_sql
+        ):
+            cur.execute(statement)
+    finally:
+        conn.close()
+    return snowflake_registry_fields(targets, schema)
+
+
 def deploy_arango(
     artifacts: ForgeArtifacts, targets: LiveTargets, database: str, workdir: Path
 ) -> dict[str, str]:
@@ -394,6 +510,12 @@ def deploy_system(
     if system.dialect == "arango":
         fields = deploy_arango(artifacts, targets, database, system_dir)
         return DeployedSystem(system, database, fields, None, tables, rows_loaded)
+    if system.dialect == "snowflake":
+        schema = snowflake_schema_name(shape.name, system.name)
+        fields = deploy_snowflake(artifacts, targets, schema)
+        artifacts.write_to(str(system_dir))
+        # ``database`` is the schema here: Snowflake's unit of deployment for us.
+        return DeployedSystem(system, schema, fields, None, tables, rows_loaded)
     return SkippedSystem(system=system, reason=f"no deployer for dialect {system.dialect!r}")
 
 
@@ -406,12 +528,19 @@ def introspect_relational(
     """r2g connector → Auto-Map → CSI + R2RML, exactly as ``r2g export-csi`` /
     ``export-r2rml`` do. ``source_ref`` is the system name so the source id the
     catalog derives (``<kind>:<name>``) matches the goldens' expectations."""
-    from r2g.config import ConfigManager
     from r2g.connectors.base import create_source_connector
+
+    schema = create_source_connector(kind, dsn, schema_name=schema_name).get_schema()
+    return export_estate(kind, schema, system_name)
+
+
+def export_estate(kind: str, schema: Any, system_name: str) -> tuple[dict[str, Any], str]:
+    """Auto-Map → CSI + R2RML from an introspected r2g ``Schema``, as ``r2g
+    export-csi`` / ``export-r2rml`` do."""
+    from r2g.config import ConfigManager
     from r2g.csi import mapping_to_csi, validate_csi
     from r2g.r2rml import mapping_to_r2rml
 
-    schema = create_source_connector(kind, dsn, schema_name=schema_name).get_schema()
     mapping = ConfigManager.generate_default_config(schema)
     csi = mapping_to_csi(
         mapping, schema, source_type=kind, source_ref=system_name, label_policy="warn"
@@ -420,6 +549,28 @@ def introspect_relational(
     if errors:
         raise ValueError(f"{kind}:{system_name}: estate CSI failed validation: {errors}")
     return csi, mapping_to_r2rml(mapping, schema, source_type=kind)
+
+
+def introspect_snowflake(
+    targets: LiveTargets, schema_name: str, system_name: str
+) -> tuple[dict[str, Any], str]:
+    """r2g's ``SnowflakeConnector`` (``INFORMATION_SCHEMA`` + ``SHOW PRIMARY /
+    IMPORTED KEYS``) → Auto-Map → CSI + R2RML for one Forge schema. The
+    connector is built from a URL, which cannot carry key-pair authentication,
+    so its connect parameters are then set from the validated kwargs — the same
+    merge r2g's own live roundtrip performs."""
+    from r2g.connectors.snowflake import SnowflakeConnector
+
+    assert targets.snowflake is not None
+    args = dict(targets.snowflake)
+    query = urllib.parse.urlencode({k: args[k] for k in ("warehouse", "role") if args.get(k)})
+    url = (
+        f"snowflake://{urllib.parse.quote(args['user'])}@{args['account']}"
+        f"/{args['database']}/{schema_name}" + (f"?{query}" if query else "")
+    )
+    connector = SnowflakeConnector(url, schema_name=schema_name)
+    connector._connect_params = {**args, "schema": schema_name}  # key pair has no URL form
+    return export_estate("snowflake", connector.get_schema(), system_name)
 
 
 def introspect_arango(fields: Mapping[str, str], system_name: str) -> dict[str, Any]:
@@ -679,6 +830,7 @@ def run_live_shape(
     deployer: Deployer = deploy_system,
     introspect_sql: Callable[..., tuple[dict[str, Any], str]] = introspect_relational,
     introspect_graph: Callable[..., dict[str, Any]] = introspect_arango,
+    introspect_warehouse: Callable[..., tuple[dict[str, Any], str]] = introspect_snowflake,
     adaptations: Mapping[str, Mapping[str, str]] | None = None,
 ) -> LiveShapeReport:
     """deploy → introspect → drift → onboard for one shape. A shape with any
@@ -718,6 +870,8 @@ def run_live_shape(
                 raise RuntimeError(f"{system.name}: {outcome.reason}")
             if system.kind == "arango":
                 csi, r2rml = introspect_graph(outcome.fields, system.name), None
+            elif system.kind == "snowflake":
+                csi, r2rml = introspect_warehouse(targets, outcome.database, system.name)
             else:
                 schema_name = "public" if system.kind == "postgresql" else outcome.database
                 csi, r2rml = introspect_sql(

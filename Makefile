@@ -167,10 +167,12 @@ forge-suite:
 # Live mode (S2/S3): the same shapes through the REAL estate — deploy into the
 # compose stacks, RSA/ASA/r2g introspection + export, declared references,
 # manifest, one Ontop per Postgres leg, the CC-14 probe, and the goldens via
-# run_golden_live. Needs `make up` and docker. Shapes with a Snowflake system
-# are skipped by name. Artifacts under deploy/forge/live/ (gitignored).
+# run_golden_live. Needs `make up` and docker. A Snowflake system deploys into
+# the real account when .env carries SNOWFLAKE_* (deploy/snowflake/setup_forge.sql
+# once, as ACCOUNTADMIN); without it the system runs on a substituted local
+# dialect, named in the report. Artifacts under deploy/forge/live/ (gitignored).
 forge-live:
-	$(PY) -m cdf.eval.forge live --shapes $(FORGE_SHAPES) --seed $(FORGE_SEED) --execute --substitute-unavailable --live-out deploy/forge/live $(FORGE_LIVE_FLAGS)
+	$(LOAD_ENV) $(PY) -m cdf.eval.forge live --shapes $(FORGE_SHAPES) --seed $(FORGE_SEED) --execute --substitute-unavailable --live-out deploy/forge/live $(FORGE_LIVE_FLAGS)
 
 scale-baseline:
 	$(LOAD_ENV) $(DEMO_ENV) $(PY) -m cdf.eval.scale_baseline

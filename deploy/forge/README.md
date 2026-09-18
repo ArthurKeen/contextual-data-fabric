@@ -51,8 +51,9 @@ make forge-live FORGE_LIVE_FLAGS="--only two_leg-421 --keep-ontop"   # one shape
 CDF_FORGE_LIVE=1 pytest tests/test_forge_live_local.py    # one shape per family + execute, asserted
 ```
 
-CI runs both in the `live-local` job on every PR and on the weekday schedule,
-and publishes `live-summary.json` as a build artifact.
+CI runs both in the `live-local` job on every PR (Snowflake substituted — PR
+runs carry no account secrets) and, with the real Snowflake leg, in the
+scheduled `live-full` job; each publishes `live-summary.json` as a build artifact.
 
 Per shape, per system (`cdf.eval.forge.live`):
 
@@ -63,7 +64,8 @@ Per shape, per system (`cdf.eval.forge.live`):
    synthesised dataset, so join spines agree across systems. A fresh database
    `forge_<shape>_<system>` per system in Postgres, ClickHouse or ArangoDB
    (targets: `CDF_FORGE_PG_DSN`, `CDF_FORGE_CLICKHOUSE_DSN`, `ARANGO_*`;
-   defaults follow the compose stacks).
+   defaults follow the compose stacks), or a schema `FORGE_<SHAPE>_<SYSTEM>`
+   in the real Snowflake account (below).
 2. **introspect + export** — the estate's forward pipeline: r2g connector →
    Auto-Map → `mapping_to_csi` / `mapping_to_r2rml` (relational), ASA
    `analyze` → `to_csi` (ArangoDB). `source_ref` is the system name, so the
@@ -94,18 +96,40 @@ Per shape, per system (`cdf.eval.forge.live`):
    golden through `run_golden_live` — real planner, legs and grounding.
    `--keep-ontop` leaves the containers up for inspection.
 
-Snowflake systems are **skipped by name** (local engines only); a shape with
-any skipped system is skipped whole, because its goldens assume every leg.
-Every chain and hub shape in the seed-421 suite contains a Snowflake system,
-so a faithful run never exercises the multi-hop topologies. With
-**`--substitute-unavailable`** (what `make forge-live` and CI pass) a system
-whose dialect has no live target is run on a configured dialect instead —
-deterministically, cycling Postgres → ArangoDB → ClickHouse — with the
-system name and declared capabilities kept and the committed descriptor
-untouched. The report records every substitution (`adaptations:
-{system: {from, to}}`), the listing marks such a run `RUN ~` rather than
-`RUN  `, and the summary line names them: an adapted run proves the
-*topology* through the fabric, never the missing engine. Live artifacts live
+**Snowflake is a real account, not a container.** The Forge reads the fabric's
+own `SNOWFLAKE_*` variables (`.env`, which `make forge-live` sources; the
+`live-full` job's secrets) — one set of credentials, key pair or password —
+and deploys each Snowflake system as a schema `FORGE_<SHAPE>_<SYSTEM>` in its
+**own database** `CDF_FORGE`, as its **own role** `CDF_FORGE`, which may create
+schemas there and nowhere else. The fabric keeps querying as the read-only
+`SNOWFLAKE_ROLE` (`CDF_RO`): future grants on `CDF_FORGE` let it read every
+schema the Forge creates, so the secret registry carries the query role, never
+the deployer's (CC-7). `deploy/snowflake/setup_forge.sql` creates the database,
+the role and the grants — run once as ACCOUNTADMIN, like `setup.sql`. Override
+the names with `CDF_FORGE_SNOWFLAKE_DATABASE` / `CDF_FORGE_SNOWFLAKE_ROLE`.
+Introspection is r2g's `SnowflakeConnector` (`INFORMATION_SCHEMA` + `SHOW
+PRIMARY / IMPORTED KEYS`, the declared path) and the goldens run through the
+native `SnowflakeExecutor`. Known and pinned: Snowflake reports `NUMBER(38,0)`
+as `NUMBER`, which r2g maps to `float`, so an integer property comes back typed
+`float` in the estate CSI (r2g's roundtrip test names the gap; the drift check
+compares names, and the connector returns integers, so goldens agree).
+`CREATE OR REPLACE SCHEMA` makes a re-run idempotent; `DROP DATABASE CDF_FORGE`
+removes every Forge artifact at once. Cost: XS warehouse, 60 s auto-suspend,
+tens of rows per table — fractions of a credit per run.
+
+A host without `SNOWFLAKE_*` has no Snowflake target: such a system is
+**skipped by name**, and a shape with any skipped system is skipped whole,
+because its goldens assume every leg. Every chain and hub shape in the
+seed-421 suite contains a Snowflake system, so on such a host the multi-hop
+topologies would never run. With **`--substitute-unavailable`** (what
+`make forge-live` and the per-PR `live-local` job pass) a system whose dialect
+has no live target is run on a configured dialect instead — deterministically,
+cycling Postgres → ArangoDB → ClickHouse — with the system name and declared
+capabilities kept and the committed descriptor untouched. The report records
+every substitution (`adaptations: {system: {from, to}}`), the listing marks such
+a run `RUN ~` rather than `RUN  `, and the summary line names them: an adapted
+run proves the *topology* through the fabric, never the missing engine. When
+Snowflake is configured the flag substitutes nothing. Live artifacts live
 under `deploy/forge/live/` (gitignored): they describe *this* environment,
 not the suite.
 

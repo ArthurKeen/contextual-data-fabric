@@ -34,11 +34,14 @@ from cdf.eval.forge.live import (  # noqa: E402
     conceptual_drift,
     cross_system_references,
     database_name,
+    deploy_snowflake,
     projected_artifacts,
     projected_conceptual,
     projected_forge_input,
     projected_plan,
     run_live_shape,
+    snowflake_registry_fields,
+    snowflake_schema_name,
     write_private,
 )
 from cdf.eval.forge.sampler import FAMILIES, Shape, System, sample_shape  # noqa: E402
@@ -184,6 +187,17 @@ def _fake_deployer(shape, system, dataset, targets, workdir, *, rows_per_entity)
         }
     elif system.kind == "postgresql":
         fields = {"jdbc_url": "postgresql://fake/db"}  # the Ontop endpoint arrives in slice 4
+    elif system.kind == "snowflake":
+        schema = snowflake_schema_name(shape.name, system.name)
+        fields = snowflake_registry_fields(targets, schema)
+        return DeployedSystem(
+            system,
+            schema,
+            fields,
+            None,
+            tuple(sorted(artifacts.rows)),
+            sum(len(r) for r in artifacts.rows.values()),
+        )
     else:
         fields = {"dsn": "fake://dsn"}
     return DeployedSystem(
@@ -209,6 +223,32 @@ def _fake_graph_introspect(shape):
         return fixture_csi(shape, shape.system(system_name))
 
     return run
+
+
+def _fake_warehouse_introspect(shape):
+    def run(targets, schema_name, system_name):
+        return fixture_csi(
+            shape, shape.system(system_name)
+        ), f"# r2rml for snowflake:{system_name}\n"
+
+    return run
+
+
+def _snowflake_env(tmp_path: Path, **overrides: str) -> dict[str, str]:
+    """The fabric's own SNOWFLAKE_* variables, key-pair form, as .env carries them."""
+    key = tmp_path / "rsa_key.p8"
+    key.write_text("-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n")
+    env = {
+        "SNOWFLAKE_ACCOUNT": "org-acct",
+        "SNOWFLAKE_USER": "ARTHURKEEN",
+        "SNOWFLAKE_PRIVATE_KEY_FILE": str(key),
+        "SNOWFLAKE_WAREHOUSE": "CDF_WH",
+        "SNOWFLAKE_DATABASE": "TELEMETRY",
+        "SNOWFLAKE_SCHEMA": "PUBLIC",
+        "SNOWFLAKE_ROLE": "CDF_RO",
+    }
+    env.update(overrides)
+    return env
 
 
 def test_run_onboards_a_shape_and_writes_what_from_env_consumes(tmp_path: Path) -> None:
@@ -445,3 +485,144 @@ def test_run_carries_adaptations_into_the_report_and_its_file(tmp_path: Path) ->
         ).status
         == "skipped"
     )
+
+
+# ── the Snowflake live target ───────────────────────────────────────────────
+
+
+def test_snowflake_target_comes_from_the_fabrics_own_variables(tmp_path: Path) -> None:
+    """One set of credentials (SNOWFLAKE_*); the Forge deploys as its own role
+    into its own database and the fabric keeps the read-only role (CC-7)."""
+    t = LiveTargets.from_env(_snowflake_env(tmp_path))
+    assert t.missing_reason("snowflake") is None and t.snowflake_reason is None
+    assert t.snowflake is not None
+    assert t.snowflake["database"] == "CDF_FORGE" and t.snowflake["role"] == "CDF_FORGE"
+    assert t.snowflake["authenticator"] == "SNOWFLAKE_JWT" and "schema" not in t.snowflake
+    assert t.snowflake_query_role == "CDF_RO"
+    o = LiveTargets.from_env(
+        _snowflake_env(
+            tmp_path, CDF_FORGE_SNOWFLAKE_DATABASE="SANDBOX", CDF_FORGE_SNOWFLAKE_ROLE="DEV"
+        )
+    )
+    assert o.snowflake is not None and (o.snowflake["database"], o.snowflake["role"]) == (
+        "SANDBOX",
+        "DEV",
+    )
+    # absent → named reason pointing at the setup script; incomplete → the validator's words
+    absent = LiveTargets.from_env({})
+    assert absent.snowflake is None and "setup_forge.sql" in (
+        absent.missing_reason("snowflake") or ""
+    )
+    partial = LiveTargets.from_env({"SNOWFLAKE_ACCOUNT": "x"})
+    assert partial.snowflake is None and "SNOWFLAKE_USER" in (
+        partial.missing_reason("snowflake") or ""
+    )
+    assert LiveTargets().missing_reason("snowflake")
+
+
+def test_snowflake_schema_name_is_uppercase_and_engine_safe() -> None:
+    assert snowflake_schema_name("two_leg-421", "sf1") == "FORGE_TWO_LEG_421_SF1"
+    assert (
+        snowflake_schema_name("two_leg-421", "sf1") == database_name("two_leg-421", "sf1").upper()
+    )
+
+
+def test_snowflake_registry_fields_carry_the_query_role_and_resolve(tmp_path: Path) -> None:
+    t = LiveTargets.from_env(_snowflake_env(tmp_path))
+    fields = snowflake_registry_fields(t, "FORGE_X_SF1")
+    assert fields["role"] == "CDF_RO" and fields["schema"] == "FORGE_X_SF1"
+    assert fields["database"] == "CDF_FORGE" and "authenticator" not in fields
+    assert fields["private_key_file"].endswith("rsa_key.p8") and "password" not in fields
+    registry = {
+        "version": 1,
+        "sources": {
+            "snowflake:sf1": {
+                "kind": "snowflake",
+                "ref": "sf1",
+                "generation": "g",
+                "fields": fields,
+            }
+        },
+    }
+    resolver = EnvSecretResolver({"CDF_SECRET_REGISTRY_JSON": json.dumps(registry)})
+    resolved = resolver.resolve(ConnectorRef("snowflake:sf1", "snowflake", "sf1"))
+    assert resolved is not None and resolved.kind == "snowflake"
+
+
+class _FakeSnowflakeConnection:
+    """Mirrors what :func:`deploy_snowflake` uses of ``snowflake.connector.connect``'s
+    result: ``cursor().execute(sql)`` and ``close()``."""
+
+    def __init__(self, **kwargs: object) -> None:
+        self.kwargs = kwargs
+        self.executed: list[str] = []
+        self.closed = False
+
+    def cursor(self) -> _FakeSnowflakeConnection:
+        return self
+
+    def execute(self, sql: str) -> None:
+        self.executed.append(sql)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_deploy_snowflake_replaces_the_schema_and_replays_ddl_then_rows(tmp_path: Path) -> None:
+    from r2g.forge import split_sql_statements
+
+    shape = _with_snowflake(_local_shape("two_leg"), 0)
+    system = shape.systems[0]
+    ds = synthesize(shape, rows_per_entity=3)
+    artifacts = projected_artifacts(shape, system, ds, rows_per_entity=3)
+    assert "CREATE TABLE " in artifacts.ddl and artifacts.ddl.split("CREATE TABLE ")[1][0].isupper()
+    t = LiveTargets.from_env(_snowflake_env(tmp_path))
+    made: list[_FakeSnowflakeConnection] = []
+
+    def connect(**kwargs: object) -> _FakeSnowflakeConnection:
+        made.append(_FakeSnowflakeConnection(**kwargs))
+        return made[-1]
+
+    fields = deploy_snowflake(artifacts, t, "FORGE_TWO_LEG_SF1", connect=connect)
+    conn = made[0]
+    assert conn.kwargs["role"] == "CDF_FORGE" and conn.kwargs["login_timeout"] == 60
+    assert conn.executed[:2] == [
+        "CREATE OR REPLACE SCHEMA CDF_FORGE.FORGE_TWO_LEG_SF1",
+        "USE SCHEMA CDF_FORGE.FORGE_TWO_LEG_SF1",
+    ]
+    assert conn.executed[2:] == split_sql_statements(artifacts.ddl) + split_sql_statements(
+        artifacts.load_sql
+    )
+    assert conn.closed
+    assert fields == snowflake_registry_fields(t, "FORGE_TWO_LEG_SF1")
+
+
+def test_run_onboards_a_snowflake_system_registry_ready(tmp_path: Path) -> None:
+    shape = _with_snowflake(_local_shape("two_leg"), 0)
+    sf = shape.systems[0]
+    targets = LiveTargets.from_env(_snowflake_env(tmp_path))
+    ds = synthesize(shape, rows_per_entity=3)
+    report = run_live_shape(
+        shape,
+        ds,
+        targets,
+        tmp_path,
+        rows_per_entity=3,
+        deployer=_fake_deployer,
+        introspect_sql=_fake_sql_introspect(shape),
+        introspect_graph=_fake_graph_introspect(shape),
+        introspect_warehouse=_fake_warehouse_introspect(shape),
+    )
+    assert report.status == "onboarded", report.message
+    result = next(r for r in report.systems if r.name == sf.name)
+    assert result.kind == "snowflake" and result.database == snowflake_schema_name(
+        shape.name, sf.name
+    )
+    assert result.drift == {} and result.r2rml_path is not None
+    registry = json.loads(Path(report.registry).read_text(encoding="utf-8"))
+    entry = registry["sources"][sf.source_id]
+    assert entry["kind"] == "snowflake" and entry["fields"]["role"] == "CDF_RO"
+    live_env = json.loads((tmp_path / shape.name / "live-env.json").read_text(encoding="utf-8"))
+    assert sf.source_id not in live_env["forge"]["pendingOntop"]
+    resolver = EnvSecretResolver({"CDF_SECRET_REGISTRY_JSON": json.dumps(registry)})
+    assert resolver.resolve(ConnectorRef(sf.source_id, "snowflake", sf.name)) is not None
