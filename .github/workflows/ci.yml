@@ -145,7 +145,7 @@ jobs:
           ARANGO_USER: root
           ARANGO_PASSWORD: cdf
         run: |
-          python -m cdf.eval.forge live --shapes 10 --seed 421 --execute \
+          python -m cdf.eval.forge live --shapes 10 --seed 421 --execute --substitute-unavailable \
             --live-out "$RUNNER_TEMP/forge-live" | tee "$RUNNER_TEMP/forge-live.log"
       - name: Forge live tests (one shape per family + execute, asserted)
         env:

@@ -247,6 +247,10 @@ class _FixtureService:
             for c in compose_goldens(shape, dataset)
         }
 
+    def close(self) -> None:
+        """Mirrors :meth:`cdf.service.app.FederationService.close`."""
+        self.closed = getattr(self, "closed", 0) + 1
+
     def federate_sparql(self, sparql: str, *, allow_partial: bool = False):
         plan = partition_query(sparql, self.catalog)  # may raise UnsupportedQueryError
         return ground(execute_plan(plan, self._fixtures[sparql]), allow_partial=allow_partial)
@@ -259,6 +263,12 @@ def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(
     live_dir = tmp_path / shape.name
     docker = _Docker()
     pg_sources = [s.source_id for s in shape.systems if s.kind == "postgresql"]
+    services: list[_FixtureService] = []
+
+    def factory(env):
+        services.append(_FixtureService(shape, ds, live_dir))
+        return services[-1]
+
     report = execute_shape(
         shape,
         ds,
@@ -267,10 +277,11 @@ def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(
         base_env={},
         ontop_cfg=cfg,
         runner=docker,
-        service_factory=lambda env: _FixtureService(shape, ds, live_dir),
+        service_factory=factory,
         ready=lambda inst, t: 0.5,
     )
     assert report.status == "executed", report.message
+    assert [s.closed for s in services] == [1], "every service built is drained exactly once"
     assert set(report.ontop) == set(pg_sources)
     runs = [c for c in docker.calls if c[0] == "run"]
     assert len(runs) == len(pg_sources), "one Ontop per Postgres leg"

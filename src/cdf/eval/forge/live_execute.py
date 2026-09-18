@@ -45,7 +45,7 @@ from cdf.catalog.capabilities import (
     probe_capabilities,
 )
 from cdf.eval.forge.dataset import Dataset
-from cdf.eval.forge.live import LiveShapeReport, _json
+from cdf.eval.forge.live import LiveShapeReport, _json, write_private
 from cdf.eval.forge.oracle import compose_goldens
 from cdf.eval.forge.sampler import Shape
 from cdf.eval.golden import GoldenOutcome, run_golden_live
@@ -258,8 +258,8 @@ def complete_registry(
         "pendingOntop": pending,
         "ontop": {k: v.endpoint for k, v in endpoints.items()},
     }
-    (live_dir / "secret-registry.json").write_text(_json(registry), encoding="utf-8")
-    (live_dir / "live-env.json").write_text(_json(env_doc), encoding="utf-8")
+    write_private(live_dir / "secret-registry.json", _json(registry))
+    write_private(live_dir / "live-env.json", _json(env_doc))
     return registry
 
 
@@ -369,6 +369,7 @@ def execute_shape(
     env_doc = json.loads((live_dir / "live-env.json").read_text(encoding="utf-8"))
     pending: dict[str, str] = env_doc.get("forge", {}).get("pendingOntop", {})
     instances: dict[str, OntopInstance] = {}
+    service: Any = None
     wait = ready or (lambda inst, t: wait_ready(inst, t, runner=runner))
     try:
         for source_id, dsn in sorted(pending.items()):
@@ -380,8 +381,8 @@ def execute_shape(
             )
             (input_dir / "mapping.ttl").write_text(r2rml, encoding="utf-8")
             jdbc_url, user, password = jdbc_from_dsn(dsn, ontop_cfg)
-            (input_dir / "ontop.properties").write_text(
-                render_ontop_properties(jdbc_url, user, password), encoding="utf-8"
+            write_private(
+                input_dir / "ontop.properties", render_ontop_properties(jdbc_url, user, password)
             )
             instance = launch_ontop(
                 f"forge-ontop-{shape.name}-{system_name}".lower(),
@@ -400,7 +401,11 @@ def execute_shape(
         declared_goldens = compose_goldens(shape, dataset)
         probed_shape, stripped = probe_shape(shape, service)
         if stripped:
+            # The manifest changed under the service; rebuild it from the
+            # rewritten manifest — after draining the first one's source clients.
             rewrite_manifest_capabilities(live_dir, probed_shape)
+            service.close()
+            service = None
             service = service_factory(service_env(live_dir, registry, base_env))
         goldens = compose_goldens(probed_shape, dataset)
         outcomes = run_goldens_live(goldens, service)
@@ -424,6 +429,8 @@ def execute_shape(
         report.status = "failed"
         report.message = f"{type(exc).__name__}: {exc}"
     finally:
+        if service is not None:
+            service.close()
         if not keep_ontop:
             for instance in instances.values():
                 stop_ontop(instance, runner=runner)

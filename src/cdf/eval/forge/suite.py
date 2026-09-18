@@ -29,7 +29,7 @@ from cdf.eval.forge.descriptor import (
     load_descriptor,
 )
 from cdf.eval.forge.fixture_csi import fixture_csi
-from cdf.eval.forge.live import DEFAULT_LIVE_DIR, LiveTargets, run_live_shape
+from cdf.eval.forge.live import DEFAULT_LIVE_DIR, LiveTargets, adapt_shape, run_live_shape
 from cdf.eval.forge.live_execute import OntopConfig, execute_shape
 from cdf.eval.forge.oracle import compose_goldens, expected_catalog
 from cdf.eval.forge.sampler import FAMILIES, Shape, sample_shape
@@ -221,7 +221,9 @@ def _cmd_suite(args: argparse.Namespace) -> int:
 def _cmd_live(args: argparse.Namespace) -> int:
     """Live mode (S2/S3): deploy → introspect → drift → onboard each sampled
     shape through the estate. Shapes with an unconfigured dialect are skipped
-    by name; a failed shape makes the exit status non-zero, a skipped one does
+    by name — or, with ``--substitute-unavailable``, run on a configured
+    dialect with the substitution named in the report and marked ``~`` in the
+    listing; a failed shape makes the exit status non-zero, a skipped one does
     not (skips are a configuration fact, not a fabric regression)."""
     import os
 
@@ -234,9 +236,17 @@ def _cmd_live(args: argparse.Namespace) -> int:
     failures = 0
     summary: dict[str, Any] = {"seed": args.seed, "mode": "live", "shapes": []}
     for shape in shapes:
+        adaptations: dict[str, dict[str, str]] = {}
+        if args.substitute_unavailable:
+            shape, adaptations = adapt_shape(shape, targets)
         dataset = synthesize(shape, rows_per_entity=args.rows_per_entity)
         report = run_live_shape(
-            shape, dataset, targets, live_root, rows_per_entity=args.rows_per_entity
+            shape,
+            dataset,
+            targets,
+            live_root,
+            rows_per_entity=args.rows_per_entity,
+            adaptations=adaptations,
         )
         if args.execute and report.status == "onboarded":
             report = execute_shape(
@@ -256,12 +266,17 @@ def _cmd_live(args: argparse.Namespace) -> int:
         mark = {"onboarded": "LIVE ", "executed": "RUN  ", "skipped": "SKIP ", "failed": "FAIL "}[
             report.status
         ]
+        if report.adaptations:
+            mark = mark[:-1] + "~"  # adapted: a substituted dialect, never the original shape
         if report.status == "executed":
             g = report.goldens
             stripped = ", ".join(report.probe.get("stripped", {})) or "none"
+            adapted = "".join(
+                f"; {n}: {a['from']}→{a['to']}" for n, a in sorted(report.adaptations.items())
+            )
             detail = (
                 f"{g['passed']}/{g['total']} goldens passed; probe stripped: {stripped}; "
-                f"flipped: {len(report.probe.get('flipped', []))}"
+                f"flipped: {len(report.probe.get('flipped', []))}{adapted}"
             )
         else:
             detail = report.message or (
@@ -326,6 +341,12 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="after onboarding: an Ontop per Postgres leg, the CC-14 probe, and the "
         "goldens through the real fabric (needs docker + the compose stacks)",
+    )
+    live.add_argument(
+        "--substitute-unavailable",
+        action="store_true",
+        help="run shapes whose dialects lack a live target by substituting a configured "
+        "dialect (reported by name) instead of skipping them — so chain/hub topologies run",
     )
     live.add_argument(
         "--keep-ontop",

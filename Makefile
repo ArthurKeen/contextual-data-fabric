@@ -170,7 +170,7 @@ forge-suite:
 # run_golden_live. Needs `make up` and docker. Shapes with a Snowflake system
 # are skipped by name. Artifacts under deploy/forge/live/ (gitignored).
 forge-live:
-	$(PY) -m cdf.eval.forge live --shapes $(FORGE_SHAPES) --seed $(FORGE_SEED) --execute --live-out deploy/forge/live $(FORGE_LIVE_FLAGS)
+	$(PY) -m cdf.eval.forge live --shapes $(FORGE_SHAPES) --seed $(FORGE_SEED) --execute --substitute-unavailable --live-out deploy/forge/live $(FORGE_LIVE_FLAGS)
 
 scale-baseline:
 	$(LOAD_ENV) $(DEMO_ENV) $(PY) -m cdf.eval.scale_baseline

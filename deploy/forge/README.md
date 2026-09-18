@@ -96,8 +96,26 @@ Per shape, per system (`cdf.eval.forge.live`):
 
 Snowflake systems are **skipped by name** (local engines only); a shape with
 any skipped system is skipped whole, because its goldens assume every leg.
-Live artifacts live under `deploy/forge/live/` (gitignored): they describe
-*this* environment, not the suite.
+Every chain and hub shape in the seed-421 suite contains a Snowflake system,
+so a faithful run never exercises the multi-hop topologies. With
+**`--substitute-unavailable`** (what `make forge-live` and CI pass) a system
+whose dialect has no live target is run on a configured dialect instead —
+deterministically, cycling Postgres → ArangoDB → ClickHouse — with the
+system name and declared capabilities kept and the committed descriptor
+untouched. The report records every substitution (`adaptations:
+{system: {from, to}}`), the listing marks such a run `RUN ~` rather than
+`RUN  `, and the summary line names them: an adapted run proves the
+*topology* through the fabric, never the missing engine. Live artifacts live
+under `deploy/forge/live/` (gitignored): they describe *this* environment,
+not the suite.
+
+**Credentials (CC-7).** The live directory is the one place the Forge writes
+credentials: `secret-registry.json` and `live-env.json` carry the dev-stack
+DSNs `from_env` consumes, and `ontop/<system>/ontop.properties` carries the
+JDBC password Ontop reads. They are written owner-read-only (`0600`), never
+uploaded (CI publishes `live-summary.json` and `live-report.json`, which
+hold none), and describe the compose stacks' default accounts. Nothing under
+`deploy/forge/shapes/` — the committed suite — carries a credential.
 
 **What live mode found on its first run (2026-09-18):** the join, chain and
 cross-leg-aggregation templates navigated a relationship predicate across

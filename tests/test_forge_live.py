@@ -24,9 +24,12 @@ from cdf.eval.forge.dataset import synthesize  # noqa: E402
 from cdf.eval.forge.fixture_csi import fixture_csi, fk_property  # noqa: E402
 from cdf.eval.forge.live import (  # noqa: E402
     LIVE_REPORT_FILE,
+    SUBSTITUTION_ORDER,
     DeployedSystem,
     LiveTargets,
     SkippedSystem,
+    _swap_database,
+    adapt_shape,
     apply_declared_references,
     conceptual_drift,
     cross_system_references,
@@ -36,6 +39,7 @@ from cdf.eval.forge.live import (  # noqa: E402
     projected_forge_input,
     projected_plan,
     run_live_shape,
+    write_private,
 )
 from cdf.eval.forge.sampler import FAMILIES, Shape, System, sample_shape  # noqa: E402
 
@@ -331,3 +335,113 @@ def test_a_declared_reference_that_does_not_hold_fails_loudly() -> None:
         apply_declared_references(
             fixture_csi(shape, child_system), cross_system_references(shape, child_system), broken
         )
+
+
+# ── review fixes: DSN rewrite, credential files, dialect substitution ───────
+
+
+def test_swap_database_keeps_credentials_port_and_query_string() -> None:
+    """Regression: the rpartition('/') rewrite turned ``…/crm?sslmode=require``
+    into ``…/crm?sslmode=require/forge_x`` — the query string was mistaken for
+    part of the path."""
+    assert (
+        _swap_database("postgresql://u:p@h:5433/crm?sslmode=require", "forge_x")
+        == "postgresql://u:p@h:5433/forge_x?sslmode=require"
+    )
+    assert _swap_database("clickhouse://cdf:cdf@127.0.0.1:8123/analytics", "forge_y") == (
+        "clickhouse://cdf:cdf@127.0.0.1:8123/forge_y"
+    )
+    assert _swap_database("postgresql://h/", "d") == "postgresql://h/d"
+
+
+def test_write_private_is_owner_read_only(tmp_path: Path) -> None:
+    path = tmp_path / "secret-registry.json"
+    write_private(path, "{}")
+    assert path.read_text(encoding="utf-8") == "{}"
+    assert path.stat().st_mode & 0o777 == 0o600
+    write_private(path, "{}\n")  # rewrite keeps the mode
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
+def test_onboarding_writes_credential_files_owner_only(tmp_path: Path) -> None:
+    """CC-7: the live directory is the one place the Forge writes credentials;
+    those files must not be world-readable (the report, which is uploaded,
+    carries none)."""
+    shape = _local_shape()
+    ds = synthesize(shape, rows_per_entity=3)
+    report = run_live_shape(
+        shape,
+        ds,
+        LiveTargets.from_env({}),
+        tmp_path,
+        rows_per_entity=3,
+        deployer=_fake_deployer,
+        introspect_sql=_fake_sql_introspect(shape),
+        introspect_graph=_fake_graph_introspect(shape),
+    )
+    assert report.status == "onboarded", report.message
+    live_dir = tmp_path / shape.name
+    for name in ("secret-registry.json", "live-env.json"):
+        assert (live_dir / name).stat().st_mode & 0o777 == 0o600, name
+    assert (live_dir / LIVE_REPORT_FILE).stat().st_mode & 0o777 != 0o600
+    assert "password" not in (live_dir / LIVE_REPORT_FILE).read_text(encoding="utf-8")
+
+
+def _with_snowflake(shape: Shape, *positions: int) -> Shape:
+    systems = list(shape.systems)
+    for i in positions:
+        systems[i] = replace(systems[i], dialect="snowflake")
+    return replace(shape, systems=tuple(systems))
+
+
+def test_adapt_shape_substitutes_only_unconfigured_dialects_deterministically() -> None:
+    shape = _with_snowflake(_local_shape("chain"), 0, 2)
+    targets = LiveTargets.from_env({})
+    adapted, adaptations = adapt_shape(shape, targets)
+    # names, order, ownership and declared capabilities survive; only dialects move
+    assert [s.name for s in adapted.systems] == [s.name for s in shape.systems]
+    assert [s.capabilities for s in adapted.systems] == [s.capabilities for s in shape.systems]
+    assert adapted.owner == shape.owner and adapted.name == shape.name
+    assert adapted.systems[1] == shape.systems[1]  # the configured one is untouched
+    assert set(adaptations) == {shape.systems[0].name, shape.systems[2].name}
+    assert adaptations[shape.systems[0].name] == {"from": "snowflake", "to": "postgres"}
+    assert adaptations[shape.systems[2].name] == {"from": "snowflake", "to": "arango"}
+    assert all(targets.missing_reason(s.dialect) is None for s in adapted.systems)
+    assert adapt_shape(shape, targets) == (adapted, adaptations)  # deterministic
+    assert SUBSTITUTION_ORDER[:3] == ("postgres", "arango", "clickhouse")
+
+
+def test_adapt_shape_is_identity_when_nothing_is_missing_or_nothing_is_configured() -> None:
+    local = _local_shape("hub")
+    assert adapt_shape(local, LiveTargets.from_env({})) == (local, {})
+    snow = _with_snowflake(local, 0)
+    assert adapt_shape(snow, LiveTargets()) == (snow, {})  # no target to substitute with
+
+
+def test_run_carries_adaptations_into_the_report_and_its_file(tmp_path: Path) -> None:
+    shape = _with_snowflake(_local_shape("two_leg"), 0)
+    targets = LiveTargets.from_env({})
+    adapted, adaptations = adapt_shape(shape, targets)
+    ds = synthesize(adapted, rows_per_entity=3)
+    report = run_live_shape(
+        adapted,
+        ds,
+        targets,
+        tmp_path,
+        rows_per_entity=3,
+        deployer=_fake_deployer,
+        introspect_sql=_fake_sql_introspect(adapted),
+        introspect_graph=_fake_graph_introspect(adapted),
+        adaptations=adaptations,
+    )
+    assert report.status == "onboarded", report.message
+    assert report.adaptations == adaptations and report.to_dict()["adaptations"] == adaptations
+    on_disk = json.loads((tmp_path / shape.name / LIVE_REPORT_FILE).read_text(encoding="utf-8"))
+    assert on_disk["adaptations"] == adaptations
+    # without adaptation the same shape is skipped whole, as before
+    assert (
+        run_live_shape(
+            shape, ds, targets, tmp_path / "plain", rows_per_entity=3, deployer=_fake_deployer
+        ).status
+        == "skipped"
+    )

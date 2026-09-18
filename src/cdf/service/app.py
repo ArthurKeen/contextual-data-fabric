@@ -837,6 +837,9 @@ class FederationService:
 
         - ``CDF_CATALOG_MANIFEST`` — authoritative file-backed catalog v1. When
           set, its validated CSI/R2RML paths replace the legacy directory paths.
+          ``CDF_CATALOG_ROOT`` names the artifact root its relative paths
+          resolve against (default: walk up to ``pyproject.toml``); the Forge's
+          live manifests, written outside the repo, set it.
         - ``CDF_CSI_DIR`` — legacy directory of ``*.json`` CSI v1 documents
           (default ``deploy/csi``). Every document becomes a catalog entry.
         - Arango leg (kind ``arango``): ``ARANGO_URL`` (+ ``ARANGO_DB``,

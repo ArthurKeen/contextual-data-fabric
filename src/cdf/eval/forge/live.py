@@ -49,6 +49,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from dataclasses import replace as _replace
@@ -122,6 +123,37 @@ class LiveTargets:
         if dialect == "snowflake":
             return "snowflake live target not wired in this slice (S2 live v1: local engines)"
         return f"no live target configured for dialect {dialect!r}"
+
+
+#: Order in which a configured dialect stands in for an unconfigured one.
+SUBSTITUTION_ORDER: tuple[str, ...] = ("postgres", "arango", "clickhouse", "snowflake")
+
+
+def adapt_shape(shape: Shape, targets: LiveTargets) -> tuple[Shape, dict[str, dict[str, str]]]:
+    """Substitute a configured dialect for every system whose dialect has no
+    live target, so the shape's *topology* (systems, ownership, joins, declared
+    capabilities) still runs through the estate. Deterministic (cycles through
+    :data:`SUBSTITUTION_ORDER`), names and capabilities preserved, the committed
+    descriptor untouched; the adaptations are reported by name so a reader
+    never mistakes the run for the original shape. Without this, every chain
+    and hub shape — the multi-hop cases — was skipped whole for Snowflake."""
+    available = [d for d in SUBSTITUTION_ORDER if targets.missing_reason(d) is None]
+    if not available:
+        return shape, {}
+    adaptations: dict[str, dict[str, str]] = {}
+    systems = []
+    cycle = 0
+    for system in shape.systems:
+        if targets.missing_reason(system.dialect) is None:
+            systems.append(system)
+            continue
+        replacement = available[cycle % len(available)]
+        cycle += 1
+        adaptations[system.name] = {"from": system.dialect, "to": replacement}
+        systems.append(
+            System(name=system.name, dialect=replacement, capabilities=system.capabilities)
+        )
+    return _replace(shape, systems=tuple(systems)), adaptations
 
 
 def database_name(shape_name: str, system_name: str) -> str:
@@ -251,8 +283,18 @@ class SkippedSystem:
 
 
 def _swap_database(dsn: str, database: str) -> str:
-    base, _, _ = dsn.rpartition("/")
-    return f"{base}/{database}"
+    """Point a DSN at another database, keeping scheme, credentials, host and any
+    query string (``postgresql://u:p@h:5433/crm?sslmode=require`` → ``…/x?…``)."""
+    parts = urllib.parse.urlsplit(dsn)
+    return urllib.parse.urlunsplit(parts._replace(path=f"/{database}"))
+
+
+def write_private(path: Path, text: str) -> None:
+    """Write a credential-bearing file readable by the owner only (CC-7: secrets
+    never travel in artifacts; these live files hold dev-stack credentials and
+    are gitignored, never uploaded, and now not world-readable either)."""
+    path.write_text(text, encoding="utf-8")
+    os.chmod(path, 0o600)
 
 
 def deploy_postgres(artifacts: ForgeArtifacts, admin_dsn: str, database: str) -> str:
@@ -527,6 +569,9 @@ class LiveShapeReport:
     manifest: str | None = None
     registry: str | None = None
     message: str | None = None
+    adaptations: dict[str, dict[str, str]] = field(default_factory=dict)
+    """Systems whose dialect was substituted because it had no live target
+    (:func:`adapt_shape`) — ``{system: {from, to}}``; empty for a faithful run."""
     ontop: dict[str, Any] = field(default_factory=dict)
     """Per Postgres source: the Ontop endpoint launched for it and its startup time."""
     probe: dict[str, Any] = field(default_factory=dict)
@@ -544,6 +589,7 @@ class LiveShapeReport:
             "manifest": self.manifest,
             "registry": self.registry,
             "message": self.message,
+            "adaptations": self.adaptations,
             "ontop": self.ontop,
             "probe": self.probe,
             "goldens": self.goldens,
@@ -601,8 +647,9 @@ def onboard(
     )
     FileCatalogLoader(manifest_path, root=live_dir).load().source_catalog()
     registry_path = live_dir / "secret-registry.json"
-    registry_path.write_text(_json(registry), encoding="utf-8")
-    (live_dir / "live-env.json").write_text(
+    write_private(registry_path, _json(registry))
+    write_private(
+        live_dir / "live-env.json",
         _json(
             {
                 "CDF_CATALOG_MANIFEST": str(manifest_path),
@@ -613,7 +660,6 @@ def onboard(
                 "forge": {"pendingOntop": pending_ontop},
             }
         ),
-        encoding="utf-8",
     )
     return manifest_path, registry_path
 
@@ -633,10 +679,18 @@ def run_live_shape(
     deployer: Deployer = deploy_system,
     introspect_sql: Callable[..., tuple[dict[str, Any], str]] = introspect_relational,
     introspect_graph: Callable[..., dict[str, Any]] = introspect_arango,
+    adaptations: Mapping[str, Mapping[str, str]] | None = None,
 ) -> LiveShapeReport:
     """deploy → introspect → drift → onboard for one shape. A shape with any
-    unconfigured dialect is skipped whole (its goldens assume every leg)."""
-    report = LiveShapeReport(shape=shape.name, status="failed")
+    unconfigured dialect is skipped whole (its goldens assume every leg) —
+    unless the caller first ran it through :func:`adapt_shape` and passes the
+    ``adaptations`` it returned, which the report then carries so no reader
+    mistakes an adapted run for the committed shape."""
+    report = LiveShapeReport(
+        shape=shape.name,
+        status="failed",
+        adaptations={k: dict(v) for k, v in (adaptations or {}).items()},
+    )
     live_dir = live_root / shape.name
     for system in shape.systems:
         reason = targets.missing_reason(system.dialect)
