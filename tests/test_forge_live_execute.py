@@ -39,7 +39,18 @@ from cdf.query import execute_plan, ground, partition_query  # noqa: E402
 from cdf.query.catalog import SourceCatalog, source_ref_from_csi  # noqa: E402
 from cdf.query.executor import SourceResult  # noqa: E402
 
-CFG = OntopConfig(jdbc_dir=Path("deploy/ontop/jdbc"))
+CFG = OntopConfig()  # rendering-only tests; anything that launches uses the `cfg` fixture
+
+
+@pytest.fixture
+def cfg(tmp_path: Path) -> OntopConfig:
+    """An OntopConfig whose JDBC directory holds a driver jar. The real one is
+    gitignored and fetched by `make jdbc`, so it is absent on the offline CI
+    runner; these tests never start a container and must not depend on it."""
+    jdbc = tmp_path / "jdbc"
+    jdbc.mkdir()
+    (jdbc / "postgresql.jar").write_bytes(b"presence is what launch checks")
+    return OntopConfig(jdbc_dir=jdbc)
 
 
 # ── pieces ──────────────────────────────────────────────────────────────────
@@ -77,12 +88,15 @@ class _Docker:
         return ""
 
 
-def test_launch_ontop_runs_the_container_on_the_compose_network(tmp_path: Path) -> None:
+def test_launch_ontop_runs_the_container_on_the_compose_network(
+    tmp_path: Path, cfg: OntopConfig
+) -> None:
     docker = _Docker()
-    inst = launch_ontop("forge-ontop-x-pg1", tmp_path, CFG, runner=docker)
+    inst = launch_ontop("forge-ontop-x-pg1", tmp_path, cfg, runner=docker)
     run = next(c for c in docker.calls if c[0] == "run")
-    assert "--network" in run and run[run.index("--network") + 1] == CFG.network
-    assert f"{tmp_path.resolve()}:/opt/ontop/input:ro" in run and run[-1] == CFG.image
+    assert "--network" in run and run[run.index("--network") + 1] == cfg.network
+    assert f"{tmp_path.resolve()}:/opt/ontop/input:ro" in run and run[-1] == cfg.image
+    assert f"{cfg.jdbc_dir.resolve()}:/opt/ontop/jdbc:ro" in run
     assert inst.endpoint == "http://127.0.0.1:55001/sparql"
     assert inst.reformulate_endpoint.endswith("/ontop/reformulate")
 
@@ -238,7 +252,9 @@ class _FixtureService:
         return ground(execute_plan(plan, self._fixtures[sparql]), allow_partial=allow_partial)
 
 
-def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(tmp_path: Path) -> None:
+def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(
+    tmp_path: Path, cfg: OntopConfig
+) -> None:
     shape, ds, report = _onboarded(tmp_path)
     live_dir = tmp_path / shape.name
     docker = _Docker()
@@ -249,7 +265,7 @@ def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(tmp_path: Path
         live_dir,
         report,
         base_env={},
-        ontop_cfg=CFG,
+        ontop_cfg=cfg,
         runner=docker,
         service_factory=lambda env: _FixtureService(shape, ds, live_dir),
         ready=lambda inst, t: 0.5,
@@ -280,7 +296,9 @@ def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(tmp_path: Path
         )
 
 
-def test_execute_shape_keep_ontop_leaves_containers_and_a_failure_is_named(tmp_path: Path) -> None:
+def test_execute_shape_keep_ontop_leaves_containers_and_a_failure_is_named(
+    tmp_path: Path, cfg: OntopConfig
+) -> None:
     shape, ds, report = _onboarded(tmp_path)
     live_dir = tmp_path / shape.name
     docker = _Docker()
@@ -294,7 +312,7 @@ def test_execute_shape_keep_ontop_leaves_containers_and_a_failure_is_named(tmp_p
         live_dir,
         report,
         base_env={},
-        ontop_cfg=CFG,
+        ontop_cfg=cfg,
         runner=docker,
         service_factory=exploding_factory,
         ready=lambda inst, t: 0.0,
