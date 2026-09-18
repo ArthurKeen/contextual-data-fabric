@@ -95,7 +95,7 @@ jobs:
           cache: pip
       - name: Install engine + live-leg libraries
         run: |
-          pip install -e ".[test,service,mcp,auth,forge]" python-arango clickhouse-connect \
+          pip install -e ".[test,service,mcp,auth,forge,forge-live]" python-arango clickhouse-connect \
             snowflake-connector-python ruff mypy -r deploy/pins/arango-sparql-py.txt -r deploy/pins/r2g-arango.txt
       - name: Bring up all local source stacks
         run: make up PY=python
