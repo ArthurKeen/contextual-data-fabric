@@ -95,7 +95,7 @@ jobs:
           cache: pip
       - name: Install engine + live-leg libraries
         run: |
-          pip install -e ".[test,service,mcp,auth]" python-arango clickhouse-connect \
+          pip install -e ".[test,service,mcp,auth,forge]" python-arango clickhouse-connect \
             snowflake-connector-python ruff mypy -r deploy/pins/arango-sparql-py.txt -r deploy/pins/r2g-arango.txt
       - name: Bring up all local source stacks
         run: make up PY=python
@@ -133,6 +133,43 @@ jobs:
           CDF_R2RML_DIR: deploy/r2rml
           CDF_PREPARED_QUESTIONS: deploy/questions.json
         run: python deploy/demo/gate.py --exclude-source snowflake:telemetry
+      - name: Federation Forge — live mode (deploy → introspect → onboard → Ontop per leg → probe → goldens)
+        # The committed shapes through the REAL estate (ADR-0006 D-3; roadmap
+        # S2/S3): fresh databases in the stacks above, RSA/ASA/r2g introspection
+        # and export, declared references, manifest, one Ontop container per
+        # Postgres leg on the compose network, the CC-14 probe, and every golden
+        # via run_golden_live. Shapes with a Snowflake system are skipped by
+        # name. Runs after the gate so a Forge failure never masks it.
+        env:
+          ARANGO_URL: http://127.0.0.1:${{ env.CDF_ARANGO_PORT }}
+          ARANGO_USER: root
+          ARANGO_PASSWORD: cdf
+        run: |
+          python -m cdf.eval.forge live --shapes 10 --seed 421 --execute \
+            --live-out "$RUNNER_TEMP/forge-live" | tee "$RUNNER_TEMP/forge-live.log"
+      - name: Forge live tests (one shape per family + execute, asserted)
+        env:
+          CDF_FORGE_LIVE: "1"
+          ARANGO_URL: http://127.0.0.1:${{ env.CDF_ARANGO_PORT }}
+          ARANGO_USER: root
+          ARANGO_PASSWORD: cdf
+        run: pytest tests/test_forge_live_local.py -q
+      - name: Forge live summary in the job summary
+        if: always()
+        run: |
+          echo "### Federation Forge — live mode" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "^(RUN|SKIP|FAIL|LIVE)|forge-live:" "$RUNNER_TEMP/forge-live.log" >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forge-live-reports
+          path: |
+            ${{ runner.temp }}/forge-live/live-summary.json
+            ${{ runner.temp }}/forge-live/*/live-report.json
+          retention-days: 14
+          if-no-files-found: ignore
       - name: Collect source logs on failure
         if: failure()
         run: |

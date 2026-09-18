@@ -46,9 +46,13 @@ descriptor through the estate. Nothing in the descriptor changes between modes.
 
 ```
 make up                                  # the local compose stacks
-python -m cdf.eval.forge live --shapes 10 --seed 421      # → deploy/forge/live/<shape>/
-CDF_FORGE_LIVE=1 pytest tests/test_forge_live_local.py    # one shape per family, asserted
+make forge-live                          # deploy → … → goldens, all shapes (→ deploy/forge/live/)
+make forge-live FORGE_LIVE_FLAGS="--only two_leg-421 --keep-ontop"   # one shape, Ontop left up
+CDF_FORGE_LIVE=1 pytest tests/test_forge_live_local.py    # one shape per family + execute, asserted
 ```
+
+CI runs both in the `live-local` job on every PR and on the weekday schedule,
+and publishes `live-summary.json` as a build artifact.
 
 Per shape, per system (`cdf.eval.forge.live`):
 
