@@ -58,7 +58,7 @@
   },
   "family": "join",
   "name": "wide_narrow-429--join--Account-Payment",
-  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?account_segment ?payment_active WHERE { ?account a c:Account ; c:segment ?account_segment ; c:accountsToPayments ?payment . ?payment a c:Payment ; c:active ?payment_active }",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?account_segment ?payment_active WHERE { ?account a c:Account ; c:segment ?account_segment ; c:paymentId ?payment_key . ?payment a c:Payment ; c:id ?payment_key ; c:active ?payment_active }",
   "shape": "wide_narrow-429",
   "sources": [
     {
@@ -239,62 +239,62 @@
           {
             "account": 1,
             "account_segment": "segment-78079",
-            "payment": 4
+            "payment_key": 4
           },
           {
             "account": 2,
             "account_segment": "segment-37440",
-            "payment": 9
+            "payment_key": 9
           },
           {
             "account": 3,
             "account_segment": "segment-45858",
-            "payment": 11
+            "payment_key": 11
           },
           {
             "account": 4,
             "account_segment": "segment-14159",
-            "payment": 11
+            "payment_key": 11
           },
           {
             "account": 5,
             "account_segment": "segment-94750",
-            "payment": 1
+            "payment_key": 1
           },
           {
             "account": 6,
             "account_segment": "segment-12193",
-            "payment": 12
+            "payment_key": 12
           },
           {
             "account": 7,
             "account_segment": "segment-98008",
-            "payment": 7
+            "payment_key": 7
           },
           {
             "account": 8,
             "account_segment": "segment-07307",
-            "payment": 3
+            "payment_key": 3
           },
           {
             "account": 9,
             "account_segment": "segment-34898",
-            "payment": 12
+            "payment_key": 12
           },
           {
             "account": 10,
             "account_segment": "segment-87281",
-            "payment": 9
+            "payment_key": 9
           },
           {
             "account": 11,
             "account_segment": "segment-14504",
-            "payment": 5
+            "payment_key": 5
           },
           {
             "account": 12,
             "account_segment": "segment-30802",
-            "payment": 5
+            "payment_key": 5
           }
         ],
         "source_objects": [
@@ -456,51 +456,63 @@
         "rows": [
           {
             "payment": 1,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 1
           },
           {
             "payment": 2,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 2
           },
           {
             "payment": 3,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 3
           },
           {
             "payment": 4,
-            "payment_active": true
+            "payment_active": true,
+            "payment_key": 4
           },
           {
             "payment": 5,
-            "payment_active": true
+            "payment_active": true,
+            "payment_key": 5
           },
           {
             "payment": 6,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 6
           },
           {
             "payment": 7,
-            "payment_active": true
+            "payment_active": true,
+            "payment_key": 7
           },
           {
             "payment": 8,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 8
           },
           {
             "payment": 9,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 9
           },
           {
             "payment": 10,
-            "payment_active": false
+            "payment_active": false,
+            "payment_key": 10
           },
           {
             "payment": 11,
-            "payment_active": true
+            "payment_active": true,
+            "payment_key": 11
           },
           {
             "payment": 12,
-            "payment_active": true
+            "payment_active": true,
+            "payment_key": 12
           }
         ],
         "source_objects": [

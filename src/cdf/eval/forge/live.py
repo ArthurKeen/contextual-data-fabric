@@ -521,12 +521,19 @@ class LiveSystemResult:
 class LiveShapeReport:
     shape: str
     status: str
-    """``onboarded`` | ``skipped`` | ``failed``"""
+    """``onboarded`` | ``executed`` | ``skipped`` | ``failed``"""
     systems: list[LiveSystemResult] = field(default_factory=list)
     skipped: list[dict[str, str]] = field(default_factory=list)
     manifest: str | None = None
     registry: str | None = None
     message: str | None = None
+    ontop: dict[str, Any] = field(default_factory=dict)
+    """Per Postgres source: the Ontop endpoint launched for it and its startup time."""
+    probe: dict[str, Any] = field(default_factory=dict)
+    """CC-14 result: ``stripped`` declarations by source, and the golden
+    expectations that ``flipped`` when re-derived from the probed capabilities."""
+    goldens: dict[str, Any] = field(default_factory=dict)
+    """``total`` / ``passed`` / ``failed`` (name + mismatches) through the real fabric."""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -537,6 +544,9 @@ class LiveShapeReport:
             "manifest": self.manifest,
             "registry": self.registry,
             "message": self.message,
+            "ontop": self.ontop,
+            "probe": self.probe,
+            "goldens": self.goldens,
         }
 
 

@@ -58,7 +58,7 @@
   },
   "family": "join",
   "name": "wide_narrow-424--join--Session-Region",
-  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?session_billable ?region_active WHERE { ?session a c:Session ; c:billable ?session_billable ; c:sessionsToRegions ?region . ?region a c:Region ; c:active ?region_active }",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?session_billable ?region_active WHERE { ?session a c:Session ; c:billable ?session_billable ; c:regionId ?region_key . ?region a c:Region ; c:id ?region_key ; c:active ?region_active }",
   "shape": "wide_narrow-424",
   "sources": [
     {
@@ -193,62 +193,62 @@
         "native_query": "-- forge fixture: rows projected from the pre-partition dataset for sessions",
         "rows": [
           {
-            "region": 3,
+            "region_key": 3,
             "session": 1,
             "session_billable": true
           },
           {
-            "region": 3,
+            "region_key": 3,
             "session": 2,
             "session_billable": true
           },
           {
-            "region": 5,
+            "region_key": 5,
             "session": 3,
             "session_billable": false
           },
           {
-            "region": 3,
+            "region_key": 3,
             "session": 4,
             "session_billable": true
           },
           {
-            "region": 8,
+            "region_key": 8,
             "session": 5,
             "session_billable": true
           },
           {
-            "region": 1,
+            "region_key": 1,
             "session": 6,
             "session_billable": true
           },
           {
-            "region": 5,
+            "region_key": 5,
             "session": 7,
             "session_billable": false
           },
           {
-            "region": 10,
+            "region_key": 10,
             "session": 8,
             "session_billable": true
           },
           {
-            "region": 7,
+            "region_key": 7,
             "session": 9,
             "session_billable": true
           },
           {
-            "region": 11,
+            "region_key": 11,
             "session": 10,
             "session_billable": false
           },
           {
-            "region": 3,
+            "region_key": 3,
             "session": 11,
             "session_billable": false
           },
           {
-            "region": 5,
+            "region_key": 5,
             "session": 12,
             "session_billable": false
           }
@@ -398,51 +398,63 @@
         "rows": [
           {
             "region": 1,
-            "region_active": false
+            "region_active": false,
+            "region_key": 1
           },
           {
             "region": 2,
-            "region_active": false
+            "region_active": false,
+            "region_key": 2
           },
           {
             "region": 3,
-            "region_active": false
+            "region_active": false,
+            "region_key": 3
           },
           {
             "region": 4,
-            "region_active": true
+            "region_active": true,
+            "region_key": 4
           },
           {
             "region": 5,
-            "region_active": true
+            "region_active": true,
+            "region_key": 5
           },
           {
             "region": 6,
-            "region_active": false
+            "region_active": false,
+            "region_key": 6
           },
           {
             "region": 7,
-            "region_active": true
+            "region_active": true,
+            "region_key": 7
           },
           {
             "region": 8,
-            "region_active": false
+            "region_active": false,
+            "region_key": 8
           },
           {
             "region": 9,
-            "region_active": false
+            "region_active": false,
+            "region_key": 9
           },
           {
             "region": 10,
-            "region_active": true
+            "region_active": true,
+            "region_key": 10
           },
           {
             "region": 11,
-            "region_active": true
+            "region_active": true,
+            "region_key": 11
           },
           {
             "region": 12,
-            "region_active": true
+            "region_active": true,
+            "region_key": 12
           }
         ],
         "source_objects": [

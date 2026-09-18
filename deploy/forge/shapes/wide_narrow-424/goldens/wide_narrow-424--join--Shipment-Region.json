@@ -58,7 +58,7 @@
   },
   "family": "join",
   "name": "wide_narrow-424--join--Shipment-Region",
-  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?shipment_region ?region_active WHERE { ?shipment a c:Shipment ; c:region ?shipment_region ; c:shipmentsToRegions ?region . ?region a c:Region ; c:active ?region_active }",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?shipment_region ?region_active WHERE { ?shipment a c:Shipment ; c:region ?shipment_region ; c:regionId ?region_key . ?region a c:Region ; c:id ?region_key ; c:active ?region_active }",
   "shape": "wide_narrow-424",
   "sources": [
     {
@@ -193,62 +193,62 @@
         "native_query": "-- forge fixture: rows projected from the pre-partition dataset for shipments",
         "rows": [
           {
-            "region": 10,
+            "region_key": 10,
             "shipment": 1,
             "shipment_region": "region-68330"
           },
           {
-            "region": 8,
+            "region_key": 8,
             "shipment": 2,
             "shipment_region": "region-19728"
           },
           {
-            "region": 10,
+            "region_key": 10,
             "shipment": 3,
             "shipment_region": "region-61928"
           },
           {
-            "region": 7,
+            "region_key": 7,
             "shipment": 4,
             "shipment_region": "region-07413"
           },
           {
-            "region": 6,
+            "region_key": 6,
             "shipment": 5,
             "shipment_region": "region-56407"
           },
           {
-            "region": 1,
+            "region_key": 1,
             "shipment": 6,
             "shipment_region": "region-15674"
           },
           {
-            "region": 8,
+            "region_key": 8,
             "shipment": 7,
             "shipment_region": "region-10592"
           },
           {
-            "region": 9,
+            "region_key": 9,
             "shipment": 8,
             "shipment_region": "region-38222"
           },
           {
-            "region": 7,
+            "region_key": 7,
             "shipment": 9,
             "shipment_region": "region-71166"
           },
           {
-            "region": 3,
+            "region_key": 3,
             "shipment": 10,
             "shipment_region": "region-45653"
           },
           {
-            "region": 7,
+            "region_key": 7,
             "shipment": 11,
             "shipment_region": "region-32202"
           },
           {
-            "region": 9,
+            "region_key": 9,
             "shipment": 12,
             "shipment_region": "region-91750"
           }
@@ -398,51 +398,63 @@
         "rows": [
           {
             "region": 1,
-            "region_active": false
+            "region_active": false,
+            "region_key": 1
           },
           {
             "region": 2,
-            "region_active": false
+            "region_active": false,
+            "region_key": 2
           },
           {
             "region": 3,
-            "region_active": false
+            "region_active": false,
+            "region_key": 3
           },
           {
             "region": 4,
-            "region_active": true
+            "region_active": true,
+            "region_key": 4
           },
           {
             "region": 5,
-            "region_active": true
+            "region_active": true,
+            "region_key": 5
           },
           {
             "region": 6,
-            "region_active": false
+            "region_active": false,
+            "region_key": 6
           },
           {
             "region": 7,
-            "region_active": true
+            "region_active": true,
+            "region_key": 7
           },
           {
             "region": 8,
-            "region_active": false
+            "region_active": false,
+            "region_key": 8
           },
           {
             "region": 9,
-            "region_active": false
+            "region_active": false,
+            "region_key": 9
           },
           {
             "region": 10,
-            "region_active": true
+            "region_active": true,
+            "region_key": 10
           },
           {
             "region": 11,
-            "region_active": true
+            "region_active": true,
+            "region_key": 11
           },
           {
             "region": 12,
-            "region_active": true
+            "region_active": true,
+            "region_key": 12
           }
         ],
         "source_objects": [

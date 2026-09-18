@@ -58,7 +58,7 @@
   },
   "family": "join",
   "name": "wide_narrow-424--join--Invoice-Region",
-  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?invoice_channel ?region_active WHERE { ?invoice a c:Invoice ; c:channel ?invoice_channel ; c:invoicesToRegions ?region . ?region a c:Region ; c:active ?region_active }",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?invoice_channel ?region_active WHERE { ?invoice a c:Invoice ; c:channel ?invoice_channel ; c:regionId ?region_key . ?region a c:Region ; c:id ?region_key ; c:active ?region_active }",
   "shape": "wide_narrow-424",
   "sources": [
     {
@@ -144,62 +144,62 @@
           {
             "invoice": 1,
             "invoice_channel": "channel-41540",
-            "region": 11
+            "region_key": 11
           },
           {
             "invoice": 2,
             "invoice_channel": "channel-05919",
-            "region": 1
+            "region_key": 1
           },
           {
             "invoice": 3,
             "invoice_channel": "channel-65937",
-            "region": 11
+            "region_key": 11
           },
           {
             "invoice": 4,
             "invoice_channel": "channel-77837",
-            "region": 12
+            "region_key": 12
           },
           {
             "invoice": 5,
             "invoice_channel": "channel-29973",
-            "region": 1
+            "region_key": 1
           },
           {
             "invoice": 6,
             "invoice_channel": "channel-57421",
-            "region": 3
+            "region_key": 3
           },
           {
             "invoice": 7,
             "invoice_channel": "channel-24627",
-            "region": 3
+            "region_key": 3
           },
           {
             "invoice": 8,
             "invoice_channel": "channel-93544",
-            "region": 10
+            "region_key": 10
           },
           {
             "invoice": 9,
             "invoice_channel": "channel-46176",
-            "region": 2
+            "region_key": 2
           },
           {
             "invoice": 10,
             "invoice_channel": "channel-95322",
-            "region": 8
+            "region_key": 8
           },
           {
             "invoice": 11,
             "invoice_channel": "channel-84424",
-            "region": 10
+            "region_key": 10
           },
           {
             "invoice": 12,
             "invoice_channel": "channel-09097",
-            "region": 2
+            "region_key": 2
           }
         ],
         "source_objects": [
@@ -347,51 +347,63 @@
         "rows": [
           {
             "region": 1,
-            "region_active": false
+            "region_active": false,
+            "region_key": 1
           },
           {
             "region": 2,
-            "region_active": false
+            "region_active": false,
+            "region_key": 2
           },
           {
             "region": 3,
-            "region_active": false
+            "region_active": false,
+            "region_key": 3
           },
           {
             "region": 4,
-            "region_active": true
+            "region_active": true,
+            "region_key": 4
           },
           {
             "region": 5,
-            "region_active": true
+            "region_active": true,
+            "region_key": 5
           },
           {
             "region": 6,
-            "region_active": false
+            "region_active": false,
+            "region_key": 6
           },
           {
             "region": 7,
-            "region_active": true
+            "region_active": true,
+            "region_key": 7
           },
           {
             "region": 8,
-            "region_active": false
+            "region_active": false,
+            "region_key": 8
           },
           {
             "region": 9,
-            "region_active": false
+            "region_active": false,
+            "region_key": 9
           },
           {
             "region": 10,
-            "region_active": true
+            "region_active": true,
+            "region_key": 10
           },
           {
             "region": 11,
-            "region_active": true
+            "region_active": true,
+            "region_key": 11
           },
           {
             "region": 12,
-            "region_active": true
+            "region_active": true,
+            "region_key": 12
           }
         ],
         "source_objects": [

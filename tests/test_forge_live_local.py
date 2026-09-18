@@ -59,3 +59,48 @@ def test_shape_onboards_through_the_estate_with_no_drift(shape, tmp_path: Path) 
         assert system.declared_references == expected_declared
     manifest = json.loads(Path(report.manifest).read_text(encoding="utf-8"))
     assert {s["sourceId"] for s in manifest["sources"]} == {s.source_id for s in shape.systems}
+
+
+# ── slice 4: execute through the real fabric (needs docker for the Ontop leg) ─
+
+
+def _docker_available() -> bool:
+    import shutil
+    import subprocess
+
+    if not shutil.which("docker"):
+        return False
+    return subprocess.run(["docker", "info"], capture_output=True, check=False).returncode == 0
+
+
+@pytest.mark.skipif(not _docker_available(), reason="docker not available for the per-shape Ontop")
+def test_a_shape_with_a_postgres_leg_executes_its_goldens_through_the_fabric(
+    tmp_path: Path,
+) -> None:
+    """Ontop launched per Postgres leg, registry completed, strict-startup
+    service, CC-14 probe (a ClickHouse system that DECLARED GROUP BY is
+    stripped — its executor cannot aggregate — and its goldens flip to
+    refusals), then every re-derived golden passes on the real fabric."""
+    from cdf.eval.forge.live_execute import OntopConfig, execute_shape
+
+    shape = next(s for s in _local_shapes() if any(x.dialect == "postgres" for x in s.systems))
+    ds = synthesize(shape, rows_per_entity=6)
+    report = run_live_shape(shape, ds, LiveTargets.from_env(), tmp_path, rows_per_entity=6)
+    assert report.status == "onboarded", report.message
+    report = execute_shape(
+        shape,
+        ds,
+        tmp_path / shape.name,
+        report,
+        base_env=dict(os.environ),
+        ontop_cfg=OntopConfig.from_env(os.environ),
+    )
+    assert report.status == "executed", report.message
+    assert set(report.ontop) == {s.source_id for s in shape.systems if s.kind == "postgresql"}
+    assert report.goldens["failed"] == [], report.goldens["failed"]
+    assert report.goldens["passed"] == report.goldens["total"] > 0
+    for source_id in report.probe["stripped"]:
+        kind = source_id.split(":", 1)[0]
+        assert kind in {"clickhouse", "snowflake"}, (
+            f"probe stripped {source_id}: only native legs may"
+        )

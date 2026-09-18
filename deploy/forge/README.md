@@ -78,21 +78,40 @@ Per shape, per system (`cdf.eval.forge.live`):
    `FederationService.from_env` loads it (`CDF_CATALOG_ROOT` names the
    artifact root), and the secret registry JSON `from_env` consumes.
 
-Snowflake systems are **skipped by name** in this slice (local engines only);
-a shape with any skipped system is skipped whole, because its goldens assume
-every leg. Postgres legs are onboarded but listed as `pendingOntop` in
-`live-env.json`: the fabric's Postgres leg runs through Ontop, and **slice 4**
-launches one Ontop per shape over those JDBC URLs, adds their SPARQL endpoints
-to the registry, runs the CC-14 probe, and executes the goldens with
-`run_golden_live`. Live artifacts live under `deploy/forge/live/` (gitignored):
-they describe *this* environment, not the suite.
+6. **execute** (`--execute`; `cdf.eval.forge.live_execute`) — one **Ontop per
+   Postgres leg** (a container on the compose network, fed the R2RML r2g
+   exported for exactly that database; ~3 s to ready), its SPARQL endpoint
+   completes the secret registry; `FederationService.from_env` with strict
+   startup; the **CC-14 probe** of every declared capability against the live
+   executor — a declaration the engine cannot honour is stripped from the
+   manifest **and the goldens are re-derived from the probed capabilities**
+   (fixture mode expects what was declared; live mode expects what the probe
+   established; the report names the expectations that flipped); then every
+   golden through `run_golden_live` — real planner, legs and grounding.
+   `--keep-ontop` leaves the containers up for inspection.
+
+Snowflake systems are **skipped by name** (local engines only); a shape with
+any skipped system is skipped whole, because its goldens assume every leg.
+Live artifacts live under `deploy/forge/live/` (gitignored): they describe
+*this* environment, not the suite.
+
+**What live mode found on its first run (2026-09-18):** the join, chain and
+cross-leg-aggregation templates navigated a relationship predicate across
+systems (`?payment c:paymentsToAssets ?asset . ?asset a c:Asset`). Fixture
+executors answered that happily; the real legs cannot — no edge or constraint
+exists across systems, the AQL leg compiles the predicate to an attribute that
+is not there, and Ontop binds the entity as an IRI while the AQL leg binds a
+scalar, so the variables can never join. The templates now use the fabric's
+cross-source join contract — a shared key variable bound by a literal property
+on each side (`<parent>Id` on the child, `id` on the parent) — and the same
+goldens pass on the real fabric.
 
 ## Question families the oracle emits
 
 | family | shape | expectation |
 |---|---|---|
 | `lookup` | one entity, ≤2 properties | grounded, bindings from the dataset |
-| `join` | child ⋈ parent across two systems | grounded, bindings joined on the FK spine |
+| `join` | child ⋈ parent across two systems, on a **shared key** (`<parent>Id` on the child, `id` on the parent — the fabric's cross-source join contract; a relationship predicate cannot be navigated across systems) | grounded, bindings joined on the FK spine |
 | `chain` | A → B → C across three systems | grounded |
 | `single_leg_aggregation` | `COUNT` grouped by a boolean | grounded where the owning system **declares** GROUP BY in the descriptor; **named refusal** where it declares none (ADR-0005 D4) — see *Capabilities* below |
 | `cross_leg_aggregation` | `COUNT` over a cross-system join | **named refusal** until S2's fold-combine lands; then rewritten as grounded with the counts already computed here |
