@@ -152,6 +152,10 @@ jobs:
           CDF_FORGE_ONTOP_TIMEOUT: "60"
           PYTHONUNBUFFERED: "1"
         run: |
+          # GitHub's default shell is `bash -e` WITHOUT pipefail: a `| tee` pipeline
+          # reports tee's exit status, so a failing Forge run showed green (mirror
+          # run 35406720864, 2026-09-18: five FAIL lines, step "success").
+          set -o pipefail
           python -m cdf.eval.forge live --shapes 10 --seed 421 --execute --substitute-unavailable \
             --live-out "$RUNNER_TEMP/forge-live" | tee "$RUNNER_TEMP/forge-live.log"
       - name: Forge live tests (one shape per family + execute, asserted)
@@ -271,6 +275,7 @@ jobs:
           CDF_FORGE_ONTOP_TIMEOUT: "60"
           PYTHONUNBUFFERED: "1"
         run: |
+          set -o pipefail  # see the live-local step: `| tee` must not mask the Forge's exit status
           python -m cdf.eval.forge live --shapes 10 --seed 421 --execute \
             --live-out "$RUNNER_TEMP/forge-live" | tee "$RUNNER_TEMP/forge-live.log"
       - name: Forge live tests (one shape per family + a Snowflake system through the real account)
