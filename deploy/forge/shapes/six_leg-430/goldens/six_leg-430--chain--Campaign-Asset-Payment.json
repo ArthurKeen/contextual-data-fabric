@@ -2,64 +2,64 @@
   "expect": {
     "bindings": [
       {
-        "asset_label": "label-77720",
-        "campaign_billable": true,
-        "payment_priority": 20290
-      },
-      {
-        "asset_label": "label-77720",
-        "campaign_billable": false,
-        "payment_priority": 20290
-      },
-      {
-        "asset_label": "label-41806",
-        "campaign_billable": false,
-        "payment_priority": 32415
-      },
-      {
-        "asset_label": "label-77720",
-        "campaign_billable": false,
-        "payment_priority": 20290
+        "asset_label": "label-83711",
+        "campaign_notes": "notes-35844",
+        "payment_priority": 59730
       },
       {
         "asset_label": "label-72385",
-        "campaign_billable": false,
+        "campaign_notes": "notes-45097",
+        "payment_priority": 32415
+      },
+      {
+        "asset_label": "label-03913",
+        "campaign_notes": "notes-22193",
+        "payment_priority": 53497
+      },
+      {
+        "asset_label": "label-72385",
+        "campaign_notes": "notes-84755",
+        "payment_priority": 32415
+      },
+      {
+        "asset_label": "label-72385",
+        "campaign_notes": "notes-34763",
         "payment_priority": 32415
       },
       {
         "asset_label": "label-41806",
-        "campaign_billable": false,
+        "campaign_notes": "notes-13106",
         "payment_priority": 32415
       },
       {
-        "asset_label": "label-03913",
-        "campaign_billable": true,
-        "payment_priority": 53497
-      },
-      {
-        "asset_label": "label-03913",
-        "campaign_billable": false,
-        "payment_priority": 53497
-      },
-      {
-        "asset_label": "label-66924",
-        "campaign_billable": false,
-        "payment_priority": 40232
-      },
-      {
-        "asset_label": "label-77720",
-        "campaign_billable": true,
+        "asset_label": "label-22110",
+        "campaign_notes": "notes-67926",
         "payment_priority": 20290
       },
       {
-        "asset_label": "label-41806",
-        "campaign_billable": true,
-        "payment_priority": 32415
+        "asset_label": "label-68396",
+        "campaign_notes": "notes-44162",
+        "payment_priority": 27655
       },
       {
-        "asset_label": "label-68396",
-        "campaign_billable": false,
-        "payment_priority": 27655
+        "asset_label": "label-03913",
+        "campaign_notes": "notes-34866",
+        "payment_priority": 53497
+      },
+      {
+        "asset_label": "label-83711",
+        "campaign_notes": "notes-86367",
+        "payment_priority": 59730
+      },
+      {
+        "asset_label": "label-03913",
+        "campaign_notes": "notes-85750",
+        "payment_priority": 53497
+      },
+      {
+        "asset_label": "label-03085",
+        "campaign_notes": "notes-55848",
+        "payment_priority": 96076
       }
     ],
     "sources_touched": [
@@ -71,16 +71,16 @@
   },
   "family": "chain",
   "name": "six_leg-430--chain--Campaign-Asset-Payment",
-  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?campaign_billable ?asset_label ?payment_priority WHERE { ?campaign a c:Campaign ; c:billable ?campaign_billable ; c:assetId ?asset_key . ?asset a c:Asset ; c:id ?asset_key ; c:label ?asset_label ; c:paymentId ?payment_key . ?payment a c:Payment ; c:id ?payment_key ; c:priority ?payment_priority }",
+  "question": "PREFIX c: <urn:arango-sparql:concept#> SELECT ?campaign_notes ?asset_label ?payment_priority WHERE { ?campaign a c:Campaign ; c:notes ?campaign_notes ; c:assetId ?asset_key . ?asset a c:Asset ; c:id ?asset_key ; c:label ?asset_label ; c:paymentId ?payment_key . ?payment a c:Payment ; c:id ?payment_key ; c:priority ?payment_priority }",
   "shape": "six_leg-430",
   "sources": [
     {
       "capabilities": {
         "aggregation": {
           "approxCountDistinct": null,
-          "countDistinct": false,
-          "groupBy": false,
-          "having": false
+          "countDistinct": true,
+          "groupBy": true,
+          "having": true
         },
         "orderLimitPushdown": false,
         "textSearch": {
@@ -99,9 +99,6 @@
                 "assetId": {
                   "field": "asset_id"
                 },
-                "billable": {
-                  "field": "billable"
-                },
                 "customerId": {
                   "field": "customer_id"
                 },
@@ -113,6 +110,9 @@
                 },
                 "rank": {
                   "field": "rank"
+                },
+                "ratio": {
+                  "field": "ratio"
                 }
               },
               "style": "COLLECTION"
@@ -130,10 +130,6 @@
                   "type": "integer"
                 },
                 {
-                  "name": "billable",
-                  "type": "boolean"
-                },
-                {
                   "name": "customerId",
                   "type": "integer"
                 },
@@ -148,6 +144,10 @@
                 {
                   "name": "rank",
                   "type": "integer"
+                },
+                {
+                  "name": "ratio",
+                  "type": "float"
                 }
               ]
             }
@@ -181,64 +181,64 @@
         "native_query": "-- forge fixture: rows projected from the pre-partition dataset for campaigns",
         "rows": [
           {
-            "asset_key": 6,
+            "asset_key": 2,
             "campaign": 1,
-            "campaign_billable": true
+            "campaign_notes": "notes-35844"
           },
           {
-            "asset_key": 6,
+            "asset_key": 3,
             "campaign": 2,
-            "campaign_billable": false
+            "campaign_notes": "notes-45097"
           },
           {
-            "asset_key": 5,
+            "asset_key": 4,
             "campaign": 3,
-            "campaign_billable": false
+            "campaign_notes": "notes-22193"
           },
           {
-            "asset_key": 6,
+            "asset_key": 3,
             "campaign": 4,
-            "campaign_billable": false
+            "campaign_notes": "notes-84755"
           },
           {
             "asset_key": 3,
             "campaign": 5,
-            "campaign_billable": false
+            "campaign_notes": "notes-34763"
           },
           {
             "asset_key": 5,
             "campaign": 6,
-            "campaign_billable": false
+            "campaign_notes": "notes-13106"
           },
           {
-            "asset_key": 4,
+            "asset_key": 1,
             "campaign": 7,
-            "campaign_billable": true
-          },
-          {
-            "asset_key": 4,
-            "campaign": 8,
-            "campaign_billable": false
-          },
-          {
-            "asset_key": 9,
-            "campaign": 9,
-            "campaign_billable": false
-          },
-          {
-            "asset_key": 6,
-            "campaign": 10,
-            "campaign_billable": true
-          },
-          {
-            "asset_key": 5,
-            "campaign": 11,
-            "campaign_billable": true
+            "campaign_notes": "notes-67926"
           },
           {
             "asset_key": 11,
+            "campaign": 8,
+            "campaign_notes": "notes-44162"
+          },
+          {
+            "asset_key": 4,
+            "campaign": 9,
+            "campaign_notes": "notes-34866"
+          },
+          {
+            "asset_key": 2,
+            "campaign": 10,
+            "campaign_notes": "notes-86367"
+          },
+          {
+            "asset_key": 4,
+            "campaign": 11,
+            "campaign_notes": "notes-85750"
+          },
+          {
+            "asset_key": 7,
             "campaign": 12,
-            "campaign_billable": false
+            "campaign_notes": "notes-55848"
           }
         ],
         "source_objects": [
@@ -251,9 +251,9 @@
       "capabilities": {
         "aggregation": {
           "approxCountDistinct": null,
-          "countDistinct": false,
-          "groupBy": false,
-          "having": false
+          "countDistinct": true,
+          "groupBy": true,
+          "having": true
         },
         "orderLimitPushdown": false,
         "textSearch": {

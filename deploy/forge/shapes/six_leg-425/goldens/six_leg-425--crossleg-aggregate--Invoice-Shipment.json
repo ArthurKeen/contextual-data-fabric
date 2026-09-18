@@ -32,20 +32,20 @@
             "Invoice": {
               "collectionName": "invoices",
               "properties": {
+                "amount": {
+                  "field": "amount"
+                },
                 "category": {
                   "field": "category"
                 },
                 "id": {
                   "field": "id"
                 },
-                "latencyMs": {
-                  "field": "latency_ms"
+                "priority": {
+                  "field": "priority"
                 },
                 "rank": {
                   "field": "rank"
-                },
-                "seats": {
-                  "field": "seats"
                 },
                 "shipmentId": {
                   "field": "shipment_id"
@@ -62,6 +62,10 @@
               "name": "Invoice",
               "properties": [
                 {
+                  "name": "amount",
+                  "type": "float"
+                },
+                {
                   "name": "category",
                   "type": "string"
                 },
@@ -70,15 +74,11 @@
                   "type": "integer"
                 },
                 {
-                  "name": "latencyMs",
-                  "type": "float"
-                },
-                {
-                  "name": "rank",
+                  "name": "priority",
                   "type": "integer"
                 },
                 {
-                  "name": "seats",
+                  "name": "rank",
                   "type": "integer"
                 },
                 {
