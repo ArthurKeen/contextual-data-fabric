@@ -381,8 +381,13 @@ def execute_shape(
             )
             (input_dir / "mapping.ttl").write_text(r2rml, encoding="utf-8")
             jdbc_url, user, password = jdbc_from_dsn(dsn, ontop_cfg)
-            write_private(
-                input_dir / "ontop.properties", render_ontop_properties(jdbc_url, user, password)
+            # NOT write_private: the container runs as uid 999 (`ontop`) and reads
+            # this file through a bind mount, so on Linux a 0600 file owned by the
+            # host user is unreadable to it and Ontop never comes up (CI, 2026-09-18).
+            # It holds the compose stack's dev password exactly as the committed
+            # deploy/ontop/input/ontop.properties does; the live dir is gitignored.
+            (input_dir / "ontop.properties").write_text(
+                render_ontop_properties(jdbc_url, user, password), encoding="utf-8"
             )
             instance = launch_ontop(
                 f"forge-ontop-{shape.name}-{system_name}".lower(),

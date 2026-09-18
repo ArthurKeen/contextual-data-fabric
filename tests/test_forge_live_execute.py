@@ -301,10 +301,14 @@ def test_execute_shape_launches_ontop_probes_and_runs_the_goldens(
         assert (live_dir / "ontop" / name / "mapping.ttl").read_text() == (
             live_dir / "r2rml" / f"postgresql_{name}.ttl"
         ).read_text()
-        assert (
-            "jdbc.url=jdbc:postgresql://postgres:5432/"
-            in (live_dir / "ontop" / name / "ontop.properties").read_text()
-        )
+        props = live_dir / "ontop" / name / "ontop.properties"
+        assert "jdbc.url=jdbc:postgresql://postgres:5432/" in props.read_text()
+        # Read by uid 999 inside the container through a bind mount: an
+        # owner-only file stalls Ontop on Linux (CI, 2026-09-18). Must stay
+        # readable to others, unlike the registry files our own process reads.
+        assert props.stat().st_mode & 0o044 == 0o044, oct(props.stat().st_mode)
+    for name in ("secret-registry.json", "live-env.json"):
+        assert (live_dir / name).stat().st_mode & 0o777 == 0o600, name
 
 
 def test_execute_shape_keep_ontop_leaves_containers_and_a_failure_is_named(

@@ -110,12 +110,15 @@ under `deploy/forge/live/` (gitignored): they describe *this* environment,
 not the suite.
 
 **Credentials (CC-7).** The live directory is the one place the Forge writes
-credentials: `secret-registry.json` and `live-env.json` carry the dev-stack
-DSNs `from_env` consumes, and `ontop/<system>/ontop.properties` carries the
-JDBC password Ontop reads. They are written owner-read-only (`0600`), never
-uploaded (CI publishes `live-summary.json` and `live-report.json`, which
-hold none), and describe the compose stacks' default accounts. Nothing under
-`deploy/forge/shapes/` — the committed suite — carries a credential.
+credentials, and they are the compose stacks' default dev accounts.
+`secret-registry.json` and `live-env.json` (the DSNs `from_env` consumes) are
+written owner-read-only (`0600`). `ontop/<system>/ontop.properties` is not:
+the Ontop container runs as uid 999 and reads it through a bind mount, so on
+Linux an owner-only file is invisible to it and Ontop never starts — it is
+written like the committed `deploy/ontop/input/ontop.properties`, same
+account, same posture. Nothing is uploaded from here (CI publishes
+`live-summary.json` and `live-report.json`, which hold no credential), and
+nothing under `deploy/forge/shapes/` — the committed suite — carries one.
 
 **What live mode found on its first run (2026-09-18):** the join, chain and
 cross-leg-aggregation templates navigated a relationship predicate across
