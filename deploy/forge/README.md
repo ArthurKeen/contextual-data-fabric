@@ -41,11 +41,51 @@ descriptor with r2g's CC-12 naming and is labelled `cdf-forge-fixture` — it is
 not analyzer output, and fixture mode therefore tests the fabric's
 partition → execute → ground pipeline, not the estate's introspection.
 
-**Live mode** (nightly; S3) drives the same descriptor through the estate:
-r2g dialects deploy the schemas, RSA/ASA introspect them, r2g `export-csi` /
-`export-r2rml` produce the CSI the catalog builds from, and the goldens run
-against the gate. Nothing in the descriptor changes between modes; the fixture
-CSI becomes a drift check against the estate-produced one.
+**Live mode** (`python -m cdf.eval.forge live`; S2/S3) drives the same
+descriptor through the estate. Nothing in the descriptor changes between modes.
+
+```
+make up                                  # the local compose stacks
+python -m cdf.eval.forge live --shapes 10 --seed 421      # → deploy/forge/live/<shape>/
+CDF_FORGE_LIVE=1 pytest tests/test_forge_live_local.py    # one shape per family, asserted
+```
+
+Per shape, per system (`cdf.eval.forge.live`):
+
+1. **deploy** — r2g's dialect emits DDL and a loader for the **projection** the
+   system owns (ADR-0006 D-2): only its entities; a relationship stays a
+   constraint only when both endpoints are on the system; a parent elsewhere
+   leaves a plain `<parent>_id` column. Rows come verbatim from the one
+   synthesised dataset, so join spines agree across systems. A fresh database
+   `forge_<shape>_<system>` per system in Postgres, ClickHouse or ArangoDB
+   (targets: `CDF_FORGE_PG_DSN`, `CDF_FORGE_CLICKHOUSE_DSN`, `ARANGO_*`;
+   defaults follow the compose stacks).
+2. **introspect + export** — the estate's forward pipeline: r2g connector →
+   Auto-Map → `mapping_to_csi` / `mapping_to_r2rml` (relational), ASA
+   `analyze` → `to_csi` (ArangoDB). `source_ref` is the system name, so the
+   catalog's `<kind>:<name>` ids match the goldens.
+3. **declare** — a relationship whose parent lives elsewhere is invisible to
+   introspection (no constraint exists there), so the descriptor's
+   cross-system relationships are applied as **declared references** after
+   verifying each holds over the dataset's spine — the mechanism the demo
+   estate already uses (CRM key overlay, `cmf-refs`) and RD-3 formalises. The
+   report lists them by name, apart from what introspection found.
+4. **drift** — fixture CSI vs estate CSI, conceptual model, CC-12-normalized.
+   Zero drift on every locally deployable shape of the committed suite.
+5. **onboard** — the catalog builder over the estate artifacts with the
+   shape's **declared** capabilities on the overlay (the CC-14 probe, slice 4,
+   is what strips them), `manifest.json` that loads exactly as
+   `FederationService.from_env` loads it (`CDF_CATALOG_ROOT` names the
+   artifact root), and the secret registry JSON `from_env` consumes.
+
+Snowflake systems are **skipped by name** in this slice (local engines only);
+a shape with any skipped system is skipped whole, because its goldens assume
+every leg. Postgres legs are onboarded but listed as `pendingOntop` in
+`live-env.json`: the fabric's Postgres leg runs through Ontop, and **slice 4**
+launches one Ontop per shape over those JDBC URLs, adds their SPARQL endpoints
+to the registry, runs the CC-14 probe, and executes the goldens with
+`run_golden_live`. Live artifacts live under `deploy/forge/live/` (gitignored):
+they describe *this* environment, not the suite.
 
 ## Question families the oracle emits
 

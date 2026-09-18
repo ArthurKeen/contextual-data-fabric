@@ -29,6 +29,7 @@ from cdf.eval.forge.descriptor import (
     load_descriptor,
 )
 from cdf.eval.forge.fixture_csi import fixture_csi
+from cdf.eval.forge.live import DEFAULT_LIVE_DIR, LiveTargets, run_live_shape
 from cdf.eval.forge.oracle import compose_goldens, expected_catalog
 from cdf.eval.forge.sampler import FAMILIES, Shape, sample_shape
 from cdf.eval.forge.signoff import DEFAULT_SIGNOFF_FILE, load_signoff, signoff_status
@@ -216,6 +217,44 @@ def _cmd_suite(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def _cmd_live(args: argparse.Namespace) -> int:
+    """Live mode (S2/S3): deploy → introspect → drift → onboard each sampled
+    shape through the estate. Shapes with an unconfigured dialect are skipped
+    by name; a failed shape makes the exit status non-zero, a skipped one does
+    not (skips are a configuration fact, not a fabric regression)."""
+    targets = LiveTargets.from_env()
+    live_root = Path(args.live_out)
+    shapes = sample_suite(shapes=args.shapes, seed=args.seed)
+    if args.only:
+        shapes = [s for s in shapes if s.name in set(args.only)]
+    failures = 0
+    summary: dict[str, Any] = {"seed": args.seed, "mode": "live", "shapes": []}
+    for shape in shapes:
+        dataset = synthesize(shape, rows_per_entity=args.rows_per_entity)
+        report = run_live_shape(
+            shape, dataset, targets, live_root, rows_per_entity=args.rows_per_entity
+        )
+        summary["shapes"].append(report.to_dict())
+        drift = {r.name: r.drift for r in report.systems if r.drift}
+        if report.status == "failed":
+            failures += 1
+        mark = {"onboarded": "LIVE ", "skipped": "SKIP ", "failed": "FAIL "}[report.status]
+        detail = report.message or (
+            f"{len(report.systems)} systems onboarded"
+            + (f"; drift: {drift}" if drift else "; no drift")
+        )
+        print(f"{mark} {shape.name}  {detail}")
+    live_root.mkdir(parents=True, exist_ok=True)
+    (live_root / "live-summary.json").write_text(_json(summary), encoding="utf-8")
+    onboarded = sum(1 for r in summary["shapes"] if r["status"] == "onboarded")
+    skipped = sum(1 for r in summary["shapes"] if r["status"] == "skipped")
+    print(
+        f"\nforge-live: {onboarded} onboarded, {skipped} skipped, {failures} failed "
+        f"(reports under {live_root})"
+    )
+    return 1 if failures else 0
+
+
 def _cmd_emit(args: argparse.Namespace) -> int:
     shape = sample_shape(args.seed, args.family, name=args.name)
     emitted = emit_shape(shape, Path(args.out), rows_per_entity=args.rows_per_entity)
@@ -246,6 +285,15 @@ def _parser() -> argparse.ArgumentParser:
     e.add_argument("--out", default="deploy/forge/shapes")
     e.add_argument("--rows-per-entity", type=int, default=DEFAULT_ROWS_PER_ENTITY)
     e.set_defaults(func=_cmd_emit)
+    live = sub.add_parser(
+        "live", help="deploy → introspect → onboard sampled shapes through the estate"
+    )
+    live.add_argument("--shapes", type=int, default=10)
+    live.add_argument("--seed", type=int, default=421)
+    live.add_argument("--rows-per-entity", type=int, default=DEFAULT_ROWS_PER_ENTITY)
+    live.add_argument("--live-out", default=str(DEFAULT_LIVE_DIR))
+    live.add_argument("--only", action="append", help="run only these shape names")
+    live.set_defaults(func=_cmd_live)
     return p
 
 
